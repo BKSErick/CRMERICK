@@ -3277,9 +3277,9 @@ function deleteCurrentDeal() {
   if (!currentDealId) return;
   
   if (confirm('Tem certeza de que deseja excluir este deal permanentemente?')) {
-    deals = deals.filter(function(d) { return d.id !== currentDealId; });
+    deals = deals.filter(function(d) { return String(d.id) !== String(currentDealId); });
     if (window.parent && window.parent.deals) {
-      window.parent.deals = window.parent.deals.filter(function(d) { return d.id !== currentDealId; });
+      window.parent.deals = window.parent.deals.filter(function(d) { return String(d.id) !== String(currentDealId); });
     }
     closeDealDetail();
     renderBoard();
