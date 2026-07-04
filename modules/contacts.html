@@ -790,7 +790,11 @@ var contacts = (window.parent && window.parent.contacts) || [
 function renderTable(list) {
   var tbody = document.getElementById('contactsBody');
   tbody.innerHTML = '';
-  list.forEach(function(c) {
+  
+  var limit = 50;
+  var rendered = list.slice(0, limit);
+  
+  function appendRow(c) {
     var tr = document.createElement('tr');
     tr.innerHTML = '<td><div class="contact-cell" onclick="window.location=\'contact.html?id=' + encodeURIComponent(c.name) + '\'"><div class="contact-avatar">' + c.initials + '</div><div><div class="contact-info-name">' + c.name + '</div><div class="contact-info-company">' + c.company + '</div></div></div></td>' +
       '<td class="contact-email">' + c.email + '</td>' +
@@ -798,13 +802,30 @@ function renderTable(list) {
       '<td style="font-family:var(--font-inter);color:var(--color-charcoal);font-size:12px">' + c.company + '</td>' +
       '<td><span class="contact-status"><span class="status-dot ' + c.status + '"></span>' + c.status.charAt(0).toUpperCase() + c.status.slice(1) + '</span></td>';
     tbody.appendChild(tr);
-  });
+  }
+  
+  rendered.forEach(appendRow);
+  
+  if (list.length > limit) {
+    var tr = document.createElement('tr');
+    tr.id = 'tableLoadMoreRow';
+    tr.innerHTML = '<td colspan="5" style="text-align:center;padding:12px;background:rgba(123,104,238,0.03);cursor:pointer;color:var(--color-brand-violet);font-weight:600;">Carregar mais ' + (list.length - limit) + ' contatos...</td>';
+    tr.onclick = function() {
+      tr.remove();
+      list.slice(limit).forEach(appendRow);
+    };
+    tbody.appendChild(tr);
+  }
 }
 
 function renderGrid(list) {
   var grid = document.getElementById('gridView');
   grid.innerHTML = '';
-  list.forEach(function(c) {
+  
+  var limit = 50;
+  var rendered = list.slice(0, limit);
+  
+  function appendCard(c) {
     var card = document.createElement('div');
     card.className = 'contact-grid-card';
     card.onclick = function() { window.location = 'contact.html?id=' + encodeURIComponent(c.name); };
@@ -812,7 +833,28 @@ function renderGrid(list) {
       '<div style="text-align:center"><div class="contact-email">' + c.email + '</div><div class="contact-phone">' + c.phone + '</div></div>' +
       '<div style="text-align:center;margin-top:4px"><span class="contact-status"><span class="status-dot ' + c.status + '"></span>' + c.status.charAt(0).toUpperCase() + c.status.slice(1) + '</span></div>';
     grid.appendChild(card);
-  });
+  }
+  
+  rendered.forEach(appendCard);
+  
+  if (list.length > limit) {
+    var btnCard = document.createElement('div');
+    btnCard.className = 'contact-grid-card';
+    btnCard.style.display = 'flex';
+    btnCard.style.alignItems = 'center';
+    btnCard.style.justifyContent = 'center';
+    btnCard.style.background = 'rgba(123,104,238,0.03)';
+    btnCard.style.borderColor = 'var(--color-brand-violet)';
+    btnCard.style.borderStyle = 'dashed';
+    btnCard.style.color = 'var(--color-brand-violet)';
+    btnCard.style.fontWeight = '600';
+    btnCard.textContent = 'Carregar mais ' + (list.length - limit) + ' contatos...';
+    btnCard.onclick = function() {
+      btnCard.remove();
+      list.slice(limit).forEach(appendCard);
+    };
+    grid.appendChild(btnCard);
+  }
 }
 
 function filterContacts() {

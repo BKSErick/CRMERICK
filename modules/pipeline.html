@@ -2477,6 +2477,33 @@
 
       <div class="deal-rich-sections">
 
+        <!-- 0. Análise de Lead Outbound (Huberick) -->
+        <div class="section-block" id="huberickLeadBlock" style="display:none; border: 1px solid var(--color-cloud); border-radius: 10px; padding: 16px; background: rgba(139,92,246,0.03); margin-bottom: 12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:8px; font-weight:600; color:var(--color-brand-violet); font-size:14px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 22 22 22"/></svg>
+              <span>Prospecção Outbound — Huberick</span>
+            </div>
+            <div id="huberickScoreBadge" style="padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; font-family:var(--font-mono); background:#EF4444; color:#fff;">Score: 0</div>
+          </div>
+          <div style="font-size:13px; color:var(--color-charcoal); margin-bottom:12px;">
+            <strong>Site Avaliado:</strong> <a id="huberickSiteUrl" href="#" target="_blank" style="color:var(--color-brand-violet); text-decoration:underline; font-family:var(--font-mono);">—</a>
+          </div>
+          <div style="display:flex; gap:10px; margin-bottom:16px;">
+            <a id="huberickReportBtn" href="#" target="_blank" class="deal-header-btn" style="background:var(--color-brand-violet); color:#fff; border-color:var(--color-brand-violet); display:inline-flex; align-items:center; gap:6px; font-weight:600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Ver Relatório de Análise
+            </a>
+          </div>
+          <div id="huberickCopySection" style="display:none;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <span style="font-size:11px; font-family:var(--font-inter); font-weight:600; color:var(--color-slate); text-transform:uppercase; letter-spacing:0.04em;">Mensagem de Abordagem</span>
+              <button class="badge-action-btn" id="huberickCopyBtn" onclick="copyHuberickMessage()">Copiar Mensagem</button>
+            </div>
+            <textarea id="huberickCopyText" readonly style="width:100%; height:80px; border:1px solid var(--color-cloud); border-radius:8px; padding:10px; font-size:12.5px; font-family:var(--font-inter); color:var(--color-charcoal); background:#fff; resize:none; outline:none; line-height:1.45;"></textarea>
+          </div>
+        </div>
+
         <!-- 1. Custom Fields -->
         <div class="clickup-fields-block">
           <div class="section-header" onclick="toggleEmptyCustomFields(event)">
@@ -2840,7 +2867,23 @@ function renderBoard() {
       '<div class="kanban-cards" id="cards-' + s.id + '" data-stage="' + s.id + '"></div>';
     board.appendChild(col);
     var cardsEl = col.querySelector('.kanban-cards');
-    colDeals.forEach(function(d) { cardsEl.appendChild(createCard(d)); });
+    // Lazy rendering for column performance
+    var limit = 40;
+    var renderedDeals = colDeals.slice(0, limit);
+    renderedDeals.forEach(function(d) { cardsEl.appendChild(createCard(d)); });
+    
+    if (colDeals.length > limit) {
+      var loadMoreBtn = document.createElement('div');
+      loadMoreBtn.className = 'add-card-btn';
+      loadMoreBtn.style.borderStyle = 'solid';
+      loadMoreBtn.style.marginTop = '8px';
+      loadMoreBtn.textContent = 'Carregar mais ' + (colDeals.length - limit) + ' cards...';
+      loadMoreBtn.onclick = function() {
+        loadMoreBtn.remove();
+        colDeals.slice(limit).forEach(function(d) { cardsEl.appendChild(createCard(d)); });
+      };
+      cardsEl.appendChild(loadMoreBtn);
+    }
     // Add card button (first column only)
     if (s.id === 'prospect') {
       var addBtn = document.createElement('div');
@@ -3123,6 +3166,56 @@ function openDealDetail(dealId) {
   bindProbEdit(d);
   bindTitleEdit(d);
 
+  // População da Seção Huberick Outbound
+  var leadBlock = document.getElementById('huberickLeadBlock');
+  if (leadBlock) {
+    if (d.analysisUrl) {
+      leadBlock.style.display = 'block';
+      
+      // Update Site URL
+      var siteEl = document.getElementById('huberickSiteUrl');
+      if (d.siteUrl && d.siteUrl !== '—') {
+        siteEl.textContent = d.siteUrl;
+        siteEl.href = d.siteUrl;
+        siteEl.style.display = 'inline-block';
+      } else {
+        siteEl.textContent = 'Sem site cadastrado';
+        siteEl.removeAttribute('href');
+      }
+      
+      // Update Score Badge
+      var scoreBadge = document.getElementById('huberickScoreBadge');
+      var scoreVal = parseInt(d.points) || 0;
+      scoreBadge.textContent = 'Score: ' + scoreVal;
+      if (scoreVal === 0) {
+        scoreBadge.style.background = '#EF4444';
+      } else if (scoreVal <= 2) {
+        scoreBadge.style.background = '#F59E0B';
+      } else {
+        scoreBadge.style.background = '#10B981';
+      }
+      
+      // Update Report Button
+      var reportBtn = document.getElementById('huberickReportBtn');
+      reportBtn.href = '../' + d.analysisUrl;
+      
+      // Update Copy Message
+      var copySection = document.getElementById('huberickCopySection');
+      var copyTextEl = document.getElementById('huberickCopyText');
+      if (d.copyText) {
+        copySection.style.display = 'block';
+        var localUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/modules/')) + '/' + d.analysisUrl;
+        var customCopy = d.copyText.replace(/\[COLE_O_LINK_DA_PAGINA\]/g, localUrl);
+        copyTextEl.value = customCopy;
+      } else {
+        copySection.style.display = 'none';
+        copyTextEl.value = '';
+      }
+    } else {
+      leadBlock.style.display = 'none';
+    }
+  }
+
   document.getElementById('dealDetailModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   document.getElementById('dealDetailModal').setAttribute('data-current-deal', dealId);
@@ -3135,6 +3228,29 @@ function closeDealDetail() {
   document.getElementById('ddTrack').textContent = '● Start';
   document.getElementById('ddTrack').classList.remove('track-active');
   trackSeconds = 0;
+}
+
+function copyHuberickMessage() {
+  var textarea = document.getElementById('huberickCopyText');
+  if (!textarea) return;
+  
+  textarea.select();
+  textarea.setSelectionRange(0, 99999);
+  
+  navigator.clipboard.writeText(textarea.value).then(function() {
+    var btn = document.getElementById('huberickCopyBtn');
+    var oldText = btn.textContent;
+    btn.textContent = 'Copiado!';
+    btn.style.background = 'var(--color-success)';
+    btn.style.color = '#fff';
+    setTimeout(function() {
+      btn.textContent = oldText;
+      btn.style.background = '';
+      btn.style.color = '';
+    }, 2000);
+  }).catch(function(err) {
+    console.error('Failed to copy: ', err);
+  });
 }
 
 function renderActivityFeed(acts) {
