@@ -1,0 +1,15 @@
+# Segredos / credenciais — NUNCA commitar
+js/config.js
+.env
+.env.*
+
+# Dados de leads (telefones reais do banco Garimpo) — não commitar
+js/garimpo-leads.json
+js/disparo-data.json
+
+# Node
+node_modules/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -271,9 +271,12 @@
   display: flex;
   gap: 14px;
   padding-bottom: 12px;
+  height: calc(100vh - var(--topbar-h) - 170px);
   min-height: calc(100vh - var(--topbar-h) - 170px);
+  max-height: calc(100vh - var(--topbar-h) - 170px);
   align-items: flex-start;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
 }
@@ -305,7 +308,10 @@
   border: 1px solid var(--color-cloud);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  height: calc(100vh - 220px);
   min-height: 400px;
+  max-height: calc(100vh - 220px);
   min-width: 320px;
   max-width: 400px;
   flex: 1 0 320px;
@@ -341,7 +347,9 @@
 .kanban-cards {
   padding: 8px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -668,6 +676,42 @@
   transition: border-color var(--duration-fast) ease, color var(--duration-fast) ease;
 }
 .deal-header-btn:hover { border-color: var(--color-brand-violet); color: var(--color-brand-violet); }
+
+.crm-toast-stack {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.crm-toast {
+  min-width: 240px;
+  max-width: 320px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(17, 24, 39, 0.96);
+  color: #fff;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+  font-size: 13px;
+  font-family: var(--font-inter);
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.crm-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.crm-toast.success {
+  background: rgba(18, 104, 62, 0.96);
+}
+.crm-toast.error {
+  background: rgba(153, 27, 27, 0.96);
+}
 .deal-header-close {
   position: absolute;
   top: 24px; right: 24px;
@@ -1888,17 +1932,17 @@
 .objection-card-text { color: var(--color-charcoal); }
 
 @media (max-width: 1180px) {
-  .kanban-column { min-width: 280px; max-width: 340px; flex: 1 0 300px; }
+  .kanban-column { min-width: 280px; max-width: 340px; flex: 1 0 300px; height: calc(100vh - 210px); max-height: calc(100vh - 210px); }
 }
 @media (max-width: 768px) {
   .main { padding: 12px; }
   .topbar-search { width: 120px; }
   .topbar-breadcrumb { display: none; }
-  .kanban-column { min-width: 280px; max-width: 90vw; flex: 1 0 85vw; }
+  .kanban-column { min-width: 280px; max-width: 90vw; flex: 1 0 85vw; height: calc(100vh - 190px); max-height: calc(100vh - 190px); }
   .filterbar { flex-direction: column; align-items: flex-start; gap: 10px; }
 }
 @media (max-width: 720px) {
-  .kanban-column { min-width: 260px; max-width: 85vw; flex: 1 0 80vw; }
+  .kanban-column { min-width: 260px; max-width: 85vw; flex: 1 0 80vw; height: calc(100vh - 180px); max-height: calc(100vh - 180px); }
   .filter-group { width: 100%; }
   .member-stack { flex-wrap: wrap; }
 }
@@ -2426,7 +2470,7 @@
           <input class="deal-title" id="ddTitle" value="Carregando…" spellcheck="false" />
         </div>
         <div class="deal-header-actions">
-          <button class="deal-header-btn" onclick="deleteCurrentDeal()" style="color: var(--color-danger); border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.04); font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+          <button id="dealDeleteBtn" data-delete-deal="true" type="button" class="deal-header-btn" onclick="deleteCurrentDeal()" style="color: var(--color-danger); border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.04); font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
             Excluir
           </button>
@@ -2491,10 +2535,18 @@
             </div>
             <div id="huberickScoreBadge" style="padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; font-family:var(--font-mono); background:#EF4444; color:#fff;">Score: 0</div>
           </div>
-          <div style="font-size:13px; color:var(--color-charcoal); margin-bottom:12px;">
+          <div style="font-size:13px; color:var(--color-charcoal); margin-bottom:8px;">
             <strong>Site Avaliado:</strong> <a id="huberickSiteUrl" href="#" target="_blank" style="color:var(--color-brand-violet); text-decoration:underline; font-family:var(--font-mono);">—</a>
           </div>
-          <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <div style="font-size:13px; color:var(--color-charcoal); margin-bottom:12px; display:flex; gap:16px; flex-wrap:wrap;">
+            <span><strong>Telefone:</strong> <span id="huberickPhone" style="font-family:var(--font-mono);">—</span></span>
+            <span id="huberickCityWrap" style="display:none;"><strong>Local:</strong> <span id="huberickCity"></span></span>
+          </div>
+          <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+            <a id="huberickWaBtn" href="#" target="_blank" class="deal-header-btn" style="display:none; background:#25d366; color:#fff; border-color:#25d366; align-items:center; gap:6px; font-weight:600;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.85 7.85 0 0 0 12 4a7.94 7.94 0 0 0-6.9 11.9L4 20l4.2-1.1A7.9 7.9 0 0 0 12 20a7.94 7.94 0 0 0 5.6-13.7zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.24-.15-2.5.66.67-2.44-.16-.25A6.6 6.6 0 1 1 12 18.5zm3.6-4.95c-.2-.1-1.17-.58-1.35-.64s-.31-.1-.44.1-.5.64-.62.77-.23.15-.43.05a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.37c-.12-.2 0-.31.09-.41s.2-.23.3-.35a1.35 1.35 0 0 0 .2-.33.37.37 0 0 0 0-.35c0-.1-.44-1.06-.6-1.45s-.32-.33-.44-.34h-.37a.72.72 0 0 0-.52.24 2.17 2.17 0 0 0-.68 1.62 3.77 3.77 0 0 0 .79 2 8.63 8.63 0 0 0 3.3 2.92c.46.2.82.32 1.1.41a2.66 2.66 0 0 0 1.22.08 2 2 0 0 0 1.3-.92 1.62 1.62 0 0 0 .12-.92c-.05-.08-.18-.13-.38-.23z"/></svg>
+              Enviar WhatsApp
+            </a>
             <a id="huberickReportBtn" href="#" target="_blank" class="deal-header-btn" style="background:var(--color-brand-violet); color:#fff; border-color:var(--color-brand-violet); display:inline-flex; align-items:center; gap:6px; font-weight:600;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               Ver Relatório de Análise
@@ -2755,6 +2807,7 @@
     </div>
   </div>
 </div>
+<div class="crm-toast-stack" id="crmToastStack"></div>
 
 <script>
 var stages = (window.parent && window.parent.stages) || [
@@ -3130,6 +3183,49 @@ var currentDealId = null;
 var trackInterval = null;
 var trackSeconds = 0;
 
+function showToast(message, type) {
+  var stack = document.getElementById('crmToastStack');
+  if (!stack) return;
+  var toast = document.createElement('div');
+  toast.className = 'crm-toast' + (type ? ' ' + type : '');
+  toast.textContent = message;
+  stack.appendChild(toast);
+  requestAnimationFrame(function() { toast.classList.add('show'); });
+  setTimeout(function() {
+    toast.classList.remove('show');
+    setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 180);
+  }, 2200);
+}
+
+function syncDealsState() {
+  try {
+    localStorage.setItem('crm_erick_deals', JSON.stringify(deals));
+  } catch (e) {
+    console.error(e);
+  }
+  if (window.parent) {
+    window.parent.deals = deals;
+  }
+}
+
+function removeDealById(dealId) {
+  var normalizedId = String(dealId);
+  if (!normalizedId) return false;
+  var removedDeal = deals.find(function(d) { return String(d.id) === normalizedId; });
+  var nextDeals = deals.filter(function(d) { return String(d.id) !== normalizedId; });
+  if (nextDeals.length === deals.length) return false;
+  deals = nextDeals;
+  delete activityData[normalizedId];
+  delete activityData[Number(normalizedId)];
+  syncDealsState();
+  if (String(currentDealId) === normalizedId) {
+    closeDealDetail();
+  }
+  renderBoard();
+  showToast('Lead excluido: ' + (removedDeal ? removedDeal.name : '#' + normalizedId), 'success');
+  return true;
+}
+
 function openDealDetail(dealId) {
   currentDealId = dealId;
   var d = deals.find(function(x) { return x.id === dealId; });
@@ -3217,6 +3313,22 @@ function openDealDetail(dealId) {
       // Update Report Button
       var reportBtn = document.getElementById('huberickReportBtn');
       reportBtn.href = '../' + d.analysisUrl;
+
+      // Telefone + botão de WhatsApp (abre a conversa do lead com a mensagem pronta)
+      var phoneEl = document.getElementById('huberickPhone');
+      if (phoneEl) phoneEl.textContent = (d.phone && d.phone !== '—') ? d.phone : 'Sem telefone';
+      var waBtn = document.getElementById('huberickWaBtn');
+      if (waBtn) {
+        var waNum = d.whatsapp ? (d.whatsapp.match(/wa\.me\/(\d+)/) || [])[1] : null;
+        if (waNum) {
+          var waLocalUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/modules/')) + '/' + d.analysisUrl;
+          var waMsg = (d.copyText || d.message || '').replace(/\[COLE_O_LINK_DA_PAGINA\]/g, waLocalUrl);
+          waBtn.href = 'https://wa.me/' + waNum + (waMsg ? ('?text=' + encodeURIComponent(waMsg)) : '');
+          waBtn.style.display = 'inline-flex';
+        } else {
+          waBtn.style.display = 'none';
+        }
+      }
       
       // Update Copy Message
       var copySection = document.getElementById('huberickCopySection');
@@ -3243,8 +3355,10 @@ function openDealDetail(dealId) {
 function closeDealDetail() {
   document.getElementById('dealDetailModal').classList.remove('open');
   document.body.style.overflow = '';
+  document.getElementById('dealDetailModal').removeAttribute('data-current-deal');
+  currentDealId = null;
   if (trackInterval) { clearInterval(trackInterval); trackInterval = null; }
-  document.getElementById('ddTrack').textContent = '● Start';
+  document.getElementById('ddTrack').textContent = 'Start';
   document.getElementById('ddTrack').classList.remove('track-active');
   trackSeconds = 0;
 }
@@ -3273,16 +3387,19 @@ function copyHuberickMessage() {
 }
 
 function deleteCurrentDeal() {
-  var currentDealId = document.getElementById('dealDetailModal').getAttribute('data-current-deal');
-  if (!currentDealId) return;
-  
+  var modal = document.getElementById('dealDetailModal');
+  var dealId = modal ? modal.getAttribute('data-current-deal') : '';
+  if (!dealId && currentDealId != null) dealId = currentDealId;
+  if (!dealId) {
+    showToast('Nao foi possivel identificar o lead para exclusao.', 'error');
+    return;
+  }
+
   if (confirm('Tem certeza de que deseja excluir este deal permanentemente?')) {
-    deals = deals.filter(function(d) { return String(d.id) !== String(currentDealId); });
-    if (window.parent && window.parent.deals) {
-      window.parent.deals = window.parent.deals.filter(function(d) { return String(d.id) !== String(currentDealId); });
+    var removed = removeDealById(dealId);
+    if (!removed) {
+      showToast('Esse lead nao foi encontrado na lista atual.', 'error');
     }
-    closeDealDetail();
-    renderBoard();
   }
 }
 
@@ -4044,9 +4161,7 @@ function dealMoreOptions() {
       menu.remove();
       var dealId = parseInt(document.getElementById('dealDetailModal').getAttribute('data-current-deal'), 10);
       if (i === 1 || i === 2) { // Arquivar / Excluir
-        deals = deals.filter(function(d) { return d.id !== dealId; });
-        closeDealDetail();
-        renderBoard();
+        removeDealById(dealId);
       } else {
         addActivity(dealId, label.toLowerCase());
       }
@@ -4897,3 +5012,4 @@ if (stageParam && stages.some(function(s) { return s.id === stageParam; })) {
 </script>
 </body>
 </html>
+

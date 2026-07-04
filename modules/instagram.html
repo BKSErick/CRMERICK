@@ -1089,36 +1089,36 @@
   <div class="profile-composition">
     <div class="profile-avatar-wrap">
       <div class="profile-avatar-ring">
-        <div class="profile-avatar-inner">AB</div>
+        <div class="profile-avatar-inner" id="igAvatarInner">AB</div>
       </div>
       <div class="profile-verified-badge">
         <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
       </div>
     </div>
     <div class="profile-editorial">
-      <div class="profile-name">Alpha Business Academy</div>
-      <div class="profile-handle">@alphabusiness.aba</div>
-      <div class="profile-reading">
+      <div class="profile-name" id="igProfileName">Alpha Business Academy</div>
+      <div class="profile-handle" id="igProfileHandle">@alphabusiness.aba</div>
+      <div class="profile-reading" id="igProfileBio">
         Canal de educação em negócios, estratégia e alta performance. Conteúdo dividido entre Reels de diagnóstico rápido, Carrosséis de aprofundamento e teor operacional de bastidores. Audiência majoritariamente profissional (25–45 anos), com pico de atenção noturno e alto índice de salvamentos em conteúdo de método.
       </div>
       <div class="profile-metrics-row">
         <div class="profile-metric">
-          <span class="profile-metric-value">18.4K</span>
+          <span class="profile-metric-value" id="igFollowers">18.4K</span>
           <span class="profile-metric-label">Seguidores</span>
-          <span class="profile-metric-trend up">▲ 5,4%</span>
+          <span class="profile-metric-trend up" id="igFollowersTrend">▲ 5,4%</span>
         </div>
         <div class="profile-metric">
-          <span class="profile-metric-value">24</span>
+          <span class="profile-metric-value" id="igPosts30">24</span>
           <span class="profile-metric-label">Posts (30d)</span>
         </div>
         <div class="profile-metric">
-          <span class="profile-metric-value">245.8K</span>
+          <span class="profile-metric-value" id="igReach30">245.8K</span>
           <span class="profile-metric-label">Alcance (30d)</span>
         </div>
         <div class="profile-metric">
-          <span class="profile-metric-value">4,8%</span>
+          <span class="profile-metric-value" id="igEngagement">4,8%</span>
           <span class="profile-metric-label">Engajamento</span>
-          <span class="profile-metric-trend up">▲ 0,7pp</span>
+          <span class="profile-metric-trend up" id="igEngagementTrend">▲ 0,7pp</span>
         </div>
       </div>
     </div>
@@ -1564,6 +1564,8 @@ document.addEventListener('click', function(e) {
   }
 });
 
+window.IG_DATA = IG_DATA;
+window.renderPostRanking = renderPostRanking;
 renderPostRanking();
 initCharts();
 
@@ -1583,6 +1585,10 @@ if (!REDUCED_MOTION) {
   })();
 }
 </script>
+
+<!-- Integração Meta Graph (dados reais do Instagram). config.js é gitignored. -->
+<script src="../js/config.js?v=20260704"></script>
+<script src="../js/instagram-live.js?v=20260704"></script>
 
 <!-- Palette overlay -->
 <div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">

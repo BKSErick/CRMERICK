@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="../hub.css" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --signal-violet: rgba(123,104,238,0.08);
@@ -102,6 +101,60 @@
 }
 .chart-wrap canvas {
   width: 100% !important;
+}
+.chart-fallback {
+  display: none;
+  min-height: 280px;
+  border: 1px dashed var(--color-cloud);
+  border-radius: 16px;
+  padding: 20px;
+  background: linear-gradient(180deg, rgba(123,104,238,0.04), rgba(0,145,255,0.02));
+}
+.chart-fallback.open {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+}
+.chart-fallback-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-charcoal);
+}
+.chart-fallback-desc {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.chart-fallback-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.chart-fallback-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 12px;
+  padding: 14px;
+}
+.chart-fallback-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  margin-bottom: 6px;
+}
+.chart-fallback-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.chart-fallback-trend {
+  margin-top: 4px;
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-success);
 }
 
 /* ======================
@@ -807,6 +860,29 @@
     </div>
     <div class="chart-wrap">
       <canvas id="trendChart"></canvas>
+      <div class="chart-fallback" id="trendChartFallback">
+        <div>
+          <div class="chart-fallback-title">Resumo temporal indisponivel no grafico</div>
+          <div class="chart-fallback-desc">O ambiente bloqueou o carregamento do motor do grafico. Os indicadores abaixo continuam disponiveis para leitura rapida.</div>
+        </div>
+        <div class="chart-fallback-grid">
+          <div class="chart-fallback-card">
+            <div class="chart-fallback-label">Leads</div>
+            <div class="chart-fallback-value">142</div>
+            <div class="chart-fallback-trend">+42% vs inicio</div>
+          </div>
+          <div class="chart-fallback-card">
+            <div class="chart-fallback-label">Conversas</div>
+            <div class="chart-fallback-value">52</div>
+            <div class="chart-fallback-trend">+30% nas ultimas 4 semanas</div>
+          </div>
+          <div class="chart-fallback-card">
+            <div class="chart-fallback-label">Propostas</div>
+            <div class="chart-fallback-value">18</div>
+            <div class="chart-fallback-trend">Pico recente de 3x a media</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -950,7 +1026,24 @@
   });
 
   // Chart
-  var ctx = document.getElementById('trendChart').getContext('2d');
+  var canvas = document.getElementById('trendChart');
+  var chartFallback = document.getElementById('trendChartFallback');
+  var resizeChart = function() {
+    var chartWrap = document.querySelector('.chart-wrap');
+    if (chartWrap) {
+      chartWrap.style.height = '280px';
+    }
+  };
+  resizeChart();
+  window.addEventListener('resize', resizeChart);
+
+  if (!canvas || typeof Chart === 'undefined') {
+    if (canvas) canvas.style.display = 'none';
+    if (chartFallback) chartFallback.classList.add('open');
+    return;
+  }
+
+  var ctx = canvas.getContext('2d');
   var gradientLeads = ctx.createLinearGradient(0, 0, 0, 280);
   gradientLeads.addColorStop(0, 'rgba(123,104,238,0.12)');
   gradientLeads.addColorStop(1, 'rgba(123,104,238,0)');
@@ -1066,15 +1159,6 @@
     }
   });
 
-  // Auto-resize chart canvas
-  var resizeChart = function() {
-    var chartWrap = document.querySelector('.chart-wrap');
-    if (chartWrap) {
-      chartWrap.style.height = '280px';
-    }
-  };
-  resizeChart();
-  window.addEventListener('resize', resizeChart);
 })();
 </script>
 

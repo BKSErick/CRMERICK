@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Central de Disparo — Hub Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="hub.css" />
+<style>
+  body { background: var(--color-paper); }
+  .disp-wrap { max-width: 1080px; margin: 0 auto; padding: 28px 24px 80px; }
+  .disp-head h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .disp-head .sub { font-size: 13px; color: var(--color-slate); font-family: var(--font-inter); margin-top: 4px; }
+  .disp-stats { display: flex; gap: 20px; margin: 18px 0 20px; flex-wrap: wrap; }
+  .disp-stat { background: var(--color-pure-white); border: 1px solid var(--color-cloud); border-radius: 10px; padding: 12px 18px; }
+  .disp-stat b { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; display: block; }
+  .disp-stat span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-slate); font-family: var(--font-inter); }
+  .disp-controls { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; position: sticky; top: 0; background: var(--color-paper); padding: 10px 0; z-index: 5; }
+  .disp-controls input, .disp-controls select { font: 500 13px var(--font-inter); padding: 9px 12px; border: 1px solid var(--color-cloud); border-radius: 8px; background: var(--color-pure-white); color: var(--color-midnight-ink); }
+  .disp-controls input#q { flex: 1; min-width: 200px; }
+  .lead { background: var(--color-pure-white); border: 1px solid var(--color-cloud); border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; transition: box-shadow 150ms; }
+  .lead:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+  .lead-top { display: flex; align-items: flex-start; gap: 12px; }
+  .lead-info { flex: 1; min-width: 0; }
+  .lead-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .lead-meta { font-size: 12px; color: var(--color-slate); font-family: var(--font-inter); margin-top: 3px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .lead-meta a { color: var(--color-signal-blue); }
+  .score-badge { flex-shrink: 0; width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; font-size: 16px; color: #fff; }
+  .lead-msg { margin-top: 12px; font-size: 13px; font-family: var(--font-inter); color: var(--color-charcoal); line-height: 1.55; background: var(--color-paper); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; max-height: 120px; overflow: hidden; position: relative; cursor: pointer; }
+  .lead-msg.expanded { max-height: none; }
+  .lead-msg.clip::after { content: 'ver mais ▾'; position: absolute; bottom: 0; right: 0; background: linear-gradient(90deg, transparent, var(--color-paper) 40%); padding: 2px 10px 4px 30px; font-size: 11px; color: var(--color-brand-violet); font-weight: 600; }
+  .lead-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; font: 600 13px var(--font-plus-jakarta); padding: 9px 16px; border-radius: 8px; border: 1px solid var(--color-cloud); background: var(--color-pure-white); color: var(--color-charcoal); cursor: pointer; text-decoration: none; }
+  .btn.wa { background: #25d366; color: #fff; border-color: #25d366; }
+  .btn.wa:hover { background: #1fb457; }
+  .btn:hover { border-color: var(--color-brand-violet); }
+  .btn.nophone { background: var(--color-linen); color: var(--color-slate); cursor: not-allowed; border-color: var(--color-linen); }
+  .empty { text-align: center; padding: 60px 20px; color: var(--color-slate); font-family: var(--font-inter); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--color-midnight-ink); color: #fff; padding: 10px 18px; border-radius: 8px; font: 500 13px var(--font-inter); opacity: 0; transition: opacity 200ms; pointer-events: none; z-index: 99; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="disp-wrap">
+  <div class="disp-head">
+    <h1>Central de Disparo — WhatsApp</h1>
+    <div class="sub">Cada lead com telefone real (banco Garimpo) + a mensagem de abertura. Clique em <b>WhatsApp</b> pra abrir a conversa com o texto já pronto.</div>
+  </div>
+
+  <div class="disp-stats">
+    <div class="disp-stat"><b id="stTotal">—</b><span>Leads</span></div>
+    <div class="disp-stat"><b id="stReady">—</b><span>Prontos (tel + msg)</span></div>
+    <div class="disp-stat"><b id="stShown">—</b><span>Exibindo</span></div>
+  </div>
+
+  <div class="disp-controls">
+    <input id="q" type="search" placeholder="Buscar por nome, cidade, telefone…" autocomplete="off" />
+    <select id="uf"><option value="">Todos os estados</option></select>
+    <select id="status"><option value="">Todos os status</option><option value="qualificado">Qualificado</option><option value="extraido">Extraído</option></select>
+    <select id="filterReady"><option value="ready">Só prontos p/ disparo</option><option value="phone">Com telefone</option><option value="all">Todos</option></select>
+    <select id="sort"><option value="score">Ordenar: Score ↓</option><option value="name">Nome A-Z</option></select>
+  </div>
+
+  <div id="list"></div>
+  <div id="empty" class="empty" style="display:none;">Nenhum lead com esses filtros.</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let DATA = [];
+const $ = s => document.querySelector(s);
+
+function scoreColor(s) {
+  if (s >= 80) return '#2e7d32';
+  if (s >= 60) return '#0091ff';
+  if (s >= 40) return '#ed6c02';
+  return '#646464';
+}
+function cityUF(addr) {
+  if (!addr) return '';
+  const m = addr.match(/([A-Za-zÀ-ÿ\s]+)\s*-\s*([A-Z]{2})\b/);
+  return m ? (m[1].trim() + ' - ' + m[2]) : '';
+}
+function ufOf(addr) { const m = (addr||'').match(/-\s*([A-Z]{2})\b/); return m ? m[1] : ''; }
+function waLink(phone, msg) { return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg); }
+
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1600); }
+
+function render() {
+  const q = $('#q').value.toLowerCase().trim();
+  const uf = $('#uf').value, st = $('#status').value, fr = $('#filterReady').value, sort = $('#sort').value;
+  let rows = DATA.filter(d => {
+    if (fr === 'ready' && !(d.phone && d.message)) return false;
+    if (fr === 'phone' && !d.phone) return false;
+    if (uf && ufOf(d.address) !== uf) return false;
+    if (st && d.status !== st) return false;
+    if (q) { const hay = (d.name + ' ' + d.address + ' ' + d.phoneRaw).toLowerCase(); if (!hay.includes(q)) return false; }
+    return true;
+  });
+  rows.sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : (b.score - a.score));
+
+  $('#stShown').textContent = rows.length;
+  const list = $('#list');
+  if (!rows.length) { list.innerHTML = ''; $('#empty').style.display = 'block'; return; }
+  $('#empty').style.display = 'none';
+
+  list.innerHTML = rows.slice(0, 400).map(d => {
+    const city = cityUF(d.address);
+    const hasMsg = !!d.message;
+    const waBtn = d.phone
+      ? `<a class="btn wa" target="_blank" href="${waLink(d.phone, d.message || ('Oi! Falo do trabalho de presença digital. Posso te mostrar uma análise rápida do site da ' + d.name + '?'))}">📱 WhatsApp</a>`
+      : `<span class="btn nophone">sem telefone</span>`;
+    const copyBtn = hasMsg ? `<button class="btn" onclick='copyMsg(this)' data-msg="${encodeURIComponent(d.message)}">📋 Copiar msg</button>` : '';
+    const site = d.website ? `<a href="${d.website}" target="_blank">site</a>` : '';
+    const audit = d.auditFile ? `<a href="${d.auditFile}" target="_blank">auditoria</a>` : '';
+    const phoneShow = d.phoneRaw || (d.phone ? '+' + d.phone : 'sem telefone');
+    return `<div class="lead">
+      <div class="lead-top">
+        <div class="lead-info">
+          <div class="lead-name">${d.name}</div>
+          <div class="lead-meta"><span>📞 ${phoneShow}</span>${city ? '<span>📍 ' + city + '</span>' : ''}<span>${d.status}</span>${site}${audit}</div>
+        </div>
+        <div class="score-badge" style="background:${scoreColor(d.score)}">${d.score || '—'}</div>
+      </div>
+      ${hasMsg ? `<div class="lead-msg clip" onclick="this.classList.toggle('expanded');this.classList.remove('clip')">${d.message.replace(/</g,'&lt;')}</div>` : '<div class="lead-meta" style="margin-top:8px;color:var(--color-warning)">⚠ sem mensagem de abertura casada</div>'}
+      <div class="lead-actions">${waBtn}${copyBtn}</div>
+    </div>`;
+  }).join('') + (rows.length > 400 ? `<div class="empty">Mostrando 400 de ${rows.length}. Refine a busca.</div>` : '');
+}
+
+function copyMsg(btn) {
+  const msg = decodeURIComponent(btn.getAttribute('data-msg'));
+  navigator.clipboard.writeText(msg).then(() => toast('Mensagem copiada ✓'));
+}
+window.copyMsg = copyMsg;
+
+fetch('./js/disparo-data.json')
+  .then(r => r.json())
+  .then(d => {
+    DATA = d;
+    $('#stTotal').textContent = d.length;
+    $('#stReady').textContent = d.filter(x => x.phone && x.message).length;
+    const ufs = [...new Set(d.map(x => ufOf(x.address)).filter(Boolean))].sort();
+    $('#uf').insertAdjacentHTML('beforeend', ufs.map(u => `<option value="${u}">${u}</option>`).join(''));
+    ['q', 'uf', 'status', 'filterReady', 'sort'].forEach(id => $('#' + id).addEventListener('input', render));
+    render();
+  })
+  .catch(e => { $('#list').innerHTML = '<div class="empty">Erro ao carregar disparo-data.json. Abra via localhost (não file://).<br>' + e.message + '</div>'; });
+</script>
+</body>
+</html>

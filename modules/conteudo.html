@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Conteúdo — Hub Operacional</title>
+<title>Conteudo - Hub Operacional</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -22,7 +22,7 @@
 .format-pill.reels { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
 .format-pill.carrossel { background: rgba(123,104,238,0.1); color: var(--color-brand-violet); }
 .format-pill.estatico { background: rgba(100,100,100,0.1); color: var(--color-slate); }
-.format-pill.video { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.format-pill.video { background: rgba(245,158,11,0.10); color: var(--color-warning); }
 .status-conteudo {
   display: inline-flex;
   align-items: center;
@@ -186,7 +186,7 @@
   margin-top: -10px;
   margin-bottom: 14px;
 }
-/* Palette — Busca Global */
+/* Palette ?f??,??,??" Busca Global */
 .palette-overlay {
   position: fixed;
   inset: 0;
@@ -208,7 +208,7 @@
 }
 .palette {
   width: 680px;
-  max-width: calc(100vw - 48px);
+  max-width: calc(100vw - 5/sempx);
   max-height: 70vh;
   background: var(--color-pure-white);
   border-radius: 14px;
@@ -370,7 +370,7 @@
 .palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
 .palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
 .palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
-.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.decision { background: rgba(245,158,11,0.08); color: var(--color-warning); }
 .palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
 .palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
 .palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
@@ -436,7 +436,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 20px;
+  padding: 5/sempx 20px;
   text-align: center;
 }
 .palette-empty-icon {
@@ -497,6 +497,196 @@
   .topbar-search-btn kbd { display: none; }
   .topbar-search-btn { padding: 6px 10px; }
 }
+.copy-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 12, 29, 0.60);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1200;
+}
+.copy-modal {
+  width: min(760px, 100%);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+}
+.copy-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--color-cloud);
+}
+.copy-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.copy-modal-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.copy-modal-body {
+  padding: 20px 22px 22px;
+}
+.copy-modal-text {
+  width: 100%;
+  min-height: 360px;
+  resize: vertical;
+  border: 1px solid var(--color-cloud);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--color-paper);
+  color: var(--color-charcoal);
+  font: 500 13px/1.6 var(--font-inter);
+}
+.copy-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+.copy-modal-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  color: var(--color-charcoal);
+  font: 600 12px/1 var(--font-inter);
+  cursor: pointer;
+}
+.copy-modal-btn.primary {
+  background: var(--color-midnight-ink);
+  border-color: var(--color-midnight-ink);
+  color: var(--color-pure-white);
+}
+.copy-modal-toast {
+  margin-right: auto;
+  align-self: center;
+  font: 600 12px/1 var(--font-inter);
+  color: var(--color-success);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.copy-modal-toast.show {
+  opacity: 1;
+}
+@media (max-width: 768px) {
+  .copy-modal-overlay {
+    padding: 12px;
+  }
+  .copy-modal {
+    width: 100%;
+  }
+  .copy-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .copy-modal-actions {
+    flex-wrap: wrap;
+  }
+  .copy-modal-btn {
+    flex: 1 1 140px;
+  }
+}
+.content-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 12, 29, 0.60);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1300;
+}
+.content-modal-overlay.open {
+  display: flex;
+}
+.content-modal {
+  width: min(820px, 100%);
+  max-height: 88vh;
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.content-modal-header {
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+}
+.content-modal-kicker {
+  font: 600 11px/1 var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  margin-bottom: 8px;
+}
+.content-modal-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.content-modal-body {
+  padding: 18px 22px 22px;
+  overflow-y: auto;
+}
+.content-modal-text {
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--color-cloud);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--color-paper);
+  color: var(--color-charcoal);
+  font: 500 13px/1.6 var(--font-inter);
+  resize: vertical;
+}
+.content-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.content-modal-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  color: var(--color-charcoal);
+  font: 600 12px/1 var(--font-inter);
+  cursor: pointer;
+}
+.content-modal-btn.primary {
+  background: var(--color-midnight-ink);
+  border-color: var(--color-midnight-ink);
+  color: var(--color-pure-white);
+}
+.content-modal-toast {
+  margin-right: auto;
+  align-self: center;
+  font: 600 12px/1 var(--font-inter);
+  color: var(--color-success);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.content-modal-toast.show {
+  opacity: 1;
+}
 </style>
 </head>
 <body>
@@ -511,10 +701,10 @@
     </div>
   </div>
   <nav class="sidebar-nav">
-    <div class="sidebar-group-label">Navegação</div>
+    <div class="sidebar-group-label">Navegacao</div>
     <a class="nav-item" href="home.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      Início
+      Inicio
     </a>
     <a class="nav-item" href="north-star.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
@@ -542,7 +732,7 @@
     </a>
     <a class="nav-item active" href="conteudo.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      Conteúdo
+      Conteudo
     </a>
     <a class="nav-item" href="brandbook.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -557,25 +747,25 @@
       Sinais
     </a>
     <a class="nav-item" href="instagram.html">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.5A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.5z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
       Instagram
     </a>
-    <div class="sidebar-group-label">Gestão</div>
+    <div class="sidebar-group-label">Gestao</div>
     <a class="nav-item" href="carteira.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
       Carteira
     </a>
     <a class="nav-item" href="calendar.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Calendário
+      Calendario
     </a>
     <a class="nav-item" href="reunioes.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Reuniões
+      Reunioes
     </a>
     <a class="nav-item" href="configuracoes.html">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Configurações
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l-.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configuracoes
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -592,319 +782,154 @@
   <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <span class="topbar-breadcrumb">Hub Operacional / <span>Conteúdo</span></span>
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Conteudo</span></span>
   <div class="topbar-spacer"></div>
   <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    Buscar…
-    <kbd><span>⌘</span>K</kbd>
+    Buscar
+    <kbd><span>Ctrl</span>K</kbd>
   </button>
-  <input class="topbar-search" type="search" placeholder="Buscar conteúdo…" />
-  <button class="topbar-btn primary" onclick="alert('Novo post criado')">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Novo conteúdo
-  </button>
+  <input class="topbar-search" type="search" placeholder="Buscar conteudo" />
 </header>
-
 <!-- Main -->
 <main class="main">
-
-  <!-- Page header -->
   <div class="page-header">
     <div class="page-header-left">
-      <h1>Conteúdo</h1>
-      <div class="subtitle">Calendário editorial, performance de conteúdo e ligação entre conteúdo e funil.</div>
+      <h1>Conteudo</h1>
+      <div class="subtitle">Calendario editorial real da semana do Erick. Sem performance mock, sem funil fake e sem texto quebrado.</div>
     </div>
     <div class="page-header-right">
-      <div class="label">Posts no mês</div>
-      <div class="value text-violet">48</div>
+      <div class="label">Fonte</div>
+      <div class="value text-violet">Plano editorial</div>
     </div>
   </div>
-
-  <!-- Filter bar -->
-  <div class="filterbar">
-    <div class="source-toggle" style="margin-left:0">
-      <button class="active">Consolidado</button>
-      <button>Por origem</button>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header">
+      <span class="card-title">Diretrizes da semana</span>
+      <span class="card-badge">R$0</span>
     </div>
-    <div class="filter-group">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <select>
-        <option>Junho 2026</option>
-        <option>Maio 2026</option>
-        <option>Abril 2026</option>
-        <option>Personalizado</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
-      <select>
-        <option>Todas as campanhas</option>
-        <option>Lançamento Produto</option>
-        <option>Brand Awareness</option>
-        <option>Funil de Vendas</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <select>
-        <option>Todos os formatos</option>
-        <option>Reels</option>
-        <option>Carrossel</option>
-        <option>Estático</option>
-        <option>Vídeo</option>
-        <option>Texto</option>
-      </select>
+    <div class="card-body" style="display:grid;gap:10px">
+      <div class="funnel-link-card">
+        <div class="section-subtitle" style="margin:0">Base real do plano</div>
+        <div class="funnel-link-content">Flywheel entre Garimpo, outbound manual e conteudo build in public.</div>
+        <div class="funnel-link-attr">Meta de execucao: 5 posts por semana, 2 a 3 reels por semana e 10 a 20 contatos frios por dia.</div>
+      </div>
+      <div class="funnel-link-card">
+        <div class="section-subtitle" style="margin:0">CTA padrao</div>
+        <div class="funnel-link-content">Comenta MAQUINA que eu mando o diagnostico do gargalo.</div>
+        <div class="funnel-link-attr">Use nos carrosseis salvaveis e nos posts de contraste manual vs maquina.</div>
+      </div>
     </div>
   </div>
-
-  <!-- KPI Row -->
-  <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-label">Posts publicados</div>
-      <div class="kpi-value">48</div>
-      <div class="kpi-trend up">▲ 14 vs mês anterior</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Alcance total</div>
-      <div class="kpi-value">284K</div>
-      <div class="kpi-trend up">▲ 23% vs mês anterior</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Engajamento médio</div>
-      <div class="kpi-value">4,8%</div>
-      <div class="kpi-trend up">▲ 0,6pp vs mês anterior</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Conversões atribuídas</div>
-      <div class="kpi-value">37</div>
-      <div class="kpi-trend up">▲ 12 vs mês anterior</div>
-    </div>
-  </div>
-
-  <!-- Editorial Calendar -->
   <div class="card" style="margin-bottom:28px">
     <div class="card-header">
-      <span class="card-title">Calendário Editorial — Próximos 7 dias</span>
-      <span class="card-badge">7 dias</span>
+      <span class="card-title">Calendario editorial - proximos 7 dias</span>
+      <span class="card-badge">Clique para abrir</span>
     </div>
     <div class="card-body">
       <div class="calendar-scroll">
         <div class="calendar-day">
-          <div class="calendar-day-header">Hoje <span>03 jul</span></div>
+          <div class="calendar-day-header">Qui <span>03 jul</span></div>
           <div class="calendar-day-cards">
-            <div class="calendar-post">
-              <div class="calendar-post-title">Como estruturar um funil de vendas</div>
+            <div class="calendar-post" data-post-title="As 6 telas que todo sistema de prospeccao B2B precisa ter">
+              <div class="calendar-post-title">As 6 telas que todo sistema de prospeccao B2B precisa ter</div>
               <div class="calendar-post-meta">
                 <span class="format-pill carrossel">Carrossel</span>
                 <span class="status-conteudo publicado">Publicado</span>
               </div>
-              <div class="calendar-post-stat">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                12,4K alcance
-              </div>
+              <div class="calendar-post-stat">Checklist salvavel com CTA de diagnostico</div>
             </div>
           </div>
         </div>
         <div class="calendar-day">
-          <div class="calendar-day-header">Sáb <span>04 jul</span></div>
+          <div class="calendar-day-header">Sab <span>04 jul</span></div>
           <div class="calendar-day-cards">
-            <div class="calendar-post">
-              <div class="calendar-post-title">5 erros que matam sua taxa de conversão</div>
+            <div class="calendar-post" data-post-title="5 erros que matam sua taxa de conversao">
+              <div class="calendar-post-title">5 erros que matam sua taxa de conversao</div>
               <div class="calendar-post-meta">
                 <span class="format-pill reels">Reels</span>
                 <span class="status-conteudo agendado">Agendado</span>
               </div>
-              <div class="calendar-post-stat">Previsto: 8K+ alcance</div>
+              <div class="calendar-post-stat">Video curto com hook forte e contraste operacional</div>
             </div>
           </div>
         </div>
         <div class="calendar-day">
           <div class="calendar-day-header">Dom <span>05 jul</span></div>
           <div class="calendar-day-cards">
-            <div class="calendar-post">
-              <div class="calendar-post-title">O que é tráfego pago e como começar</div>
+            <div class="calendar-post" data-post-title="O Garimpo puxando 200 leads em 5 min">
+              <div class="calendar-post-title">O Garimpo puxando 200 leads em 5 min</div>
               <div class="calendar-post-meta">
-                <span class="format-pill video">Vídeo</span>
+                <span class="format-pill reels">Reels</span>
                 <span class="status-conteudo agendado">Agendado</span>
               </div>
-              <div class="calendar-post-stat">Previsto: 12K+ alcance</div>
+              <div class="calendar-post-stat">Screen record da maquina rodando</div>
             </div>
           </div>
         </div>
         <div class="calendar-day">
           <div class="calendar-day-header">Seg <span>06 jul</span></div>
           <div class="calendar-day-cards">
-            <div class="calendar-post">
-              <div class="calendar-post-title">Checklist: sua landing page está convertendo?</div>
+            <div class="calendar-post" data-post-title="Checklist do outbound inteligente: 5 sinais de ICP quente">
+              <div class="calendar-post-title">Checklist do outbound inteligente: 5 sinais de ICP quente</div>
               <div class="calendar-post-meta">
-                <span class="format-pill estatico">Estático</span>
+                <span class="format-pill estatico">Estatico</span>
                 <span class="status-conteudo rascunho">Rascunho</span>
               </div>
-              <div class="calendar-post-stat">Sem dados</div>
+              <div class="calendar-post-stat">Post curto para salvar e comentar ICP</div>
             </div>
-            <div class="calendar-post">
-              <div class="calendar-post-title">Cases reais de funil automatizado</div>
+            <div class="calendar-post" data-post-title="Antes e depois: manual 20 leads/dia vs maquina 300/dia">
+              <div class="calendar-post-title">Antes e depois: manual 20 leads/dia vs maquina 300/dia</div>
               <div class="calendar-post-meta">
                 <span class="format-pill carrossel">Carrossel</span>
                 <span class="status-conteudo rascunho">Rascunho</span>
               </div>
-              <div class="calendar-post-stat">Sem dados</div>
+              <div class="calendar-post-stat">Contraste numerico real da operacao</div>
             </div>
           </div>
         </div>
         <div class="calendar-day">
           <div class="calendar-day-header">Ter <span>07 jul</span></div>
           <div class="calendar-day-cards">
-            <div class="calendar-post">
-              <div class="calendar-post-title">Métrica que realmente importa: CAC x LTV</div>
+            <div class="calendar-post" data-post-title="CEO colando lead no Excel as 23h vs minha maquina rodando">
+              <div class="calendar-post-title">CEO colando lead no Excel as 23h vs minha maquina rodando</div>
               <div class="calendar-post-meta">
                 <span class="format-pill reels">Reels</span>
                 <span class="status-conteudo rascunho">Rascunho</span>
               </div>
-              <div class="calendar-post-stat">Sem dados</div>
+              <div class="calendar-post-stat">Trend de contraste manual vs sistema</div>
             </div>
           </div>
         </div>
         <div class="calendar-day">
           <div class="calendar-day-header">Qua <span>08 jul</span></div>
           <div class="calendar-day-cards">
-            <div class="calendar-post">
-              <div class="calendar-post-title">SEO para profissionais de marketing</div>
+            <div class="calendar-post" data-post-title="Carrossel salvavel: comenta MAQUINA e eu mando o diagnostico">
+              <div class="calendar-post-title">Carrossel salvavel: comenta MAQUINA e eu mando o diagnostico</div>
               <div class="calendar-post-meta">
-                <span class="format-pill estatico">Estático</span>
+                <span class="format-pill carrossel">Carrossel</span>
                 <span class="status-conteudo rascunho">Rascunho</span>
               </div>
-              <div class="calendar-post-stat">Sem dados</div>
+              <div class="calendar-post-stat">CTA direto para puxar conversa no direct</div>
             </div>
           </div>
         </div>
         <div class="calendar-day">
           <div class="calendar-day-header">Qui <span>09 jul</span></div>
           <div class="calendar-day-cards">
-            <div class="calendar-post">
-              <div class="calendar-post-title">A jornada do cliente B2B descomplicada</div>
+            <div class="calendar-post" data-post-title="Build in public: configurando o ICP do OStrack no Garimpo">
+              <div class="calendar-post-title">Build in public: configurando o ICP do OStrack no Garimpo</div>
               <div class="calendar-post-meta">
-                <span class="format-pill video">Vídeo</span>
+                <span class="format-pill reels">Reels</span>
                 <span class="status-conteudo rascunho">Rascunho</span>
               </div>
-              <div class="calendar-post-stat">Sem dados</div>
+              <div class="calendar-post-stat">Bastidor real de configuracao de ICP</div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Content Performance Table -->
-  <div class="section-title">Performance de Conteúdo</div>
-  <div class="table-wrap" style="margin-bottom:28px">
-    <table>
-      <thead>
-        <tr><th>Post</th><th>Formato</th><th>Alcance</th><th>Engajamento</th><th>Cliques</th><th>Conversões</th><th>Data</th></tr>
-      </thead>
-      <tbody>
-        <tr style="cursor:pointer"><td>Como estruturar um funil de vendas</td><td><span class="format-pill carrossel">Carrossel</span></td><td>12,4K</td><td>5,2%</td><td>384</td><td>8</td><td>03 jul</td></tr>
-        <tr style="cursor:pointer"><td>5 erros que matam sua taxa de conversão</td><td><span class="format-pill reels">Reels</span></td><td>28,1K</td><td>7,8%</td><td>1.204</td><td>12</td><td>28 jun</td></tr>
-        <tr style="cursor:pointer"><td>O poder do marketing de conteúdo em 2026</td><td><span class="format-pill video">Vídeo</span></td><td>41,2K</td><td>6,4%</td><td>2.156</td><td>5</td><td>25 jun</td></tr>
-        <tr style="cursor:pointer"><td>Copywriting para conversão: guia rápido</td><td><span class="format-pill estatico">Estático</span></td><td>6,8K</td><td>3,1%</td><td>142</td><td>2</td><td>22 jun</td></tr>
-        <tr style="cursor:pointer"><td>Estratégia ABA passo a passo</td><td><span class="format-pill carrossel">Carrossel</span></td><td>18,2K</td><td>4,8%</td><td>672</td><td>6</td><td>20 jun</td></tr>
-        <tr style="cursor:pointer"><td>Review: ferramentas de automação essenciais</td><td><span class="format-pill video">Vídeo</span></td><td>22,6K</td><td>5,9%</td><td>891</td><td>3</td><td>18 jun</td></tr>
-        <tr style="cursor:pointer"><td>Como calcular o ROI das suas campanhas</td><td><span class="format-pill carrossel">Carrossel</span></td><td>14,3K</td><td>4,2%</td><td>523</td><td>1</td><td>15 jun</td></tr>
-        <tr style="cursor:pointer"><td>Dica rápida: headline que vende</td><td><span class="format-pill estatico">Estático</span></td><td>4,1K</td><td>2,3%</td><td>87</td><td>0</td><td>12 jun</td></tr>
-        <tr style="cursor:pointer"><td>Funil de vendas vs Funil de marketing</td><td><span class="format-pill reels">Reels</span></td><td>34,7K</td><td>8,1%</td><td>1.876</td><td>9</td><td>10 jun</td></tr>
-        <tr style="cursor:pointer"><td>O guia definitivo do Google Ads</td><td><span class="format-pill carrossel">Carrossel</span></td><td>9,5K</td><td>3,8%</td><td>301</td><td>2</td><td>08 jun</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Content x Funnel Link -->
-  <div class="section-title">Conteúdo × Funil</div>
-  <div class="section-subtitle">Quais conteúdos estão gerando impacto em cada etapa da jornada</div>
-  <div class="funnel-link-section" style="margin-bottom:28px">
-    <div class="funnel-link-card">
-      <div class="funnel-link-stage" style="color:var(--color-signal-blue)">Topo de Funil — Atração</div>
-      <div class="funnel-link-content">5 erros que matam sua taxa de conversão</div>
-      <div class="funnel-link-attr"><strong>28,1K</strong> alcance · <strong>1.204</strong> cliques</div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-linen)">
-        <div class="funnel-link-content" style="font-size:12px">O poder do marketing de conteúdo em 2026</div>
-        <div class="funnel-link-attr"><strong>41,2K</strong> alcance · <strong>2.156</strong> cliques</div>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-linen)">
-        <div class="funnel-link-content" style="font-size:12px">Funil de vendas vs Funil de marketing</div>
-        <div class="funnel-link-attr"><strong>34,7K</strong> alcance · <strong>1.876</strong> cliques</div>
-      </div>
-    </div>
-    <div class="funnel-link-card">
-      <div class="funnel-link-stage" style="color:var(--color-brand-violet)">Meio de Funil — Consideração</div>
-      <div class="funnel-link-content">Como estruturar um funil de vendas</div>
-      <div class="funnel-link-attr"><strong>12,4K</strong> alcance · <strong>384</strong> cliques · <strong>8</strong> conversões</div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-linen)">
-        <div class="funnel-link-content" style="font-size:12px">Estratégia ABA passo a passo</div>
-        <div class="funnel-link-attr"><strong>18,2K</strong> alcance · <strong>672</strong> cliques · <strong>6</strong> conversões</div>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-linen)">
-        <div class="funnel-link-content" style="font-size:12px">Como calcular o ROI das suas campanhas</div>
-        <div class="funnel-link-attr"><strong>14,3K</strong> alcance · <strong>523</strong> cliques · <strong>1</strong> conversão</div>
-      </div>
-    </div>
-    <div class="funnel-link-card">
-      <div class="funnel-link-stage" style="color:var(--color-success)">Fundo de Funil — Decisão</div>
-      <div class="funnel-link-content">Review: ferramentas de automação essenciais</div>
-      <div class="funnel-link-attr"><strong>22,6K</strong> alcance · <strong>891</strong> cliques · <strong>3</strong> conversões</div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-linen)">
-        <div class="funnel-link-content" style="font-size:12px">O guia definitivo do Google Ads</div>
-        <div class="funnel-link-attr"><strong>9,5K</strong> alcance · <strong>301</strong> cliques · <strong>2</strong> conversões</div>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--color-linen)">
-        <div class="funnel-link-content" style="font-size:12px">Copywriting para conversão: guia rápido</div>
-        <div class="funnel-link-attr"><strong>6,8K</strong> alcance · <strong>142</strong> cliques · <strong>2</strong> conversões</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Insights -->
-  <div class="section-title">Insights & Recomendações</div>
-  <div class="grid-2col" style="margin-bottom:0">
-    <div class="insight-card top">
-      <div class="insight-label">🏆 Top Performance</div>
-      <div class="insight-item"><span class="insight-item-name">Funil de vendas vs Funil de marketing</span><span class="insight-item-value">34,7K · 8,1% eng.</span></div>
-      <div class="insight-item"><span class="insight-item-name">O poder do marketing de conteúdo em 2026</span><span class="insight-item-value">41,2K · 6,4% eng.</span></div>
-      <div class="insight-item"><span class="insight-item-name">5 erros que matam sua taxa de conversão</span><span class="insight-item-value">28,1K · 7,8% eng.</span></div>
-      <div style="margin-top:10px;font-size:12px;font-family:var(--font-inter);color:var(--color-success);">
-        Reels e Vídeos longos têm 2,3× mais alcance que estáticos
-      </div>
-    </div>
-    <div class="insight-card worst">
-      <div class="insight-label">⚠️ Menor Performance</div>
-      <div class="insight-item"><span class="insight-item-name">Dica rápida: headline que vende</span><span class="insight-item-value">4,1K · 2,3% eng.</span></div>
-      <div class="insight-item"><span class="insight-item-name">Copywriting para conversão: guia rápido</span><span class="insight-item-value">6,8K · 3,1% eng.</span></div>
-      <div class="insight-item"><span class="insight-item-name">O guia definitivo do Google Ads</span><span class="insight-item-value">9,5K · 3,8% eng.</span></div>
-      <div style="margin-top:10px;font-size:12px;font-family:var(--font-inter);color:var(--color-danger);">
-        Posts estáticos com conteúdo muito denso têm baixa retenção
-      </div>
-    </div>
-    <div class="insight-card recommend" style="grid-column:1/-1">
-      <div class="insight-label">🎯 Recomendações</div>
-      <div class="recommend-item">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal-blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        <span>Aumentar frequência de Reels para 3× por semana — formato com maior alcance orgânico e melhor taxa de engajamento (média 7,6%).</span>
-      </div>
-      <div class="recommend-item">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal-blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        <span>Revisar estratégia de posts estáticos — substituir por formato Carrossel, que tem 2,8× mais cliques e 62% mais conversões.</span>
-      </div>
-      <div class="recommend-item">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal-blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        <span>Criar sequência de nurture para leads vindos do carrossel "Como estruturar um funil de vendas" — 8 conversões atribuídas, maior taxa de conversão do mês.</span>
-      </div>
-      <div class="recommend-item" style="border-bottom:none">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal-blue)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        <span>Testar horário de publicação noturno (19h-21h) — engajamento 40% superior ao período da manhã com base nos dados de junho.</span>
-      </div>
-    </div>
-  </div>
-
 </main>
 
 <script>
@@ -918,6 +943,96 @@ document.addEventListener('click', function (e) {
   }
 });
 </script>
+
+
+<div class="content-modal-overlay" id="contentModalOverlay">
+  <div class="content-modal" role="dialog" aria-modal="true" aria-labelledby="contentModalTitle">
+    <div class="content-modal-header">
+      <div class="content-modal-kicker" id="contentModalKicker">Conteudo do card</div>
+      <h2 class="content-modal-title" id="contentModalTitle">Conteudo do post</h2>
+    </div>
+    <div class="content-modal-body">
+      <textarea class="content-modal-text" id="contentModalText"></textarea>
+      <div class="content-modal-actions">
+        <div class="content-modal-toast" id="contentModalToast">Copiado</div>
+        <button class="content-modal-btn primary" type="button" id="contentModalCopyBtn">Copiar</button>
+        <button class="content-modal-btn" type="button" id="contentModalCloseBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  var contentByTitle = {
+    'As 6 telas que todo sistema de prospeccao B2B precisa ter': '03 jul - Carrossel\n\nGancho:\nSe a tua prospeccao depende de planilha, WhatsApp solto e memoria do time, ela ja nasceu travada.\n\nSlides:\n1. ICP claro para nao falar com qualquer empresa.\n2. Extracao para gerar lead sem lista comprada.\n3. Scoring para separar quente de curioso.\n4. Mensagem inicial personalizada.\n5. Quebra de objecao para nao morrer no primeiro nao.\n6. Kanban com follow-up sem perder lead.\n\nCTA:\nComenta MAQUINA para pedir o diagnostico.',
+    '5 erros que matam sua taxa de conversao': '04 jul - Reels\n\nHook:\nSe voce fala com lead todo dia e mesmo assim nao fecha, provavelmente esta cometendo um desses 5 erros.\n\nPontos:\n1. Falar com qualquer empresa.\n2. Abrir com pitch generico.\n3. Nao fazer follow-up com cadencia.\n4. Tentar vender antes de diagnosticar.\n5. Rodar tudo no manual.\n\nCTA:\nSalva esse video antes da proxima reuniao comercial.',
+    'O Garimpo puxando 200 leads em 5 min': '05 jul - Reels\n\nAbrir com screen-record do Garimpo rodando.\n\nNarracao:\nEnquanto muita empresa ainda esta cacando lead no dedo, eu prefiro montar uma maquina que extrai, qualifica e prepara o primeiro toque sem travar a operacao.\n\nFecho:\nIsso aqui nao e sobre volume vazio. E sobre chegar mais rapido nos ICPs certos.\n\nCTA:\nManda MAQUINA no direct que eu te mostro o fluxo.',
+    'Checklist do outbound inteligente: 5 sinais de ICP quente': '06 jul - Estatico\n\nTopicos:\n- A empresa tem operacao complexa.\n- O processo comercial ainda depende de humano demais.\n- A presenca digital e fraca, mas o negocio e real.\n- Existe gargalo claro entre lead e follow-up.\n- O decisor sente o custo do improviso.\n\nFecho:\nSe marcou 3 ou mais, provavelmente tem ouro comercial ai.\n\nCTA:\nComenta ICP que eu te mando a versao completa.',
+    'Antes e depois: manual 20 leads/dia vs maquina 300/dia': '06 jul - Carrossel\n\nEstrutura:\n1. Antes: lista fria, copia e cola e follow-up quebrado.\n2. Depois: lead extraido, qualificado e organizado em fluxo.\n3. Antes: 20 leads por dia com desgaste total.\n4. Depois: ate 300 leads por dia com criterio.\n5. Moral: nao e trabalhar mais. E tirar o humano de onde ele nao deveria estar.\n\nCTA:\nComenta MAQUINA e eu te mando o diagnostico do gargalo.',
+    'CEO colando lead no Excel as 23h vs minha maquina rodando': '07 jul - Reels\n\nTrend de contraste.\n\nCena 1:\nEmpresario colando lead, esquecendo follow-up e chamando isso de operacao.\n\nCena 2:\nDashboard rodando, lead priorizado e proximo passo definido.\n\nPunchline:\nO problema nao e falta de esforco. E insistir em operar 2026 com ferramenta de 2012.\n\nCTA:\nEnvia para o amigo que ainda chama gambiarra de processo.',
+    'Carrossel salvavel: comenta MAQUINA e eu mando o diagnostico': '08 jul - Carrossel\n\nCopy:\nSe a tua prospeccao depende de memoria, planilha e boa vontade do time, voce nao tem previsibilidade.\n\nEu montei um diagnostico simples para mostrar onde a tua maquina comercial esta travando hoje.\n\nCTA:\nComenta MAQUINA que eu te mando no direct.',
+    'Build in public: configurando o ICP do OStrack no Garimpo': '09 jul - Reels\n\nAbrir a tela real do sistema.\n\nNarracao:\nToda automacao boa comeca antes da automacao. Comeca na clareza de quem vale abordar.\n\nHoje eu estou travando o ICP do OStrack no Garimpo para o sistema parar de falar com curioso e focar em operacao com dor real.\n\nFecho:\nAutomacao sem criterio so acelera lixo.\n\nCTA:\nSalva para usar quando for travar o teu ICP.'
+  };
+  var overlay = document.getElementById('contentModalOverlay');
+  var title = document.getElementById('contentModalTitle');
+  var text = document.getElementById('contentModalText');
+  var closeBtn = document.getElementById('contentModalCloseBtn');
+  var copyBtn = document.getElementById('contentModalCopyBtn');
+  var toast = document.getElementById('contentModalToast');
+  var toastTimer = null;
+  function showToast() {
+    if (!toast) return;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() {
+      toast.classList.remove('show');
+    }, 1400);
+  }
+  function copyCurrent() {
+    var value = text ? text.value : '';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(showToast).catch(function() {
+        text.focus();
+        text.select();
+        document.execCommand('copy');
+        showToast();
+      });
+      return;
+    }
+    text.focus();
+    text.select();
+    document.execCommand('copy');
+    showToast();
+  }
+  function openModal(postTitle, body) {
+    if (title) title.textContent = postTitle;
+    if (text) text.value = body;
+    if (overlay) overlay.classList.add('open');
+  }
+  function closeModal() {
+    if (overlay) overlay.classList.remove('open');
+  }
+  document.querySelectorAll('.calendar-post').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var postTitle = card.getAttribute('data-post-title') || 'Conteudo do post';
+      var body = contentByTitle[postTitle] || ('Conteudo ainda nao cadastrado para:\n\n' + postTitle);
+      openModal(postTitle, body);
+    });
+  });
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (copyBtn) copyBtn.addEventListener('click', copyCurrent);
+  if (overlay) {
+    overlay.addEventListener('click', function(event) {
+      if (event.target === overlay) closeModal();
+    });
+  }
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && overlay && overlay.classList.contains('open')) {
+      closeModal();
+    }
+  });
+})();
+</script>
 
 <!-- Palette overlay -->
 <div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
@@ -926,8 +1041,8 @@ document.addEventListener('click', function (e) {
       <span class="palette-search-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </span>
-      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
-      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar paginas, clientes, decisoes, reunioes, ativos ou comandos..." autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>Ctrl</kbd><kbd>K</kbd></span>
     </div>
     <div class="palette-results" id="paletteResults">
       <div class="palette-empty" id="paletteEmpty">
@@ -935,19 +1050,18 @@ document.addEventListener('click', function (e) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </div>
         <div class="palette-empty-title">Nenhum resultado encontrado</div>
-        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+        <div class="palette-empty-desc">Tente buscar por paginas, clientes, deals, reunioes, decisoes, conteudos, ativos, agentes ou comandos.</div>
       </div>
     </div>
     <div class="palette-footer">
-      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
-      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
-      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-item"><kbd>Up</kbd> <kbd>Down</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>Enter</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>Ctrl</kbd> + <kbd>K</kbd> Alternar</span>
       <span class="palette-footer-spacer"></span>
       <span class="palette-footer-esc">Esc para fechar</span>
     </div>
   </div>
 </div>
-
 <script>
 (function() {
   'use strict';
@@ -1025,14 +1139,14 @@ document.addEventListener('click', function (e) {
 })();
 </script>
 
-<!-- Script de integração iframe e banco de dados unificado -->
+<!-- Script de integra?f?'?,??f?'?,?o iframe e banco de dados unificado -->
 <script>
 (function() {
   // 1. Aplicar classe de modo iframe se estiver rodando em frame
   if (window.self !== window.top) {
     document.body.classList.add('iframe-mode');
     
-    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    // Interceptar cliques em links para navegar na janela pai (refinado para parametros e ancoras)
     document.addEventListener('click', function(e) {
       const link = e.target.closest('a');
       if (link && link.getAttribute('href')) {
@@ -1054,3 +1168,5 @@ document.addEventListener('click', function (e) {
 </script>
 </body>
 </html>
+
+
