@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hub Operacional — CRM ERICK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="hub.css" />
+  <style>
+    /* Estilos adicionais para o Shell de Iframes */
+    .main-content-container {
+      margin-left: var(--sidebar-w);
+      margin-top: var(--topbar-h);
+      height: calc(100vh - var(--topbar-h));
+      background: var(--color-pure-white);
+      position: relative;
+      overflow: hidden;
+    }
+    .tab-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+    }
+    .tab-iframe.active {
+      display: block;
+    }
+    
+    /* Custom styles for parent search palette */
+    .palette-item-link {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+    
+    @media (max-width: 768px) {
+      .main-content-container {
+        margin-left: 0;
+      }
+    }
+  </style>
+  <!-- Carregar Banco de Dados Mockado Centralizado no Escopo Global do Shell -->
+  <script src="js/mock-db.js"></script>
+</head>
+<body>
+
+  <!-- Sidebar Global -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">H</div>
+      <div>
+        <div class="sidebar-brand-text">Hub</div>
+        <div class="sidebar-brand-sub">Operacional</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-group-label">Navegação</div>
+      
+      <a class="nav-item active" data-tab="home" onclick="switchTab('home')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+        Início
+      </a>
+      
+      <a class="nav-item" data-tab="north-star" onclick="switchTab('north-star')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+        North Star
+      </a>
+      
+      <a class="nav-item" data-tab="comando" onclick="switchTab('comando')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Sala de Comando
+      </a>
+      
+      <a class="nav-item" data-tab="lab" onclick="switchTab('lab')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Lab
+      </a>
+      
+      <a class="nav-item" data-tab="brain" onclick="switchTab('brain')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+        Brain
+      </a>
+      
+      <a class="nav-item" data-tab="funil" onclick="switchTab('funil')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+        Funis
+      </a>
+      
+      <a class="nav-item" data-tab="pipeline" onclick="switchTab('pipeline')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Pipeline
+      </a>
+      
+      <a class="nav-item" data-tab="contacts" onclick="switchTab('contacts')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Contatos
+      </a>
+      
+      <a class="nav-item" data-tab="conteudo" onclick="switchTab('conteudo')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Conteúdo
+      </a>
+      
+      <a class="nav-item" data-tab="brandbook" onclick="switchTab('brandbook')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Brandbook
+      </a>
+      
+      <a class="nav-item" data-tab="agentes" onclick="switchTab('agentes')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+        Agentes
+      </a>
+      
+      <a class="nav-item" data-tab="sinais" onclick="switchTab('sinais')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Sinais
+      </a>
+      
+      <div class="sidebar-group-label">Gestão</div>
+      
+      <a class="nav-item" data-tab="carteira" onclick="switchTab('carteira')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+        Carteira
+      </a>
+      
+      <a class="nav-item" data-tab="calendar" onclick="switchTab('calendar')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Calendário
+      </a>
+      
+      <a class="nav-item" data-tab="reunioes" onclick="switchTab('reunioes')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Reuniões
+      </a>
+      
+      <a class="nav-item" data-tab="configuracoes" onclick="switchTab('configuracoes')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Configurações
+      </a>
+      
+      <a class="nav-item" data-tab="instagram" onclick="switchTab('instagram')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        Instagram
+      </a>
+      
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-avatar">ES</div>
+      <div>
+        <div class="sidebar-user">Erick Sena</div>
+        <div class="sidebar-user-role">Admin</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Topbar Global -->
+  <header class="topbar">
+    <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-breadcrumb">Hub Operacional / <span id="current-tab-title">Início</span></span>
+    <div class="topbar-spacer"></div>
+    <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Buscar…
+      <kbd><span>⌘</span>K</kbd>
+    </button>
+  </header>
+
+  <!-- Container de Conteúdo (Iframes) -->
+  <main class="main-content-container">
+    <!-- Default active iframe is loaded on boot -->
+    <iframe id="iframe-home" data-src="modules/home.html" src="modules/home.html" class="tab-iframe active"></iframe>
+    
+    <!-- Lazy loaded iframes -->
+    <iframe id="iframe-north-star" data-src="modules/north-star.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-comando" data-src="modules/comando.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-lab" data-src="modules/lab.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-brain" data-src="modules/brain.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-funil" data-src="modules/funil.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-pipeline" data-src="modules/pipeline.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-contacts" data-src="modules/contacts.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-conteudo" data-src="modules/conteudo.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-brandbook" data-src="modules/brandbook.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-agentes" data-src="modules/agentes.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-sinais" data-src="modules/sinais.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-carteira" data-src="modules/carteira.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-calendar" data-src="modules/calendar.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-reunioes" data-src="modules/reunioes.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-configuracoes" data-src="modules/configuracoes.html" class="tab-iframe"></iframe>
+    <iframe id="iframe-instagram" data-src="modules/instagram.html" class="tab-iframe"></iframe>
+  </main>
+
+  <!-- Palette overlay (Busca Global) -->
+  <div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+    <div class="palette" id="paletteModal">
+      <div class="palette-search-wrap">
+        <span class="palette-search-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" oninput="runSearch()" />
+        <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+      </div>
+      <div class="palette-results" id="paletteResults">
+        <div class="palette-empty" id="paletteEmpty">
+          <div class="palette-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="palette-empty-title">Nenhum resultado encontrado</div>
+          <div class="palette-empty-desc">Tente buscar por páginas (ex: pipeline, contatos) ou clientes (ex: TechCorp, Juliana).</div>
+        </div>
+      </div>
+      <div class="palette-footer">
+        <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+        <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+        <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+        <span class="palette-footer-spacer"></span>
+        <span class="palette-footer-esc">Esc para fechar</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tabTitles = {
+      'home': 'Início',
+      'north-star': 'North Star',
+      'comando': 'Sala de Comando',
+      'lab': 'Lab',
+      'brain': 'Brain',
+      'funil': 'Funis',
+      'pipeline': 'Pipeline',
+      'contacts': 'Contatos',
+      'conteudo': 'Conteúdo',
+      'brandbook': 'Brandbook',
+      'agentes': 'Agentes',
+      'sinais': 'Sinais',
+      'carteira': 'Carteira',
+      'calendar': 'Calendário',
+      'reunioes': 'Reuniões',
+      'configuracoes': 'Configurações',
+      'instagram': 'Instagram'
+    };
+
+    let activeTabId = 'home';
+    let isPaletteOpen = false;
+    let activeSearchIndex = -1;
+    let searchItems = [];
+
+    // Switch between tabs
+    function switchTab(tabId) {
+      if (!tabTitles[tabId]) return;
+
+      // Close mobile menu if open
+      document.getElementById('sidebar').classList.remove('open');
+
+      // Update sidebar active class
+      document.querySelectorAll('.sidebar-nav .nav-item').forEach(el => {
+        el.classList.remove('active');
+        if (el.getAttribute('data-tab') === tabId) {
+          el.classList.add('active');
+        }
+      });
+
+      // Update topbar breadcrumb
+      document.getElementById('current-tab-title').textContent = tabTitles[tabId];
+
+      // Lazy load iframe if it hasn't been loaded yet
+      const iframe = document.getElementById(`iframe-${tabId}`);
+      if (iframe && !iframe.getAttribute('src')) {
+        iframe.setAttribute('src', iframe.getAttribute('data-src'));
+      }
+
+      // Toggle active classes on iframes
+      document.querySelectorAll('.tab-iframe').forEach(el => {
+        el.classList.remove('active');
+      });
+      if (iframe) {
+        iframe.classList.add('active');
+      }
+
+      activeTabId = tabId;
+    }
+
+    // Direct navigation inside iframes helper
+    window.navigateToTabAndSubpage = function(tabId, url) {
+      switchTab(tabId);
+      const iframe = document.getElementById(`iframe-${tabId}`);
+      if (iframe) {
+        // Force source update if it needs parameters
+        iframe.src = url;
+      }
+    }
+
+    // Toggle Search Palette
+    function togglePalette() {
+      isPaletteOpen = !isPaletteOpen;
+      const overlay = document.getElementById('paletteOverlay');
+      overlay.classList.toggle('open', isPaletteOpen);
+      if (isPaletteOpen) {
+        const input = document.getElementById('paletteInput');
+        input.value = '';
+        input.focus();
+        runSearch();
+        activeSearchIndex = -1;
+        setTimeout(() => input.focus(), 100);
+      }
+    }
+
+    function closePaletteOutside(e) {
+      if (e.target === document.getElementById('paletteOverlay')) {
+        togglePalette();
+      }
+    }
+
+    // Run global search
+    function runSearch() {
+      const query = document.getElementById('paletteInput').value.trim().toLowerCase();
+      const resultsContainer = document.getElementById('paletteResults');
+      const emptyState = document.getElementById('paletteEmpty');
+
+      // Remove previous results
+      resultsContainer.querySelectorAll('.palette-group').forEach(el => el.remove());
+
+      const matchedPages = [];
+      const matchedContacts = [];
+      const matchedDeals = [];
+
+      // Search Pages
+      for (const [key, value] of Object.entries(tabTitles)) {
+        if (value.toLowerCase().includes(query) || key.toLowerCase().includes(query)) {
+          matchedPages.push({ id: key, label: value });
+        }
+      }
+
+      // Search Contacts
+      if (window.contacts) {
+        window.contacts.forEach(c => {
+          if (c.name.toLowerCase().includes(query) || c.company.toLowerCase().includes(query)) {
+            matchedContacts.push(c);
+          }
+        });
+      }
+
+      // Search Deals
+      if (window.deals) {
+        window.deals.forEach(d => {
+          if (d.name.toLowerCase().includes(query) || d.company.toLowerCase().includes(query)) {
+            matchedDeals.push(d);
+          }
+        });
+      }
+
+      const hasResults = matchedPages.length > 0 || matchedContacts.length > 0 || matchedDeals.length > 0;
+
+      if (!hasResults) {
+        emptyState.style.display = 'flex';
+        searchItems = [];
+        return;
+      }
+
+      emptyState.style.display = 'none';
+
+      // 1. Render Pages group
+      if (matchedPages.length > 0) {
+        const group = document.createElement('div');
+        group.className = 'palette-group';
+        group.innerHTML = `<div class="palette-group-label">Páginas</div>`;
+        matchedPages.forEach(p => {
+          const item = document.createElement('div');
+          item.className = 'palette-item';
+          item.innerHTML = `
+            <a href="javascript:void(0)" onclick="switchTab('${p.id}'); togglePalette();" class="palette-item-link">
+              <div class="palette-item-type" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+              </div>
+              <div class="palette-item-content">
+                <div class="palette-item-title">${p.label}</div>
+                <div class="palette-item-context">Ir para o módulo ${p.label}</div>
+              </div>
+              <span class="palette-tag page">Módulo</span>
+            </a>
+          `;
+          group.appendChild(item);
+        });
+        resultsContainer.appendChild(group);
+      }
+
+      // 2. Render Contacts group
+      if (matchedContacts.length > 0) {
+        const group = document.createElement('div');
+        group.className = 'palette-group';
+        group.innerHTML = `<div class="palette-group-label">Contatos</div>`;
+        matchedContacts.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'palette-item';
+          item.innerHTML = `
+            <a href="javascript:void(0)" onclick="navigateToTabAndSubpage('contacts', 'modules/contact.html?id=${encodeURIComponent(c.name)}'); togglePalette();" class="palette-item-link">
+              <div class="palette-item-type" style="background:rgba(0,145,255,0.08);color:var(--color-signal-blue)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="palette-item-content">
+                <div class="palette-item-title">${c.name}</div>
+                <div class="palette-item-context">${c.company} · ${c.email}</div>
+              </div>
+              <span class="palette-tag client">Cliente</span>
+            </a>
+          `;
+          group.appendChild(item);
+        });
+        resultsContainer.appendChild(group);
+      }
+
+      // 3. Render Deals group
+      if (matchedDeals.length > 0) {
+        const group = document.createElement('div');
+        group.className = 'palette-group';
+        group.innerHTML = `<div class="palette-group-label">Deals</div>`;
+        matchedDeals.forEach(d => {
+          const item = document.createElement('div');
+          item.className = 'palette-item';
+          item.innerHTML = `
+            <a href="javascript:void(0)" onclick="switchTab('pipeline'); togglePalette();" class="palette-item-link">
+              <div class="palette-item-type" style="background:rgba(46,125,50,0.08);color:var(--color-success)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div class="palette-item-content">
+                <div class="palette-item-title">${d.name}</div>
+                <div class="palette-item-context">R$ ${d.value.toLocaleString('pt-BR')} · Estágio: ${d.stage}</div>
+              </div>
+              <span class="palette-tag deal">Deal</span>
+            </a>
+          `;
+          group.appendChild(item);
+        });
+        resultsContainer.appendChild(group);
+      }
+
+      // Cache elements for keyboard navigation
+      searchItems = Array.from(resultsContainer.querySelectorAll('.palette-item'));
+    }
+
+    // Keyboard handlers
+    document.addEventListener('keydown', function(e) {
+      // Toggle palette on Ctrl+K or Cmd+K
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        togglePalette();
+      }
+
+      if (!isPaletteOpen) return;
+
+      if (e.key === 'Escape') {
+        togglePalette();
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeSearchIndex = Math.min(activeSearchIndex + 1, searchItems.length - 1);
+        highlightSearchItem();
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeSearchIndex = Math.max(activeSearchIndex - 1, 0);
+        highlightSearchItem();
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeSearchIndex >= 0 && activeSearchIndex < searchItems.length) {
+          searchItems[activeSearchIndex].querySelector('a').click();
+        }
+      }
+    });
+
+    function highlightSearchItem() {
+      searchItems.forEach(el => el.classList.remove('active'));
+      if (searchItems[activeSearchIndex]) {
+        searchItems[activeSearchIndex].classList.add('active');
+        searchItems[activeSearchIndex].scrollIntoView({ block: 'nearest' });
+      }
+    }
+  </script>
+</body>
+</html>

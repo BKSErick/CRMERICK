@@ -1,0 +1,1585 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lab — Hub Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../hub.css" />
+<style>
+:root {
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-hover: 0 8px 24px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+:focus-visible { outline: 2px solid var(--color-brand-violet); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(123,104,238,0.15); color: var(--color-midnight-ink); }
+
+/* Section spacing */
+.lab-section { margin-bottom: 36px; }
+.lab-section-header { margin-bottom: 18px; }
+.lab-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.lab-section-subtitle {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* Hero experiment card */
+.hero-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 28px 32px;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+.hero-card:hover { box-shadow: var(--shadow-card); }
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(123,104,238,0.1);
+  color: var(--color-brand-violet);
+  margin-bottom: 14px;
+}
+.hero-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.hero-hypothesis {
+  font-size: 14px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  background: var(--color-paper);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-brand-violet);
+  max-width: 700px;
+}
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--color-cloud);
+}
+.hero-metric { }
+.hero-metric-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+.hero-metric-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+}
+.hero-metric-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-top: 1px;
+}
+.hero-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 10px 18px;
+  background: rgba(123,104,238,0.06);
+  border: 1px solid rgba(123,104,238,0.12);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-brand-violet);
+  transition: background var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.hero-next:hover { background: rgba(123,104,238,0.1); }
+.hero-next svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* Experiment table */
+.exp-table-wrap {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.exp-table-wrap table { width: 100%; border-collapse: collapse; }
+.exp-table-wrap th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--color-cloud);
+}
+.exp-table-wrap td {
+  padding: 12px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-linen);
+  vertical-align: middle;
+}
+.exp-table-wrap tr:last-child td { border-bottom: none; }
+.exp-table-wrap tr:hover td { background: var(--color-pure-white); }
+.exp-name { font-weight: 600; font-size: 13px; }
+.exp-owner { font-size: 12px; color: var(--color-slate); font-family: var(--font-inter); }
+.exp-hyp { font-size: 12px; color: var(--color-charcoal); font-family: var(--font-inter); max-width: 220px; line-height: 1.4; }
+.exp-impact { font-size: 12px; font-family: var(--font-mono); font-weight: 600; }
+.exp-impact.alto { color: var(--color-brand-violet); }
+.exp-impact.medio { color: var(--color-warning); }
+.exp-impact.baixo { color: var(--color-slate); }
+.exp-next-read {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.4;
+  max-width: 160px;
+}
+.confidence-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--color-charcoal);
+}
+.confidence-track {
+  width: 44px; height: 4px;
+  background: var(--color-cloud);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.confidence-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width var(--duration-fast) var(--ease-out);
+}
+.confidence-fill.high { background: var(--color-success); }
+.confidence-fill.medium { background: var(--color-warning); }
+.confidence-fill.low { background: var(--color-slate); }
+
+/* Status pills - lab variants */
+.status-pill.running { background: rgba(46,125,50,0.1); color: var(--color-success); }
+.status-pill.setup { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+.status-pill.planned { background: rgba(100,100,100,0.1); color: var(--color-slate); }
+.status-pill.analyzing { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.status-pill.completed { background: rgba(123,104,238,0.1); color: var(--color-brand-violet); }
+
+/* Front tags */
+.front-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.front-tag.conteudo { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.front-tag.funil { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.front-tag.aquisicao { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.front-tag.oferta { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.front-tag.operacao { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.front-tag.marca { background: rgba(211,47,47,0.08); color: var(--color-danger); }
+
+/* Hypotheses grid */
+.hyp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.hyp-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.hyp-card:hover { border-color: var(--color-brand-violet); box-shadow: var(--shadow-card); }
+.hyp-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.hyp-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.hyp-tag {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.hyp-tag.alto { background: rgba(46,125,50,0.1); color: var(--color-success); }
+.hyp-tag.medio { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.hyp-tag.baixo { background: rgba(100,100,100,0.1); color: var(--color-slate); }
+.hyp-card-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hyp-detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+}
+.hyp-detail-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-slate);
+  font-weight: 500;
+  min-width: 56px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Fronts grid */
+.fronts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.front-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.front-card:hover { border-color: var(--color-brand-violet); box-shadow: var(--shadow-card); }
+.front-card-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  margin-bottom: 10px;
+}
+.front-card-icon svg { width: 14px; height: 14px; }
+.front-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.front-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.front-stat {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  color: var(--color-slate);
+}
+.front-stat.active { background: rgba(46,125,50,0.1); color: var(--color-success); }
+.front-stat.setup { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+.front-stat.hyp { background: rgba(237,108,2,0.05); color: var(--color-warning); }
+.front-items { display: flex; flex-direction: column; gap: 6px; }
+.front-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--color-paper);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.4;
+  cursor: default;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.front-item:hover { background: var(--color-linen); }
+.front-item-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.front-item-dot.running { background: var(--color-success); }
+.front-item-dot.setup { background: var(--color-signal-blue); }
+.front-item-dot.hypothesis { background: var(--color-warning); }
+
+/* Learnings grid */
+.learn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.learn-card {
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  border: 1px solid var(--color-cloud);
+  background: var(--color-pure-white);
+}
+.learn-card-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: grid; place-items: center;
+  margin-bottom: 10px;
+}
+.learn-card-icon svg { width: 13px; height: 13px; }
+.learn-card-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.learn-items { display: flex; flex-direction: column; gap: 8px; }
+.learn-item {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--color-cloud);
+}
+.learn-item strong { font-weight: 600; }
+
+/* Activation cards */
+.activation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.activation-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.activation-card:hover { border-color: var(--color-brand-violet); }
+.activation-card-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: rgba(123,104,238,0.08);
+  color: var(--color-brand-violet);
+  display: grid; place-items: center;
+  margin-bottom: 10px;
+}
+.activation-card-icon svg { width: 14px; height: 14px; }
+.activation-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+.activation-card-desc {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+}
+.activation-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-linen);
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  letter-spacing: 0.04em;
+}
+.activation-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.activation-tag.ready { background: rgba(46,125,50,0.1); color: var(--color-success); }
+.activation-tag.adjust { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.activation-tag.blocked { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+
+/* Spacer variant */
+.lab-divider { height: 1px; background: var(--color-cloud); margin: 28px 0; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .hero-metrics { grid-template-columns: repeat(2, 1fr); }
+  .fronts-grid { grid-template-columns: repeat(2, 1fr); }
+  .learn-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 1024px) {
+  .hyp-grid { grid-template-columns: 1fr; }
+  .activation-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .hero-metrics { grid-template-columns: 1fr; }
+  .fronts-grid { grid-template-columns: 1fr; }
+  .learn-grid { grid-template-columns: 1fr; }
+  .exp-table-wrap { overflow-x: auto; }
+}
+/* Palette — Busca Global */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9,12,29,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  max-height: 70vh;
+  background: var(--color-pure-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open .palette {
+  transform: translateY(0) scale(1);
+}
+.palette-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+  flex-shrink: 0;
+}
+.palette-search-icon {
+  flex-shrink: 0;
+  color: var(--color-slate);
+  display: grid;
+  place-items: center;
+}
+.palette-search-icon svg { width: 18px; height: 18px; }
+.palette-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: 500 17px/1.4 var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  outline: none;
+  letter-spacing: -0.01em;
+}
+.palette-input::placeholder {
+  color: var(--color-slate);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.palette-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.palette-shortcuts kbd {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 0.02em;
+}
+.palette-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-results::-webkit-scrollbar { width: 4px; }
+.palette-results::-webkit-scrollbar-track { background: transparent; }
+.palette-results::-webkit-scrollbar-thumb { background: var(--color-cloud); border-radius: 999px; }
+.palette-group { padding: 6px 12px; }
+.palette-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+}
+.palette-group-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-linen);
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-item:hover { background: var(--color-paper); }
+.palette-item.active {
+  background: rgba(123,104,238,0.08);
+}
+.palette-item-type {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.palette-item-type svg { width: 13px; height: 13px; }
+.palette-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-title mark {
+  background: rgba(123,104,238,0.15);
+  color: var(--color-midnight-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-context mark {
+  background: rgba(123,104,238,0.12);
+  color: var(--color-charcoal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.palette-tag {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.palette-tag.page { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+.palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.command { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.hot { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.palette-item-action {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.palette-item:hover .palette-item-action { opacity: 1; }
+.palette-item-status {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-item-status.green { background: var(--color-success); }
+.palette-item-status.orange { background: var(--color-warning); }
+.palette-item-status.violet { background: var(--color-brand-violet); }
+.palette-item-status.blue { background: var(--color-signal-blue); }
+.palette-item-status.slate { background: var(--color-slate); }
+.palette-item-status.red { background: var(--color-danger); }
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  flex-shrink: 0;
+}
+.palette-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-footer-item kbd {
+  font: 500 9px/1 var(--font-mono);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.palette-footer-spacer { flex: 1; }
+.palette-footer-esc {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.palette-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: var(--color-paper);
+  display: grid; place-items: center;
+  color: var(--color-slate);
+  margin-bottom: 14px;
+}
+.palette-empty-icon svg { width: 20px; height: 20px; }
+.palette-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  margin-bottom: 4px;
+}
+.palette-empty-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+  font: 500 12px/1 var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+}
+.topbar-search-btn:hover { border-color: var(--color-brand-violet); background: var(--color-pure-white); color: var(--color-charcoal); }
+.topbar-search-btn svg { flex-shrink: 0; }
+.topbar-search-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .palette { width: calc(100vw - 24px); max-height: 80vh; }
+  .palette-search-wrap { padding: 14px 16px; }
+  .palette-input { font-size: 15px; }
+  .palette-overlay { padding-top: 8vh; }
+  .topbar-search-btn kbd { display: none; }
+  .topbar-search-btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">H</div>
+    <div>
+      <div class="sidebar-brand-text">Hub</div>
+      <div class="sidebar-brand-sub">Operacional</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Navegação</div>
+    <a class="nav-item" href="home.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+      Início
+    </a>
+    <a class="nav-item" href="north-star.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+      North Star
+    </a>
+    <a class="nav-item" href="comando.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Sala de Comando
+    </a>
+    <a class="nav-item active" href="lab.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Lab
+    </a>
+    <a class="nav-item" href="brain.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+      Brain
+    </a>
+    <a class="nav-item" href="funil.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      Funis
+    </a>
+    <a class="nav-item" href="pipeline.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" href="conteudo.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Conteúdo
+    </a>
+    <a class="nav-item" href="brandbook.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Brandbook
+    </a>
+    <a class="nav-item" href="agentes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+      Agentes
+    </a>
+    <a class="nav-item" href="sinais.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sinais
+    </a>
+    <div class="sidebar-group-label">Gestão</div>
+    <a class="nav-item" href="carteira.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Carteira
+    </a>
+    <a class="nav-item" href="calendar.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </a>
+    <a class="nav-item" href="reunioes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reuniões
+    </a>
+    <a class="nav-item" href="configuracoes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações
+    </a>
+    <a class="nav-item" href="instagram.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">ES</div>
+    <div>
+      <div class="sidebar-user">Erick Sena</div>
+      <div class="sidebar-user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<header class="topbar">
+  <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Lab</span></span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar…
+    <kbd><span>⌘</span>K</kbd>
+  </button>
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- 1. Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Lab</h1>
+      <div class="subtitle">Centro de experimentação estratégica — hipóteses, testes, aprendizados e ativações em andamento. Menos suposição, mais sinal.</div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filterbar">
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <select>
+        <option>Todos os status</option>
+        <option>Rodando</option>
+        <option>Setup</option>
+        <option>Planejado</option>
+        <option>Em análise</option>
+        <option>Concluído</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+      <select>
+        <option>Todas as frentes</option>
+        <option>Conteúdo</option>
+        <option>Funil</option>
+        <option>Aquisição</option>
+        <option>Oferta</option>
+        <option>Operação</option>
+        <option>Marca</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <select>
+        <option>Todos os canais</option>
+        <option>Instagram</option>
+        <option>YouTube</option>
+        <option>Email</option>
+        <option>Site/LP</option>
+        <option>CRM</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <select>
+        <option>Todos os impactos</option>
+        <option>Alto</option>
+        <option>Médio</option>
+        <option>Baixo</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      <select>
+        <option>Todas as prioridades</option>
+        <option>Crítica</option>
+        <option>Alta</option>
+        <option>Média</option>
+        <option>Baixa</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 2. Bloco principal — experimento em andamento -->
+  <div class="lab-section">
+    <div class="lab-section-header">
+      <div class="lab-section-title">Experimento principal</div>
+      <div class="lab-section-subtitle">Teste com maior prioridade e impacto potencial no momento. A leitura abaixo é revisada semanalmente.</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Rodando — dia 7 de 14
+      </div>
+      <div class="hero-title">Teste de Narrativa "Antes vs. Depois" em Reels</div>
+      <div class="hero-hypothesis">
+        <strong>Hipótese:</strong> Narrativas de transformação pessoal em Reels de 45–60s geram 3× mais compartilhamentos e 2× mais leads que conteúdo educativo padrão (formato "dica"). O gatilho de identificação + aspiração supera o formato puramente informativo no topo de funil.
+      </div>
+      <div class="hero-metrics">
+        <div class="hero-metric">
+          <div class="hero-metric-label">Métrica de sucesso</div>
+          <div class="hero-metric-value">Taxa de compart. ≥ 8%</div>
+          <div class="hero-metric-context">Atual: 3,2% no formato padrão</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-label">Leads gerados</div>
+          <div class="hero-metric-value">≥ 15/semana</div>
+          <div class="hero-metric-context">Via lead magnet no perfil</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-label">Prazo de leitura</div>
+          <div class="hero-metric-value">24 jun 2026</div>
+          <div class="hero-metric-context">2 semanas de coleta</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-label">Owner</div>
+          <div class="hero-metric-value">Erick Sena</div>
+          <div class="hero-metric-context">Frente: Conteúdo</div>
+        </div>
+      </div>
+      <div class="hero-next">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        Próximo passo: Escalar para 3 variações (carreira, negócio, mentalidade) se a hipótese for validada
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Experimentos ativos -->
+  <div class="lab-section">
+    <div class="lab-section-header">
+      <div class="lab-section-title">Experimentos ativos</div>
+      <div class="lab-section-subtitle">Testes em andamento, em setup ou planejados. Acompanhamento de confiança, impacto e próxima leitura.</div>
+    </div>
+    <div class="exp-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Experimento</th>
+            <th>Frente</th>
+            <th>Hipótese</th>
+            <th>Owner</th>
+            <th>Status</th>
+            <th>Confiança</th>
+            <th>Impacto</th>
+            <th>Próxima leitura</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="exp-name">CTA no primeiro comentário</span></td>
+            <td><span class="front-tag conteudo">Conteúdo</span></td>
+            <td class="exp-hyp">CTAs específicos no 1º comentário aumentam CTR em 40% vs. CTA genérico na legenda</td>
+            <td><span class="exp-owner">Erick</span></td>
+            <td><span class="status-pill running">Rodando</span></td>
+            <td>
+              <div class="confidence-bar">
+                <span>70%</span>
+                <div class="confidence-track"><div class="confidence-fill medium" style="width:70%"></div></div>
+              </div>
+            </td>
+            <td><span class="exp-impact alto">Alto</span></td>
+            <td class="exp-next-read">5 dias — dados parciais de CTR já disponíveis</td>
+          </tr>
+          <tr>
+            <td><span class="exp-name">Lead magnet em carrossel fixo</span></td>
+            <td><span class="front-tag funil">Funil</span></td>
+            <td class="exp-hyp">Carrossel fixo no perfil com lead magnet converte 3× mais que link na bio simples</td>
+            <td><span class="exp-owner">Camila</span></td>
+            <td><span class="status-pill running">Rodando</span></td>
+            <td>
+              <div class="confidence-bar">
+                <span>80%</span>
+                <div class="confidence-track"><div class="confidence-fill high" style="width:80%"></div></div>
+              </div>
+            </td>
+            <td><span class="exp-impact alto">Alto</span></td>
+            <td class="exp-next-read">9 dias — métricas de lead capture vs. baseline</td>
+          </tr>
+          <tr>
+            <td><span class="exp-name">Formato "5 erros" 2×/semana</span></td>
+            <td><span class="front-tag conteudo">Conteúdo</span></td>
+            <td class="exp-hyp">Aumentar frequência do formato de diagnóstico mantendo CTR e engajamento</td>
+            <td><span class="exp-owner">Erick</span></td>
+            <td><span class="status-pill running">Rodando</span></td>
+            <td>
+              <div class="confidence-bar">
+                <span>65%</span>
+                <div class="confidence-track"><div class="confidence-fill medium" style="width:65%"></div></div>
+              </div>
+            </td>
+            <td><span class="exp-impact medio">Médio</span></td>
+            <td class="exp-next-read">12 dias — comparar engajamento por post vs. baseline</td>
+          </tr>
+          <tr>
+            <td><span class="exp-name">Link de bio dinâmico</span></td>
+            <td><span class="front-tag aquisicao">Aquisição</span></td>
+            <td class="exp-hyp">Link de bio dinâmico por post (ferramenta Beacons) aumenta CTR em 60%</td>
+            <td><span class="exp-owner">Rafael</span></td>
+            <td><span class="status-pill setup">Setup</span></td>
+            <td>
+              <div class="confidence-bar">
+                <span>60%</span>
+                <div class="confidence-track"><div class="confidence-fill medium" style="width:60%"></div></div>
+              </div>
+            </td>
+            <td><span class="exp-impact alto">Alto</span></td>
+            <td class="exp-next-read">3 dias — setup pendente de aprovação do link</td>
+          </tr>
+          <tr>
+            <td><span class="exp-name">Teste de CTA emocional vs. racional</span></td>
+            <td><span class="front-tag conteudo">Conteúdo</span></td>
+            <td class="exp-hyp">CTAs emocionais geram 2× mais comentários que CTAs racionais no mesmo formato</td>
+            <td><span class="exp-owner">Erick</span></td>
+            <td><span class="status-pill running">Rodando</span></td>
+            <td>
+              <div class="confidence-bar">
+                <span>75%</span>
+                <div class="confidence-track"><div class="confidence-fill medium" style="width:75%"></div></div>
+              </div>
+            </td>
+            <td><span class="exp-impact medio">Médio</span></td>
+            <td class="exp-next-read">6 dias — análise de comentários por post</td>
+          </tr>
+          <tr>
+            <td><span class="exp-name">Série "O sistema X" — 3 partes</span></td>
+            <td><span class="front-tag oferta">Oferta</span></td>
+            <td class="exp-hyp">Série narrativa de 3 posts sobre um método gera mais leads que posts avulsos</td>
+            <td><span class="exp-owner">Camila</span></td>
+            <td><span class="status-pill planned">Planejado</span></td>
+            <td>
+              <div class="confidence-bar">
+                <span>50%</span>
+                <div class="confidence-track"><div class="confidence-fill low" style="width:50%"></div></div>
+              </div>
+            </td>
+            <td><span class="exp-impact medio">Médio</span></td>
+            <td class="exp-next-read">14 dias — roteiro aprovado, aguardando produção</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. Hipóteses não ativadas -->
+  <div class="lab-section">
+    <div class="lab-section-header">
+      <div class="lab-section-title">Hipóteses</div>
+      <div class="lab-section-subtitle">Ideias ainda não ativadas como teste. Aguardam evidência inicial, risco calculado e definição de owner para entrar no pipeline de experimentos.</div>
+    </div>
+    <div class="hyp-grid">
+      <div class="hyp-card">
+        <div class="hyp-card-header">
+          <div class="hyp-card-title">Bastidor operacional gera mais leads que conteúdo aspiracional</div>
+          <span class="hyp-tag alto">Alto potencial</span>
+        </div>
+        <div class="hyp-card-detail">
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Contexto</span>
+            <span>Conteúdo de "como funciona por dentro" tem 2,3× mais salvamentos que posts aspiracionais. A audiência valoriza processo real.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Evidência</span>
+            <span>Post "rotina de trabalho" gerou 312 salvamentos e 48 leads — superior à média de 22 leads/post.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Risco</span>
+            <span>Baixo — conteúdo já validado em formato isolado. Risco é de canibalização com outros formatos.</span>
+          </div>
+        </div>
+      </div>
+      <div class="hyp-card">
+        <div class="hyp-card-header">
+          <div class="hyp-card-title">Dados concretos geram mais autoridade que conceitos abstratos</div>
+          <span class="hyp-tag medio">Potencial médio</span>
+        </div>
+        <div class="hyp-card-detail">
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Contexto</span>
+            <span>Posts com números reais ("quanto faturamos", "quantos clientes") geram mais comentários de qualificação.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Evidência</span>
+            <span>Post com faturamento real teve 2,8× mais DMs com pedidos de consultoria que posts conceituais.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Risco</span>
+            <span>Médio — exposição de números pode gerar desconforto. Mitigar com recorte estratégico dos dados.</span>
+          </div>
+        </div>
+      </div>
+      <div class="hyp-card">
+        <div class="hyp-card-header">
+          <div class="hyp-card-title">Reels de 60s+ geram mais leads que Reels de &lt;30s</div>
+          <span class="hyp-tag medio">Potencial médio</span>
+        </div>
+        <div class="hyp-card-detail">
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Contexto</span>
+            <span>Reels curtos têm maior retenção, mas não geram ação. Reels mais longos permitem narrativa com CTA.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Evidência</span>
+            <span>Reels de &gt;45s têm CTR 2,2× maior que Reels de &lt;30s, mas 15% menos retenção nos primeiros 3s.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Risco</span>
+            <span>Baixo — teste simples de A/B com mesmo conteúdo em duas durações.</span>
+          </div>
+        </div>
+      </div>
+      <div class="hyp-card">
+        <div class="hyp-card-header">
+          <div class="hyp-card-title">Cases de clientes anônimos geram mais confiança que posts institucionais</div>
+          <span class="hyp-tag alto">Alto potencial</span>
+        </div>
+        <div class="hyp-card-detail">
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Contexto</span>
+            <span>Prova social é o gatilho mais requisitado nos comentários. Audiência pergunta "tem case?" em posts de método.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Evidência</span>
+            <span>Menção indireta a case em post de método gerou 22 DMs com pedidos de case real.</span>
+          </div>
+          <div class="hyp-detail-row">
+            <span class="hyp-detail-label">Risco</span>
+            <span>Médio — anonimização necessária. Clientes podem se identificar. Definir limites de exposição.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Testes por frente -->
+  <div class="lab-section">
+    <div class="lab-section-header">
+      <div class="lab-section-title">Testes por frente</div>
+      <div class="lab-section-subtitle">Distribuição dos experimentos e hipóteses organizada por área de atuação. Visão rápida de onde o lab está concentrado.</div>
+    </div>
+    <div class="fronts-grid">
+      <div class="front-card">
+        <div class="front-card-icon" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <div class="front-card-name">Conteúdo</div>
+        <div class="front-stats">
+          <span class="front-stat active">3 rodando</span>
+          <span class="front-stat setup">1 em setup</span>
+          <span class="front-stat hyp">2 hipóteses</span>
+        </div>
+        <div class="front-items">
+          <div class="front-item"><span class="front-item-dot running"></span> CTA no primeiro comentário</div>
+          <div class="front-item"><span class="front-item-dot running"></span> Formato "5 erros" 2×/semana</div>
+          <div class="front-item"><span class="front-item-dot running"></span> CTA emocional vs. racional</div>
+          <div class="front-item"><span class="front-item-dot hypothesis"></span> Reels 60s+ vs. 30s</div>
+        </div>
+      </div>
+      <div class="front-card">
+        <div class="front-card-icon" style="background:rgba(0,145,255,0.08);color:var(--color-signal-blue);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+        </div>
+        <div class="front-card-name">Funil</div>
+        <div class="front-stats">
+          <span class="front-stat active">1 rodando</span>
+          <span class="front-stat hyp">1 hipótese</span>
+        </div>
+        <div class="front-items">
+          <div class="front-item"><span class="front-item-dot running"></span> Lead magnet em carrossel fixo</div>
+          <div class="front-item"><span class="front-item-dot hypothesis"></span> Case de cliente no meio do funil</div>
+        </div>
+      </div>
+      <div class="front-card">
+        <div class="front-card-icon" style="background:rgba(46,125,50,0.08);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        </div>
+        <div class="front-card-name">Aquisição</div>
+        <div class="front-stats">
+          <span class="front-stat setup">1 em setup</span>
+          <span class="front-stat hyp">1 hipótese</span>
+        </div>
+        <div class="front-items">
+          <div class="front-item"><span class="front-item-dot setup"></span> Link de bio dinâmico</div>
+          <div class="front-item"><span class="front-item-dot hypothesis"></span> Post patrocinado com lookalike</div>
+        </div>
+      </div>
+      <div class="front-card">
+        <div class="front-card-icon" style="background:rgba(237,108,2,0.08);color:var(--color-warning);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <div class="front-card-name">Oferta</div>
+        <div class="front-stats">
+          <span class="front-stat active">3 rodando</span>
+          <span class="front-stat hyp">1 hipótese</span>
+        </div>
+        <div class="front-items">
+          <div class="front-item"><span class="front-item-dot running"></span> Série "O sistema X" — 3 partes</div>
+          <div class="front-item"><span class="front-item-dot hypothesis"></span> Isca digital de médio funil</div>
+        </div>
+      </div>
+      <div class="front-card">
+        <div class="front-card-icon" style="background:rgba(100,100,100,0.08);color:var(--color-charcoal);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <div class="front-card-name">Operação</div>
+        <div class="front-stats">
+          <span class="front-stat setup">1 em setup</span>
+        </div>
+        <div class="front-items">
+          <div class="front-item"><span class="front-item-dot setup"></span> Automação de lead capture via DM</div>
+        </div>
+      </div>
+      <div class="front-card">
+        <div class="front-card-icon" style="background:rgba(211,47,47,0.08);color:var(--color-danger);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="front-card-name">Marca</div>
+        <div class="front-stats">
+          <span class="front-stat hyp">1 hipótese</span>
+        </div>
+        <div class="front-items">
+          <div class="front-item"><span class="front-item-dot hypothesis"></span> Série "por dentro do Hub" — bastidores</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Aprendizados -->
+  <div class="lab-section">
+    <div class="lab-section-header">
+      <div class="lab-section-title">Aprendizados</div>
+      <div class="lab-section-subtitle">O que os experimentos estão ensinando. Atualizado conforme cada teste atinge sua primeira leitura.</div>
+    </div>
+    <div class="learn-grid">
+      <div class="learn-card">
+        <div class="learn-card-icon" style="background:rgba(46,125,50,0.1);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="learn-card-label" style="color:var(--color-success);">Validado</div>
+        <div class="learn-items">
+          <div class="learn-item"><strong>Formato de diagnóstico</strong> (5 erros, teste rápido) gera 2,8× mais alcance que a média do canal. Validado com 6 posts.</div>
+          <div class="learn-item"><strong>Carrossel de método</strong> com link na bio tem CTR de 4,2% — dobro da média. Validado com 3 posts.</div>
+          <div class="learn-item"><strong>Bastidor operacional</strong> com números reais gera 2,3× mais salvamentos. Validado com 2 posts.</div>
+        </div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-card-icon" style="background:rgba(211,47,47,0.1);color:var(--color-danger);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+        <div class="learn-card-label" style="color:var(--color-danger);">Invalidado</div>
+        <div class="learn-items">
+          <div class="learn-item"><strong>Imagem estática</strong> perdeu 42% de alcance vs. mês anterior. Formato sem tração para o canal atual.</div>
+          <div class="learn-item"><strong>CTA genérico</strong> ("comente o que achou") não gera engajamento significativo. CTR 0,8% vs. 3,2% de CTAs específicos.</div>
+          <div class="learn-item"><strong>Post viral sem CTA</strong> não se converte em lead mesmo com alto alcance. Necessário link ou CTA explícito.</div>
+        </div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-card-icon" style="background:rgba(0,145,255,0.1);color:var(--color-signal-blue);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <div class="learn-card-label" style="color:var(--color-signal-blue);">Repetir / Escalar</div>
+        <div class="learn-items">
+          <div class="learn-item"><strong>Diagnóstico + CTA específico</strong> — combinação testada com sucesso. Escalar para 2×/semana com pilares variados.</div>
+          <div class="learn-item"><strong>Conteúdo de bastidor</strong> como série semanal fixa. Potencial de construir autoridade e identificação.</div>
+          <div class="learn-item"><strong>Carrossel de método</strong> como formato de conversão principal. Transformar top posts em carrosséis.</div>
+        </div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-card-icon" style="background:rgba(100,100,100,0.1);color:var(--color-slate);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </div>
+        <div class="learn-card-label" style="color:var(--color-slate);">Descartar</div>
+        <div class="learn-items">
+          <div class="learn-item"><strong>Post de imagem única</strong> sem carrossel ou vídeo. Baixo engajamento e alcance em queda.</div>
+          <div class="learn-item"><strong>CTA sem direcionamento</strong> ("clique no link") sem contexto ou oferta clara. Não gera ação.</div>
+          <div class="learn-item"><strong>Conteúdo puramente inspiracional</strong> sem método ou dado concreto. Baixa taxa de salvamento.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab-divider"></div>
+
+  <!-- 7. Próximas ativações -->
+  <div class="lab-section">
+    <div class="lab-section-header">
+      <div class="lab-section-title">Próximas ativações</div>
+      <div class="lab-section-subtitle">Testes prontos para rodar, ajustes necessários e dependências identificadas. Próximos passos do lab.</div>
+    </div>
+    <div class="activation-grid">
+      <div class="activation-card">
+        <div class="activation-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div class="activation-card-label">CTA narrativo em Reels</div>
+        <div class="activation-card-desc">Inserir CTA de comentário direcionado no meio do Reel (não no final). Testar "qual desses 5 você comete?" vs. "comente o que achou".</div>
+        <div class="activation-card-meta">
+          <span class="activation-tag ready">Pronto</span>
+          <span>Aguardando aprovação do roteiro</span>
+        </div>
+      </div>
+      <div class="activation-card">
+        <div class="activation-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+        </div>
+        <div class="activation-card-label">Lead magnet integrado ao carrossel fixo</div>
+        <div class="activation-card-desc">Criar carrossel definitivo "Estratégia ABA completa" para fixar no perfil com link de lead capture direto.</div>
+        <div class="activation-card-meta">
+          <span class="activation-tag adjust">Ajuste</span>
+          <span>Redesign do carrossel necessário</span>
+        </div>
+      </div>
+      <div class="activation-card">
+        <div class="activation-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+        </div>
+        <div class="activation-card-label">Série "O sistema X" — 3 partes</div>
+        <div class="activation-card-desc">Produzir série de 3 Reels + 1 carrossel sobre o sistema de gestão de 12 clientes. Formato: bastidor + método + resultados.</div>
+        <div class="activation-card-meta">
+          <span class="activation-tag blocked">Dependência</span>
+          <span>Aguardando validação de pauta</span>
+        </div>
+      </div>
+      <div class="activation-card">
+        <div class="activation-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <div class="activation-card-label">Automação de lead capture via DM</div>
+        <div class="activation-card-desc">Configurar resposta automática de DM com link de lead magnet quando palavra-chave for detectada. Reduzir atrito pós-post.</div>
+        <div class="activation-card-meta">
+          <span class="activation-tag blocked">Dependência</span>
+          <span>API do Instagram Business pendente</span>
+        </div>
+      </div>
+      <div class="activation-card">
+        <div class="activation-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <div class="activation-card-label">Link de bio dinâmico por post</div>
+        <div class="activation-card-desc">Implementar Beacons para redirecionar link da bio conforme o post em destaque. Testar com 3 posts de alto tráfego.</div>
+        <div class="activation-card-meta">
+          <span class="activation-tag ready">Pronto</span>
+          <span>Setup técnico concluído</span>
+        </div>
+      </div>
+      <div class="activation-card">
+        <div class="activation-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="activation-card-label">Post patrocinado com lookalike</div>
+        <div class="activation-card-desc">Testar campanha paga com lookalike a partir dos leads gerados organicamente. Budget sugerido: R$ 200.</div>
+        <div class="activation-card-meta">
+          <span class="activation-tag adjust">Ajuste</span>
+          <span>Definir pixel e público-alvo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function() {
+  // Sidebar mobile close on outside click
+  document.addEventListener('click', function(e) {
+    var s = document.getElementById('sidebar');
+    if (s && s.classList.contains('open')) {
+      if (!s.contains(e.target) && !e.target.closest('.mobile-menu-btn')) s.classList.remove('open');
+    }
+  });
+
+  // Staggered fade-in for cards
+  var REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!REDUCED_MOTION) {
+    var cards = document.querySelectorAll('.hero-card, .exp-table-wrap, .hyp-card, .front-card, .learn-card, .activation-card');
+    cards.forEach(function(card, i) {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(12px)';
+      card.style.transition = 'opacity 400ms cubic-bezier(0.16, 1, 0.3, 1), transform 400ms cubic-bezier(0.16, 1, 0.3, 1)';
+      setTimeout(function() {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 80 + i * 40);
+    });
+  }
+})();
+</script>
+
+<!-- Palette overlay -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+  <div class="palette" id="paletteModal">
+    <div class="palette-search-wrap">
+      <span class="palette-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </div>
+    <div class="palette-results" id="paletteResults">
+      <div class="palette-empty" id="paletteEmpty">
+        <div class="palette-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="palette-empty-title">Nenhum resultado encontrado</div>
+        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-spacer"></span>
+      <span class="palette-footer-esc">Esc para fechar</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var isOpen = false;
+  var activeIndex = -1;
+  var items = [];
+  var overlay = document.getElementById('paletteOverlay');
+  var input = document.getElementById('paletteInput');
+  var results = document.getElementById('paletteResults');
+  var empty = document.getElementById('paletteEmpty');
+  function updateItems() {
+    items = Array.from(results.querySelectorAll('.palette-item'));
+  }
+  window.togglePalette = function() {
+    isOpen = !isOpen;
+    overlay.classList.toggle('open', isOpen);
+    if (isOpen) {
+      input.value = '';
+      input.focus();
+      updateItems();
+      activeIndex = -1;
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  };
+  window.closePaletteOutside = function(e) {
+    if (e.target === overlay) {
+      isOpen = false;
+      overlay.classList.remove('open');
+    }
+  };
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      isOpen = false;
+      overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.min(activeIndex + 1, visibleItems.length - 1);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (activeIndex >= 0 && activeIndex < visibleItems.length) {
+        visibleItems[activeIndex].click();
+      }
+    }
+  });
+  function highlightItem(visibleItems) {
+    visibleItems.forEach(function(i) { i.classList.remove('active'); });
+    if (visibleItems[activeIndex]) {
+      visibleItems[activeIndex].classList.add('active');
+      visibleItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      togglePalette();
+    }
+  });
+  window.navigateTo = function(url) {
+    window.location.href = url;
+  };
+})();
+</script>
+
+<!-- Script de integração iframe e banco de dados unificado -->
+<script>
+(function() {
+  // 1. Aplicar classe de modo iframe se estiver rodando em frame
+  if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+    
+    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href')) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          const fileName = href.split('?')[0].split('#')[0].split('/').pop();
+          if (fileName.endsWith('.html') && fileName !== 'contact.html') {
+            const tabName = fileName.replace('.html', '');
+            if (window.parent && typeof window.parent.switchTab === 'function') {
+              e.preventDefault();
+              window.parent.switchTab(tabName);
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

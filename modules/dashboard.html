@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sala de Comando — Hub Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../hub.css" />
+<style>
+/* ======================
+   Priority block (editorial)
+   ====================== */
+.priority-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--color-cloud);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.priority-card {
+  background: var(--color-paper);
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+}
+.priority-label {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--color-slate);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.priority-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.priority-desc {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+  flex: 1;
+}
+.priority-action {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-brand-violet);
+  font-family: var(--font-inter);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  transition: opacity var(--duration-fast) ease;
+}
+.priority-action:hover { opacity: 0.7; }
+.priority-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 8px;
+  align-self: flex-start;
+}
+.priority-tag.alerta { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.priority-tag.gargalo { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.priority-tag.oportunidade { background: rgba(46,125,50,0.1); color: var(--color-success); }
+.priority-tag.decisao { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+.priority-tag.recomendacao { background: rgba(123,104,238,0.1); color: var(--color-brand-violet); }
+
+/* ======================
+   Strategic KPIs
+   ====================== */
+.kpi-strategic {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.kpi-strategic-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--duration-fast) ease;
+}
+.kpi-strategic-card:hover { border-color: var(--color-brand-violet); }
+.kpi-strategic-card.primary {
+  background: var(--color-pure-white);
+  border-color: var(--color-brand-violet);
+}
+.kpi-strategic-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.kpi-strategic-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+.kpi-strategic-meta {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+.kpi-strategic-meta .up { color: var(--color-success); font-weight: 600; }
+.kpi-strategic-meta .down { color: var(--color-danger); font-weight: 600; }
+.kpi-strategic-meta .neutral { color: var(--color-signal-blue); font-weight: 600; }
+.kpi-strategic-sub {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-bottom: 6px;
+}
+
+/* ======================
+   Integrated vision (modules)
+   ====================== */
+.vision-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.vision-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  transition: border-color var(--duration-fast) ease;
+}
+.vision-card:hover { border-color: var(--color-brand-violet); }
+.vision-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.vision-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.vision-title svg { color: var(--color-slate); }
+.vision-link {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  color: var(--color-brand-violet);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) ease;
+}
+.vision-link:hover { opacity: 0.7; }
+.vision-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.vision-metric-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.vision-metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.vision-metric-trend {
+  font-size: 10px;
+  font-family: var(--font-inter);
+}
+.vision-metric-trend .up { color: var(--color-success); }
+.vision-metric-trend .down { color: var(--color-danger); }
+.vision-insight {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-cloud);
+}
+
+/* ======================
+   Actions + Decisions
+   ====================== */
+.action-decision-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.action-decision-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+}
+.action-decision-header {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-cloud);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.action-decision-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-cloud);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+.action-item-compact {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-linen);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) ease;
+}
+.action-item-compact:last-child { border-bottom: none; }
+.action-item-compact:hover { opacity: 0.8; }
+.action-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.action-dot.critical { background: var(--color-danger); }
+.action-dot.high { background: var(--color-warning); }
+.action-dot.medium { background: var(--color-signal-blue); }
+.action-dot.low { background: var(--color-success); }
+.action-content { flex: 1; min-width: 0; }
+.action-title-compact {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.action-context-compact {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.action-tag-compact {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  margin-top: 4px;
+  display: inline-flex;
+}
+.action-tag-compact.funil { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.action-tag-compact.pipeline { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.action-tag-compact.conteudo { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.action-tag-compact.vendas { background: rgba(46,125,50,0.08); color: var(--color-success); }
+
+/* ======================
+   Intelligence block
+   ====================== */
+.intel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.intel-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  transition: border-color var(--duration-fast) ease;
+}
+.intel-card:hover { border-color: var(--color-brand-violet); }
+.intel-card.wide { grid-column: 1 / -1; }
+.intel-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.intel-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.intel-desc {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.intel-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.intel-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.intel-stat-label {
+  font-size: 11px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+}
+.text-violet { color: var(--color-brand-violet); }
+.text-green { color: var(--color-success); }
+.text-amber { color: var(--color-warning); }
+.text-red { color: var(--color-danger); }
+.text-blue { color: var(--color-signal-blue); }
+
+/* ======================
+   CMO AI card (keep original design)
+   ====================== */
+.cmo-card-body { padding: 0; }
+.cmo-report-types {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.cmo-report-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-pill);
+  background: var(--color-pure-white);
+  font-family: var(--font-inter);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-charcoal);
+  transition: all var(--duration-fast) ease;
+  cursor: pointer;
+}
+.cmo-report-btn:hover { border-color: var(--color-brand-violet); }
+.cmo-report-btn.active {
+  background: var(--color-brand-violet);
+  border-color: var(--color-brand-violet);
+  color: #fff;
+}
+.cmo-generate-area {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.cmo-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-midnight-ink);
+  color: #fff;
+  font-family: var(--font-plus-jakarta);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background var(--duration-fast) ease;
+  cursor: pointer;
+}
+.cmo-generate-btn:hover { background: var(--color-carbon); }
+.cmo-generate-btn:disabled { opacity: 0.5; cursor: default; }
+.cmo-report-output {
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  min-height: 140px;
+  max-height: 340px;
+  overflow-y: auto;
+  font-family: var(--font-inter);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  white-space: pre-wrap;
+}
+.cmo-report-output.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-slate);
+  font-size: 13px;
+  min-height: 100px;
+}
+.cmo-report-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+.cmo-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-pure-white);
+  font-family: var(--font-inter);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-charcoal);
+  transition: background var(--duration-fast) ease;
+  cursor: pointer;
+}
+.cmo-action-btn:hover { background: var(--color-paper); }
+.cmo-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cmo-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--color-cloud);
+  border-top-color: var(--color-brand-violet);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ======================
+   Responsive
+   ====================== */
+@media (max-width: 1100px) {
+  .priority-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .kpi-strategic { grid-template-columns: repeat(2, 1fr); }
+  .intel-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .priority-grid { grid-template-columns: 1fr; }
+  .kpi-strategic { grid-template-columns: 1fr; }
+  .vision-grid { grid-template-columns: 1fr; }
+  .action-decision-grid { grid-template-columns: 1fr; }
+  .intel-grid { grid-template-columns: 1fr; }
+}
+/* Palette — Busca Global */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9,12,29,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  max-height: 70vh;
+  background: var(--color-pure-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open .palette {
+  transform: translateY(0) scale(1);
+}
+.palette-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+  flex-shrink: 0;
+}
+.palette-search-icon {
+  flex-shrink: 0;
+  color: var(--color-slate);
+  display: grid;
+  place-items: center;
+}
+.palette-search-icon svg { width: 18px; height: 18px; }
+.palette-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: 500 17px/1.4 var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  outline: none;
+  letter-spacing: -0.01em;
+}
+.palette-input::placeholder {
+  color: var(--color-slate);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.palette-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.palette-shortcuts kbd {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 0.02em;
+}
+.palette-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-results::-webkit-scrollbar { width: 4px; }
+.palette-results::-webkit-scrollbar-track { background: transparent; }
+.palette-results::-webkit-scrollbar-thumb { background: var(--color-cloud); border-radius: 999px; }
+.palette-group { padding: 6px 12px; }
+.palette-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+}
+.palette-group-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-linen);
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-item:hover { background: var(--color-paper); }
+.palette-item.active {
+  background: rgba(123,104,238,0.08);
+}
+.palette-item-type {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.palette-item-type svg { width: 13px; height: 13px; }
+.palette-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-title mark {
+  background: rgba(123,104,238,0.15);
+  color: var(--color-midnight-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-context mark {
+  background: rgba(123,104,238,0.12);
+  color: var(--color-charcoal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.palette-tag {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.palette-tag.page { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+.palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.command { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.hot { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.palette-item-action {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.palette-item:hover .palette-item-action { opacity: 1; }
+.palette-item-status {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-item-status.green { background: var(--color-success); }
+.palette-item-status.orange { background: var(--color-warning); }
+.palette-item-status.violet { background: var(--color-brand-violet); }
+.palette-item-status.blue { background: var(--color-signal-blue); }
+.palette-item-status.slate { background: var(--color-slate); }
+.palette-item-status.red { background: var(--color-danger); }
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  flex-shrink: 0;
+}
+.palette-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-footer-item kbd {
+  font: 500 9px/1 var(--font-mono);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.palette-footer-spacer { flex: 1; }
+.palette-footer-esc {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.palette-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: var(--color-paper);
+  display: grid; place-items: center;
+  color: var(--color-slate);
+  margin-bottom: 14px;
+}
+.palette-empty-icon svg { width: 20px; height: 20px; }
+.palette-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  margin-bottom: 4px;
+}
+.palette-empty-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+  font: 500 12px/1 var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+}
+.topbar-search-btn:hover { border-color: var(--color-brand-violet); background: var(--color-pure-white); color: var(--color-charcoal); }
+.topbar-search-btn svg { flex-shrink: 0; }
+.topbar-search-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .palette { width: calc(100vw - 24px); max-height: 80vh; }
+  .palette-search-wrap { padding: 14px 16px; }
+  .palette-input { font-size: 15px; }
+  .palette-overlay { padding-top: 8vh; }
+  .topbar-search-btn kbd { display: none; }
+  .topbar-search-btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">H</div>
+    <div>
+      <div class="sidebar-brand-text">Hub</div>
+      <div class="sidebar-brand-sub">Operacional</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Navegação</div>
+    <a class="nav-item" href="home.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+      Início
+    </a>
+    <a class="nav-item" href="north-star.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+      North Star
+    </a>
+    <a class="nav-item active" href="comando.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Sala de Comando
+    </a>
+    <a class="nav-item" href="lab.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Lab
+    </a>
+    <a class="nav-item" href="brain.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+      Brain
+    </a>
+    <a class="nav-item" href="funil.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      Funis
+    </a>
+    <a class="nav-item" href="pipeline.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" href="conteudo.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Conteúdo
+    </a>
+    <a class="nav-item" href="brandbook.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Brandbook
+    </a>
+    <a class="nav-item" href="agentes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+      Agentes
+    </a>
+    <a class="nav-item" href="sinais.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sinais
+    </a>
+    <a class="nav-item" href="instagram.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a>
+    <div class="sidebar-group-label">Gestão</div>
+    <a class="nav-item" href="carteira.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Carteira
+    </a>
+    <a class="nav-item" href="calendar.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </a>
+    <a class="nav-item" href="reunioes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reuniões
+    </a>
+    <a class="nav-item" href="configuracoes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">ES</div>
+    <div>
+      <div class="sidebar-user">Erick Sena</div>
+      <div class="sidebar-user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<header class="topbar">
+  <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Sala de Comando</span></span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar…
+    <kbd><span>⌘</span>K</kbd>
+  </button>
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Sala de Comando</h1>
+      <div class="subtitle">Visão prioritária da operação — o que performa, o que trava, o que precisa de ação agora. Central executiva do Hub Operacional.</div>
+    </div>
+    <div class="page-header-right">
+      <div class="label">Receita realizada</div>
+      <div class="value text-violet">R$ 1,8M</div>
+      <div class="subtitle" style="font-size:12px;max-width:none;">vs. R$ 2,4M projetado (76%)</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filterbar">
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <select>
+        <option>Últimos 30 dias</option>
+        <option>Últimos 7 dias</option>
+        <option>Últimos 90 dias</option>
+        <option>Personalizado</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+      <select>
+        <option>Todas as origens</option>
+        <option>Instagram Orgânico</option>
+        <option>YouTube</option>
+        <option>Tráfego Pago</option>
+        <option>CRM / Pipeline</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+      <select>
+        <option>Todas as campanhas</option>
+        <option>Conteúdo Orgânico</option>
+        <option>Lançamento Q3</option>
+        <option>Posts Patrocinados</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <select>
+        <option>Todos os segmentos</option>
+        <option>Topo de Funil</option>
+        <option>Meio de Funil</option>
+        <option>Fundo de Funil</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <select>
+        <option>Todos os responsáveis</option>
+        <option>João M.</option>
+        <option>Carla S.</option>
+        <option>Pedro A.</option>
+        <option>Ana L.</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Priority block -->
+  <div class="priority-grid">
+    <div class="priority-card">
+      <span class="priority-tag alerta">Alerta</span>
+      <div class="priority-title">Queda de 37% no alcance orgânico</div>
+      <div class="priority-desc">Instagram reduzindo alcance de posts estáticos. Reels mantêm performance, mas formato carrossel caiu 52% em 3 semanas. Impacto direto em leads de topo.</div>
+      <span class="priority-action" onclick="window.location='funil.html'">Ver funil →</span>
+    </div>
+    <div class="priority-card">
+      <span class="priority-tag gargalo">Gargalo</span>
+      <div class="priority-title">Propostas paradas >10 dias</div>
+      <div class="priority-desc">3 deals em Proposal sem proposta registrada. R$ 245K em negociação travados por falta de documento comercial. Ativar construtor de propostas.</div>
+      <span class="priority-action" onclick="window.location='pipeline.html'">Ir para Pipeline →</span>
+    </div>
+    <div class="priority-card">
+      <span class="priority-tag oportunidade">Oportunidade</span>
+      <div class="priority-title">Base de 847 leads inativos</div>
+      <div class="priority-desc">68% dos leads dos últimos 90 dias não avançaram. Campanha de reativação com estudo de caso pode recuperar 15-20% sem custo de aquisição.</div>
+      <span class="priority-action">Criar campanha →</span>
+    </div>
+    <div class="priority-card">
+      <span class="priority-tag decisao">Decisão Pendente</span>
+      <div class="priority-title">Aprovar oferta relâmpago Q3</div>
+      <div class="priority-desc">Proposta de desconto de 20% para contratos anuais. Potencial de fechar 3 deals parados em Negociação (R$ 280K). Prazo: esta sexta.</div>
+      <span class="priority-action">Revisar oferta →</span>
+    </div>
+    <div class="priority-card">
+      <span class="priority-tag recomendacao">Recomendação</span>
+      <div class="priority-title">Migrar 30% do orçamento de mídia paga para orgânico</div>
+      <div class="priority-desc">CAC do tráfego pago (R$ 187) é 4,4× maior que o orgânico (R$ 42). Redirecionar R$ 12K/mês para produção de conteúdo e remarketing.</div>
+      <span class="priority-action" onclick="window.location='agentes.html'">Ativar agentes →</span>
+    </div>
+  </div>
+
+  <!-- Strategic KPIs -->
+  <div class="kpi-strategic">
+    <div class="kpi-strategic-card primary">
+      <div class="kpi-strategic-label">Pipeline total</div>
+      <div class="kpi-strategic-value">R$ 2,4M</div>
+      <div class="kpi-strategic-sub">47 deals ativos</div>
+      <div class="kpi-strategic-meta"><span class="up">▲ 12%</span> vs. mês passado</div>
+    </div>
+    <div class="kpi-strategic-card">
+      <div class="kpi-strategic-label">Conversão do funil</div>
+      <div class="kpi-strategic-value">0,032%</div>
+      <div class="kpi-strategic-sub">Alcance → Vendas</div>
+      <div class="kpi-strategic-meta"><span class="neutral">◆ estável</span> vs. período anterior</div>
+    </div>
+    <div class="kpi-strategic-card">
+      <div class="kpi-strategic-label">Receita projetada</div>
+      <div class="kpi-strategic-value">R$ 2,4M</div>
+      <div class="kpi-strategic-sub">Com 68% win rate</div>
+      <div class="kpi-strategic-meta"><span class="up">▲ +R$ 320K</span> vs. projeção anterior</div>
+    </div>
+    <div class="kpi-strategic-card">
+      <div class="kpi-strategic-label">Fechamento no mês</div>
+      <div class="kpi-strategic-value">R$ 420K</div>
+      <div class="kpi-strategic-sub">5 deals em andamento</div>
+      <div class="kpi-strategic-meta"><span class="up">▲ +R$ 70K</span> vs. mês anterior</div>
+    </div>
+    <div class="kpi-strategic-card">
+      <div class="kpi-strategic-label">Taxa de avanço</div>
+      <div class="kpi-strategic-value">63%</div>
+      <div class="kpi-strategic-sub">Proposal → Negotiation</div>
+      <div class="kpi-strategic-meta"><span class="down">▼ -4pp</span> vs. mês passado</div>
+    </div>
+    <div class="kpi-strategic-card">
+      <div class="kpi-strategic-label">Oportunidades em risco</div>
+      <div class="kpi-strategic-value">8</div>
+      <div class="kpi-strategic-sub">R$ 520K em jogo</div>
+      <div class="kpi-strategic-meta"><span class="down">▼ +2</span> vs. semana passada</div>
+    </div>
+  </div>
+
+  <!-- Integrated vision -->
+  <div class="vision-grid">
+    <div class="vision-card">
+      <div class="vision-header">
+        <div class="vision-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+          Funil
+        </div>
+        <span class="vision-link" onclick="window.location='funil.html'">Abrir Funil →</span>
+      </div>
+      <div class="vision-metrics">
+        <div>
+          <div class="vision-metric-label">Alcance</div>
+          <div class="vision-metric-value">28.400</div>
+          <div class="vision-metric-trend"><span class="down">▼ -12%</span></div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Leads</div>
+          <div class="vision-metric-value">314</div>
+          <div class="vision-metric-trend"><span class="up">▲ +18%</span></div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Conversas</div>
+          <div class="vision-metric-value">96</div>
+          <div class="vision-metric-trend"><span class="up">▲ +8%</span></div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Vendas</div>
+          <div class="vision-metric-value">9</div>
+          <div class="vision-metric-trend"><span class="up">▲ +29%</span></div>
+        </div>
+      </div>
+      <div class="vision-insight">Queda de alcance orgânico no Instagram, mas leads e vendas em alta. Gargalo principal: Alcance → Cliques.</div>
+    </div>
+    <div class="vision-card">
+      <div class="vision-header">
+        <div class="vision-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Pipeline
+        </div>
+        <span class="vision-link" onclick="window.location='pipeline.html'">Abrir Pipeline →</span>
+      </div>
+      <div class="vision-metrics">
+        <div>
+          <div class="vision-metric-label">Total</div>
+          <div class="vision-metric-value">47</div>
+          <div class="vision-metric-trend">deals ativos</div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Valor total</div>
+          <div class="vision-metric-value">R$ 2,4M</div>
+          <div class="vision-metric-trend"><span class="up">▲ +12%</span></div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Win rate</div>
+          <div class="vision-metric-value">68%</div>
+          <div class="vision-metric-trend"><span class="neutral">◆ +3pp</span></div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Em negociação</div>
+          <div class="vision-metric-value">R$ 280K</div>
+          <div class="vision-metric-trend">3 deals</div>
+        </div>
+      </div>
+      <div class="vision-insight">Pipeline saudável, mas 3 deals em Proposal sem proposta registrada. Win rate acima da média de mercado (48%).</div>
+    </div>
+    <div class="vision-card">
+      <div class="vision-header">
+        <div class="vision-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Conteúdo
+        </div>
+        <span class="vision-link" onclick="window.location='conteudo.html'">Abrir Conteúdo →</span>
+      </div>
+      <div class="vision-metrics">
+        <div>
+          <div class="vision-metric-label">Posts</div>
+          <div class="vision-metric-value">24</div>
+          <div class="vision-metric-trend">no mês</div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Engajamento</div>
+          <div class="vision-metric-value">4,8%</div>
+          <div class="vision-metric-trend"><span class="up">▲ +0,6pp</span></div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Top formato</div>
+          <div class="vision-metric-value">Reels</div>
+          <div class="vision-metric-trend">7,4% eng.</div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Melhor horário</div>
+          <div class="vision-metric-value">Ter 19h</div>
+          <div class="vision-metric-trend">+40% acima da média</div>
+        </div>
+      </div>
+      <div class="vision-insight">Conteúdo em Reels performa 2,3× melhor que posts estáticos. Segunda-feira e sábado têm pior engajamento.</div>
+    </div>
+    <div class="vision-card">
+      <div class="vision-header">
+        <div class="vision-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Sinais
+        </div>
+        <span class="vision-link" onclick="window.location='sinais.html'">Abrir Sinais →</span>
+      </div>
+      <div class="vision-metrics">
+        <div>
+          <div class="vision-metric-label">Tendência</div>
+          <div class="vision-metric-value text-green">+12,4%</div>
+          <div class="vision-metric-trend">crescimento geral</div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Queda</div>
+          <div class="vision-metric-value text-red">-37%</div>
+          <div class="vision-metric-trend">alcance orgânico</div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Recuperação</div>
+          <div class="vision-metric-value text-green">+62%</div>
+          <div class="vision-metric-trend">conversas YouTube</div>
+        </div>
+        <div>
+          <div class="vision-metric-label">Risco</div>
+          <div class="vision-metric-value text-amber">8 deals</div>
+          <div class="vision-metric-trend">em risco</div>
+        </div>
+      </div>
+      <div class="vision-insight">Operação crescendo com ruído de canal. Queda de alcance compensada por YouTube. Leads em alta há 8 semanas.</div>
+    </div>
+  </div>
+
+  <!-- Actions + Decisions -->
+  <div class="action-decision-grid">
+    <!-- What to do now -->
+    <div class="action-decision-card">
+      <div class="action-decision-header">
+        <span>O que fazer agora</span>
+        <span class="action-decision-count">6 itens</span>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot critical"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Revisar 3 propostas sem documento</div>
+          <div class="action-context-compact">Deals em Proposal há 12+ dias — gerar propostas no construtor integrado</div>
+          <span class="action-tag-compact pipeline">Pipeline</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot critical"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Analisar queda de alcance no Instagram</div>
+          <div class="action-context-compact">-37% em 3 semanas. Priorizar Reels e testar CTA no primeiro comentário</div>
+          <span class="action-tag-compact funil">Funil</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot high"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Ativar campanha de reaquecimento</div>
+          <div class="action-context-compact">847 leads inativos — sequência de e-mails com estudo de caso</div>
+          <span class="action-tag-compact conteudo">Conteúdo</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot high"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Pausar campanhas com CAC alto</div>
+          <div class="action-context-compact">2 campanhas pagas com ROI negativo — redirecionar R$ 12K para orgânico</div>
+          <span class="action-tag-compact funil">Funil</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot medium"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Follow-up com leads quentes</div>
+          <div class="action-context-compact">12 leads com alto score aguardando contato — priorizar nos próximos 2 dias</div>
+          <span class="action-tag-compact vendas">Vendas</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot medium"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Testar A/B de headline na página de captura</div>
+          <div class="action-context-compact">Agente de Copy pode gerar 12 variações em 24h para teste</div>
+          <span class="action-tag-compact conteudo">Conteúdo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending decisions -->
+    <div class="action-decision-card">
+      <div class="action-decision-header">
+        <span>Decisões Pendentes</span>
+        <span class="action-decision-count">5 itens</span>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot critical"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Aprovar oferta relâmpago Q3</div>
+          <div class="action-context-compact">20% desconto para contratos anuais. Potencial: R$ 280K em deals parados.</div>
+          <span class="action-tag-compact pipeline">Pipeline</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot high"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Revisar campanha de topo de funil</div>
+          <div class="action-context-compact">CTR caiu de 7,2% para 4,8% — ajustar CTA e formato dos posts.</div>
+          <span class="action-tag-compact funil">Funil</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot high"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Destacar conteúdo de alto desempenho</div>
+          <div class="action-context-compact">Post "Como escalar captação de leads" com 3.400 views — impulsionar.</div>
+          <span class="action-tag-compact conteudo">Conteúdo</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot medium"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Ajustar etapa do funil para leads frios</div>
+          <div class="action-context-compact">Criar etapa "Reaquecimento" no pipeline para leads inativos >30 dias.</div>
+          <span class="action-tag-compact pipeline">Pipeline</span>
+        </div>
+      </div>
+      <div class="action-item-compact">
+        <span class="action-dot medium"></span>
+        <div class="action-content">
+          <div class="action-title-compact">Validar próxima ação comercial</div>
+          <div class="action-context-compact">Sequência de follow-up para 3 deals em Negociação — aprovar approach.</div>
+          <span class="action-tag-compact vendas">Vendas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intelligence block -->
+  <div class="intel-grid">
+    <div class="intel-card">
+      <div class="intel-label">Tendência principal</div>
+      <div class="intel-title">Leads em crescimento sustentado</div>
+      <div class="intel-desc">8 semanas consecutivas de alta, impulsionado por Instagram e YouTube. Crescimento semanal médio de <span class="text-green">+5,2%</span>.</div>
+      <div class="intel-stat">
+        <span class="intel-stat-value text-green">+42%</span>
+        <span class="intel-stat-label">vs. início do período</span>
+      </div>
+    </div>
+    <div class="intel-card">
+      <div class="intel-label">Queda incomum</div>
+      <div class="intel-title">Alcance orgânico em degradação</div>
+      <div class="intel-desc">Posts estáticos perderam 52% de alcance. Reels mantêm performance. Possível mudança no algoritmo do Instagram.</div>
+      <div class="intel-stat">
+        <span class="intel-stat-value text-red">-37%</span>
+        <span class="intel-stat-label">alcance em 21 dias</span>
+      </div>
+    </div>
+    <div class="intel-card">
+      <div class="intel-label">Sinal positivo</div>
+      <div class="intel-title">YouTube como novo canal de conversas</div>
+      <div class="intel-desc">Vídeo "Cases de sucesso 2025" gerou 28 conversas em 48h. Canal crescendo <span class="text-green">+62%</span> em conversas nas últimas 2 semanas.</div>
+      <div class="intel-stat">
+        <span class="intel-stat-value text-green">+62%</span>
+        <span class="intel-stat-label">conversas via YouTube</span>
+      </div>
+    </div>
+    <div class="intel-card">
+      <div class="intel-label">Risco emergente</div>
+      <div class="intel-title">Dependência de canal único</div>
+      <div class="intel-desc">Instagram representa 73% dos leads. Queda de alcance pode impactar severamente a geração de demanda se não houver diversificação.</div>
+      <div class="intel-stat">
+        <span class="intel-stat-value text-amber">73%</span>
+        <span class="intel-stat-label">leads vindos do Instagram</span>
+      </div>
+    </div>
+    <div class="intel-card">
+      <div class="intel-label">Insight automático</div>
+      <div class="intel-title">Ticket médio subindo sem ação direta</div>
+      <div class="intel-desc">Ticket médio cresceu 8% nas últimas 4 semanas (R$ 22,7K → R$ 24,5K). Possível correlação com leads mais qualificados vindos do YouTube.</div>
+      <div class="intel-stat">
+        <span class="intel-stat-value text-violet">+8%</span>
+        <span class="intel-stat-label">ticket médio em 30 dias</span>
+      </div>
+    </div>
+    <div class="intel-card">
+      <div class="intel-label">Hipótese recomendada</div>
+      <div class="intel-title">Lead magnet de alto valor pode recuperar CTR</div>
+      <div class="intel-desc">Testar guia gratuito vs. ferramenta interativa como isca digital. Hipótese: conteúdo interativo dobra taxa de conversão Alcance → Cliques.</div>
+      <div class="intel-stat">
+        <span class="intel-stat-value text-blue">2,0x</span>
+        <span class="intel-stat-label">CTR estimado com lead magnet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CMO AI Card -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header" style="padding-bottom:12px;border-bottom:1px solid var(--color-cloud);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand-violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M5 21c.5-5 2-9 7-9s6.5 4 7 9"/></svg>
+        <span class="card-title">CMO AI</span>
+        <span style="font-size:11px;color:var(--color-slate);font-family:var(--font-inter);background:var(--color-cloud);padding:2px 10px;border-radius:var(--radius-pill);letter-spacing:0.02em;">Assistente estratégico</span>
+      </div>
+    </div>
+    <div class="cmo-card-body">
+      <div class="cmo-report-types" id="cmoReportTypes">
+        <button class="cmo-report-btn active" data-report="weekly">Relatório Semanal</button>
+        <button class="cmo-report-btn" data-report="funnel">Análise de Funil</button>
+        <button class="cmo-report-btn" data-report="instagram">Performance Instagram</button>
+        <button class="cmo-report-btn" data-report="diagnostic">Diagnóstico Rápido</button>
+      </div>
+      <div class="cmo-generate-area">
+        <button class="cmo-generate-btn" id="cmoGenerateBtn" onclick="generateCMOReport()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 4 1 10 7 10"/><path d="M3.5 9.5A7.5 7.5 0 1 0 7.5 2"/><path d="M7 6.5V2h4.5"/></svg>
+          Gerar Relatório
+        </button>
+      </div>
+      <div class="cmo-report-output empty" id="cmoOutput">Selecione um tipo de relatório e clique em "Gerar Relatório"</div>
+      <div class="cmo-report-actions" id="cmoActions" style="display:none">
+        <button class="cmo-action-btn" onclick="copyCMOReport()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar
+        </button>
+        <button class="cmo-action-btn" onclick="downloadCMOReport()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar .txt
+        </button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+var topDeals = (window.parent && window.parent.topDeals) || [
+  { id: 1, name: 'TechCorp Solutions', value: 180000, stage: 'negotiation', stageLabel: 'Negociação', stageClass: 'negotiation', owner: 'JM', ownerName: 'João M.' },
+  { id: 2, name: 'Inovação Sistemas', value: 95000, stage: 'proposal', stageLabel: 'Proposta', stageClass: 'proposal', owner: 'CS', ownerName: 'Carla S.' },
+  { id: 3, name: 'DataPrime Analytics', value: 82000, stage: 'qualified', stageLabel: 'Qualificado', stageClass: 'qualified', owner: 'PA', ownerName: 'Pedro A.' },
+  { id: 4, name: 'CloudNine Hosting', value: 76000, stage: 'proposal', stageLabel: 'Proposta', stageClass: 'proposal', owner: 'AL', ownerName: 'Ana L.' },
+  { id: 5, name: 'Nexa Digital', value: 64000, stage: 'negotiation', stageLabel: 'Negociação', stageClass: 'negotiation', owner: 'RT', ownerName: 'Rafael T.' }
+];
+
+document.addEventListener('click', function (e) {
+  var s = document.getElementById('sidebar');
+  if (s && s.classList.contains('open')) {
+    var t = e.target;
+    if (!s.contains(t) && !t.closest('.mobile-menu-btn')) {
+      s.classList.remove('open');
+    }
+  }
+});
+
+/* CMO AI data */
+var cmoReportData = {
+  weekly: {
+    title: 'Relatório Semanal — 23 a 29 de Junho',
+    content: '📋 RESUMO EXECUTIVO\n' +
+      'Período: 23 a 29 de Junho de 2026\n\n' +
+      '🔹 Pipeline Total: R$ 2.4M (+12% vs. semana anterior)\n' +
+      '🔹 Deals Novos: 4 (Prospect) — R$ 380K adicionados\n' +
+      '🔹 Propostas Enviadas: 3 — R$ 245K em negociação\n' +
+      '🔹 Won: 1 deal (Nexa Digital — R$ 64K)\n' +
+      '🔹 Win Rate: 68% (estável)\n\n' +
+      '📊 TENDÊNCIAS\n' +
+      '• O ticket médio subiu 8% nas últimas 4 semanas ($22.7K → $24.5K)\n' +
+      '• Deals em Negociação (+1) indicam pipeline saudável para Julho\n' +
+      '• Melhor desempenho: equipe de Carla S. (3 deals em Proposta)\n\n' +
+      '⚡ RECOMENDAÇÕES\n' +
+      '1. Priorizar follow-up dos 3 deals em Negociação (R$ 280K)\n' +
+      '2. Revisar critérios de qualificação — taxa de conversão Prospect→Qualified caiu 5pp\n' +
+      '3. Acionar IA Objection Breaker nos deals parados há > 7 dias'
+  },
+  funnel: {
+    title: 'Análise de Funil — Junho/2026',
+    content: '🔍 ANÁLISE DE FUNIL — JUNHO/2026\n\n' +
+      'VISÃO GERAL DO FUNIL\n\n' +
+      'Prospect      → 12 deals  |  R$ 850K  |  Conversão: 100%\n' +
+      'Qualified     →  8 deals  |  R$ 620K  |  Taxa: 67%\n' +
+      'Proposal      →  5 deals  |  R$ 410K  |  Taxa: 63%\n' +
+      'Negotiation   →  3 deals  |  R$ 280K  |  Taxa: 60%\n' +
+      'Won           → 15 deals  |  R$ 1.2M  |  Taxa: —\n\n' +
+      '⚠️ GARGALOS IDENTIFICADOS\n' +
+      '• Stage Proposal: 63% de conversão — 2 deals parados há 12+ dias\n' +
+      '• Falta de propostas enviadas: 5 deals em Proposal, mas 3 sem proposta registrada\n\n' +
+      '✅ OPORTUNIDADES\n' +
+      '• Ativar o Construtor de Propostas para acelerar os 3 deals sem documento\n' +
+      '• Usar o Objection Breaker nos 2 deals parados em Negociação'
+  },
+  instagram: {
+    title: 'Performance Instagram — Junho/2026',
+    content: '📸 PERFORMANCE INSTAGRAM — JUNHO/2026\n\n' +
+      '📈 MÉTRICAS PRINCIPAIS\n' +
+      '• Seguidores: 18.4K (+5.4% no mês)\n' +
+      '• Alcance (30d): 245.8K\n' +
+      '• Engajamento médio: 4.8%\n' +
+      '• Posts: 24 (média de 0.8/dia)\n\n' +
+      '🏆 TOP CONTEÚDO\n' +
+      '1. Vídeo: "Como comecei meu primeiro M de faturamento" — 41.2K alcance, 7.4% eng.\n' +
+      '2. Vídeo: "5 erros que travam seu negócio" — 28.4K alcance, 6.1% eng.\n' +
+      '3. Carrossel: "Estratégia ABA passo a passo" — 18.2K alcance, 4.8% eng.\n\n' +
+      '⏰ MELHOR HORÁRIO\n' +
+      '• Terça-feira às 19h — engajamento 40% acima da média\n' +
+      '• Evitar: sábado/domingo antes das 10h\n\n' +
+      '⚡ RECOMENDAÇÕES\n' +
+      '1. Aumentar frequência de Reels (formato com maior alcance orgânico)\n' +
+      '2. Postar terça e quinta às 19h — horário de pico comprovado\n' +
+      '3. Criar mais conteúdo "bastidor" — teve 2.3× mais engagement que posts de produto'
+  },
+  diagnostic: {
+    title: 'Diagnóstico Rápido — CRM',
+    content: '⚡ DIAGNÓSTICO RÁPIDO — CRM\n\n' +
+      '📊 SAÚDE DO PIPELINE\n' +
+      '• ✅ Volume total saudável (R$ 2.4M)\n' +
+      '• ⚠️ Taxa de conversão Proposal→Negotiation abaixo do ideal (60%)\n' +
+      '• ✅ Win Rate de 68% — acima da média do mercado (48%)\n\n' +
+      '🔧 OPORTUNIDADES DE MELHORIA\n' +
+      '1. Propostas: 3 deals em Proposal sem proposta registrada — use o Construtor\n' +
+      '2. Follow-up: 2 deals em Negociação sem atividade há 7+ dias\n' +
+      '3. Qualificação: critérios de Prospect→Qualified podem estar frouxos\n\n' +
+      '🤖 IA DISPONÍVEL\n' +
+      '• Objection Breaker: integrado no modal do deal — responda objeções em 1 clique\n' +
+      '• CMO AI: análises estratégicas como este diagnóstico\n' +
+      '• Agentes de IA: copilotos configuráveis para vendas, suporte e mídia\n\n' +
+      '🎯 PRÓXIMO PASSO RECOMENDADO\n' +
+      'Revisar os 3 deals em Proposal sem proposta e criar os documentos usando o Construtor integrado.'
+  }
+};
+
+var cmoSelectedReport = 'weekly';
+var cmoLastReport = '';
+
+document.querySelectorAll('.cmo-report-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.cmo-report-btn').forEach(function(b) { b.classList.remove('active'); });
+    this.classList.add('active');
+    cmoSelectedReport = this.getAttribute('data-report');
+    var output = document.getElementById('cmoOutput');
+    output.textContent = 'Clique em "Gerar Relatório" para ' + this.textContent.trim();
+    output.className = 'cmo-report-output empty';
+    document.getElementById('cmoActions').style.display = 'none';
+  });
+});
+
+function generateCMOReport() {
+  var btn = document.getElementById('cmoGenerateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="cmo-loading"><span class="cmo-spinner"></span> Analisando dados…</span>';
+
+  var report = cmoReportData[cmoSelectedReport];
+  var output = document.getElementById('cmoOutput');
+  output.className = 'cmo-report-output';
+  output.textContent = '';
+
+  var chars = report.content.split('');
+  var idx = 0;
+  output.textContent = '';
+
+  function typeChar() {
+    if (idx >= chars.length) {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 4 1 10 7 10"/><path d="M3.5 9.5A7.5 7.5 0 1 0 7.5 2"/><path d="M7 6.5V2h4.5"/></svg> Gerar Relatório';
+      document.getElementById('cmoActions').style.display = 'flex';
+      cmoLastReport = report.content;
+      return;
+    }
+    output.textContent += chars[idx];
+    output.scrollTop = output.scrollHeight;
+    idx++;
+    var delay = chars[idx - 1] === '\n' ? 25 : Math.random() * 8 + 4;
+    setTimeout(typeChar, delay);
+  }
+  typeChar();
+}
+
+function copyCMOReport() {
+  if (!cmoLastReport) return;
+  navigator.clipboard.writeText(cmoReportData[cmoSelectedReport].title + '\n\n' + cmoLastReport).then(function() {
+    var btn = document.querySelector('.cmo-action-btn:first-child');
+    var orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copiado!';
+    setTimeout(function() { btn.innerHTML = orig; }, 2000);
+  });
+}
+
+function downloadCMOReport() {
+  if (!cmoLastReport) return;
+  var data = cmoReportData[cmoSelectedReport].title + '\n\n' + cmoLastReport;
+  var blob = new Blob([data], { type: 'text/plain;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'cmo-report-' + cmoSelectedReport + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+<!-- Palette overlay -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+  <div class="palette" id="paletteModal">
+    <div class="palette-search-wrap">
+      <span class="palette-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </div>
+    <div class="palette-results" id="paletteResults">
+      <div class="palette-empty" id="paletteEmpty">
+        <div class="palette-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="palette-empty-title">Nenhum resultado encontrado</div>
+        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-spacer"></span>
+      <span class="palette-footer-esc">Esc para fechar</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var isOpen = false;
+  var activeIndex = -1;
+  var items = [];
+  var overlay = document.getElementById('paletteOverlay');
+  var input = document.getElementById('paletteInput');
+  var results = document.getElementById('paletteResults');
+  var empty = document.getElementById('paletteEmpty');
+  function updateItems() {
+    items = Array.from(results.querySelectorAll('.palette-item'));
+  }
+  window.togglePalette = function() {
+    isOpen = !isOpen;
+    overlay.classList.toggle('open', isOpen);
+    if (isOpen) {
+      input.value = '';
+      input.focus();
+      updateItems();
+      activeIndex = -1;
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  };
+  window.closePaletteOutside = function(e) {
+    if (e.target === overlay) {
+      isOpen = false;
+      overlay.classList.remove('open');
+    }
+  };
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      isOpen = false;
+      overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.min(activeIndex + 1, visibleItems.length - 1);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (activeIndex >= 0 && activeIndex < visibleItems.length) {
+        visibleItems[activeIndex].click();
+      }
+    }
+  });
+  function highlightItem(visibleItems) {
+    visibleItems.forEach(function(i) { i.classList.remove('active'); });
+    if (visibleItems[activeIndex]) {
+      visibleItems[activeIndex].classList.add('active');
+      visibleItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      togglePalette();
+    }
+  });
+  window.navigateTo = function(url) {
+    window.location.href = url;
+  };
+})();
+</script>
+
+<!-- Script de integração iframe e banco de dados unificado -->
+<script>
+(function() {
+  // 1. Aplicar classe de modo iframe se estiver rodando em frame
+  if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+    
+    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href')) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          const fileName = href.split('?')[0].split('#')[0].split('/').pop();
+          if (fileName.endsWith('.html') && fileName !== 'contact.html') {
+            const tabName = fileName.replace('.html', '');
+            if (window.parent && typeof window.parent.switchTab === 'function') {
+              e.preventDefault();
+              window.parent.switchTab(tabName);
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

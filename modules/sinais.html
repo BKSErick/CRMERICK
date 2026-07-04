@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sinais — Hub Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../hub.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --signal-violet: rgba(123,104,238,0.08);
+  --signal-blue-bg: rgba(0,145,255,0.06);
+  --signal-green-bg: rgba(46,125,50,0.06);
+  --signal-amber-bg: rgba(237,108,2,0.06);
+}
+
+/* ======================
+   KPI compact row
+   ====================== */
+.kpi-compact {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.kpi-compact-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+}
+.kpi-compact-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.kpi-compact-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.kpi-compact-sub {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-top: 3px;
+}
+.kpi-compact-sub .up { color: var(--color-success); }
+.kpi-compact-sub .down { color: var(--color-danger); }
+.kpi-compact-sub .neutral { color: var(--color-signal-blue); }
+
+/* ======================
+   Chart wrapper
+   ====================== */
+.chart-section {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 24px 24px 20px;
+  margin-bottom: 28px;
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.chart-legend-custom {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.chart-legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.chart-wrap {
+  width: 100%;
+  max-height: 320px;
+}
+.chart-wrap canvas {
+  width: 100% !important;
+}
+
+/* ======================
+   Recommended actions
+   ====================== */
+.actions-section {
+  margin-bottom: 28px;
+}
+.actions-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+.actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--color-cloud);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.action-item {
+  background: var(--color-paper);
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 16px;
+  align-items: start;
+}
+.action-context {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+  grid-column: 1;
+}
+.action-context strong {
+  color: var(--color-charcoal);
+  font-weight: 600;
+}
+.action-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+}
+.action-tag.conteudo {
+  background: rgba(123,104,238,0.08);
+  color: var(--color-brand-violet);
+}
+.action-tag.aquisicao {
+  background: rgba(0,145,255,0.08);
+  color: var(--color-signal-blue);
+}
+.action-tag.vendas {
+  background: rgba(46,125,50,0.08);
+  color: var(--color-success);
+}
+.action-tag.otimizacao {
+  background: rgba(237,108,2,0.08);
+  color: var(--color-warning);
+}
+.action-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-cloud);
+}
+.action-impact {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  color: var(--color-charcoal);
+}
+.action-impact span {
+  color: var(--color-success);
+  font-weight: 600;
+}
+.action-btn {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  color: var(--color-brand-violet);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) ease;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.action-btn:hover { opacity: 0.7; }
+.action-priority {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  letter-spacing: 0.04em;
+}
+.action-priority.high { color: var(--color-danger); }
+.action-priority.med { color: var(--color-warning); }
+
+/* ======================
+   Insight grid (summary-section style)
+   ====================== */
+.insight-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.insight-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  transition: border-color var(--duration-fast) ease;
+}
+.insight-card:hover { border-color: var(--color-brand-violet); }
+.insight-card.wide { grid-column: 1 / -1; }
+.insight-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.insight-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.insight-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.insight-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.insight-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.insight-stat-label {
+  font-size: 12px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+}
+.insight-highlight-violet { color: var(--color-brand-violet); font-weight: 600; }
+.insight-highlight-green { color: var(--color-success); font-weight: 600; }
+.insight-highlight-amber { color: var(--color-warning); font-weight: 600; }
+.insight-highlight-red { color: var(--color-danger); font-weight: 600; }
+
+/* ======================
+   Responsive
+   ====================== */
+@media (max-width: 1024px) {
+  .kpi-compact { grid-template-columns: repeat(2, 1fr); }
+  .insight-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .kpi-compact { grid-template-columns: 1fr; }
+  .chart-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .action-item { grid-template-columns: 1fr; }
+}
+/* Palette — Busca Global */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9,12,29,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  max-height: 70vh;
+  background: var(--color-pure-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open .palette {
+  transform: translateY(0) scale(1);
+}
+.palette-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+  flex-shrink: 0;
+}
+.palette-search-icon {
+  flex-shrink: 0;
+  color: var(--color-slate);
+  display: grid;
+  place-items: center;
+}
+.palette-search-icon svg { width: 18px; height: 18px; }
+.palette-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: 500 17px/1.4 var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  outline: none;
+  letter-spacing: -0.01em;
+}
+.palette-input::placeholder {
+  color: var(--color-slate);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.palette-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.palette-shortcuts kbd {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 0.02em;
+}
+.palette-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-results::-webkit-scrollbar { width: 4px; }
+.palette-results::-webkit-scrollbar-track { background: transparent; }
+.palette-results::-webkit-scrollbar-thumb { background: var(--color-cloud); border-radius: 999px; }
+.palette-group { padding: 6px 12px; }
+.palette-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+}
+.palette-group-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-linen);
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-item:hover { background: var(--color-paper); }
+.palette-item.active {
+  background: rgba(123,104,238,0.08);
+}
+.palette-item-type {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.palette-item-type svg { width: 13px; height: 13px; }
+.palette-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-title mark {
+  background: rgba(123,104,238,0.15);
+  color: var(--color-midnight-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-context mark {
+  background: rgba(123,104,238,0.12);
+  color: var(--color-charcoal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.palette-tag {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.palette-tag.page { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+.palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.command { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.hot { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.palette-item-action {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.palette-item:hover .palette-item-action { opacity: 1; }
+.palette-item-status {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-item-status.green { background: var(--color-success); }
+.palette-item-status.orange { background: var(--color-warning); }
+.palette-item-status.violet { background: var(--color-brand-violet); }
+.palette-item-status.blue { background: var(--color-signal-blue); }
+.palette-item-status.slate { background: var(--color-slate); }
+.palette-item-status.red { background: var(--color-danger); }
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  flex-shrink: 0;
+}
+.palette-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-footer-item kbd {
+  font: 500 9px/1 var(--font-mono);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.palette-footer-spacer { flex: 1; }
+.palette-footer-esc {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.palette-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: var(--color-paper);
+  display: grid; place-items: center;
+  color: var(--color-slate);
+  margin-bottom: 14px;
+}
+.palette-empty-icon svg { width: 20px; height: 20px; }
+.palette-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  margin-bottom: 4px;
+}
+.palette-empty-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+  font: 500 12px/1 var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+}
+.topbar-search-btn:hover { border-color: var(--color-brand-violet); background: var(--color-pure-white); color: var(--color-charcoal); }
+.topbar-search-btn svg { flex-shrink: 0; }
+.topbar-search-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .palette { width: calc(100vw - 24px); max-height: 80vh; }
+  .palette-search-wrap { padding: 14px 16px; }
+  .palette-input { font-size: 15px; }
+  .palette-overlay { padding-top: 8vh; }
+  .topbar-search-btn kbd { display: none; }
+  .topbar-search-btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">H</div>
+    <div>
+      <div class="sidebar-brand-text">Hub</div>
+      <div class="sidebar-brand-sub">Operacional</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Navegação</div>
+    <a class="nav-item" href="home.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+      Início
+    </a>
+    <a class="nav-item" href="north-star.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+      North Star
+    </a>
+    <a class="nav-item" href="comando.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Sala de Comando
+    </a>
+    <a class="nav-item" href="lab.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Lab
+    </a>
+    <a class="nav-item" href="brain.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+      Brain
+    </a>
+    <a class="nav-item" href="funil.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      Funis
+    </a>
+    <a class="nav-item" href="pipeline.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" href="conteudo.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Conteúdo
+    </a>
+    <a class="nav-item" href="brandbook.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Brandbook
+    </a>
+    <a class="nav-item" href="agentes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+      Agentes
+    </a>
+    <a class="nav-item active" href="sinais.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sinais
+    </a>
+    <a class="nav-item" href="instagram.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a>
+    <div class="sidebar-group-label">Gestão</div>
+    <a class="nav-item" href="carteira.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Carteira
+    </a>
+    <a class="nav-item" href="calendar.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </a>
+    <a class="nav-item" href="reunioes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reuniões
+    </a>
+    <a class="nav-item" href="configuracoes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">ES</div>
+    <div>
+      <div class="sidebar-user">Erick Sena</div>
+      <div class="sidebar-user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<header class="topbar">
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Sinais</span></span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar…
+    <kbd><span>⌘</span>K</kbd>
+  </button>
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Inteligência Operacional</h1>
+      <div class="subtitle">Acompanhamento contínuo de tendências, sazonalidade e comportamento ao longo do tempo. Leitura analítica convertida em ações recomendadas para conteúdo, aquisição, vendas e crescimento.</div>
+    </div>
+    <div class="page-header-right">
+      <div class="label">Tendência geral</div>
+      <div class="value text-violet">+12,4%</div>
+      <div class="subtitle" style="font-size:12px;max-width:none;">vs. período anterior</div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filterbar">
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <select>
+        <option>Últimos 90 dias</option>
+        <option>Últimos 30 dias</option>
+        <option>Últimos 7 dias</option>
+        <option>Últimos 12 meses</option>
+        <option>Personalizado</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+      <select>
+        <option>Todas as origens</option>
+        <option>Instagram Orgânico</option>
+        <option>YouTube</option>
+        <option>Tráfego Pago</option>
+        <option>CRM / Pipeline</option>
+        <option>Landing Pages</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+      <select>
+        <option>Todas as categorias</option>
+        <option>Aquisição</option>
+        <option>Conversão</option>
+        <option>Receita</option>
+        <option>Engajamento</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <select>
+        <option>Todos os segmentos</option>
+        <option>Topo de Funil</option>
+        <option>Meio de Funil</option>
+        <option>Fundo de Funil</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <select>
+        <option>Todos os status</option>
+        <option>Crítico</option>
+        <option>Alerta</option>
+        <option>Informativo</option>
+        <option>Oportunidade</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI compact row -->
+  <div class="kpi-compact">
+    <div class="kpi-compact-card">
+      <div class="kpi-compact-label">Leads gerados</div>
+      <div class="kpi-compact-value">1.247</div>
+      <div class="kpi-compact-sub"><span class="up">▲ +18,3%</span> vs. período anterior</div>
+    </div>
+    <div class="kpi-compact-card">
+      <div class="kpi-compact-label">Taxa de conversão</div>
+      <div class="kpi-compact-value">4,2<em style="font-style:normal;color:var(--color-slate);font-size:16px;">%</em></div>
+      <div class="kpi-compact-sub"><span class="up">▲ +0,7pp</span> vs. período anterior</div>
+    </div>
+    <div class="kpi-compact-card">
+      <div class="kpi-compact-label">Ticket médio</div>
+      <div class="kpi-compact-value">R$ 2.450</div>
+      <div class="kpi-compact-sub"><span class="neutral">◆ estável</span> vs. período anterior</div>
+    </div>
+    <div class="kpi-compact-card">
+      <div class="kpi-compact-label">Oportunidades abertas</div>
+      <div class="kpi-compact-value">38</div>
+      <div class="kpi-compact-sub"><span class="up">▲ +5</span> vs. período anterior</div>
+    </div>
+  </div>
+
+  <!-- Chart section -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <div class="chart-title">Evolução temporal — Leads, Conversas e Propostas</div>
+      <div class="chart-legend-custom">
+        <div class="chart-legend-item">
+          <span class="chart-legend-dot" style="background:var(--color-brand-violet);"></span>
+          Leads
+        </div>
+        <div class="chart-legend-item">
+          <span class="chart-legend-dot" style="background:var(--color-signal-blue);"></span>
+          Conversas
+        </div>
+        <div class="chart-legend-item">
+          <span class="chart-legend-dot" style="background:var(--color-success);"></span>
+          Propostas
+        </div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Recommended actions -->
+  <div class="actions-section">
+    <div class="actions-section-title">Ações recomendadas</div>
+    <div class="actions-list">
+      <div class="action-item">
+        <div class="action-context">
+          <strong>Promover conteúdo com melhor desempenho</strong> — O post "Como escalar sua captação de leads" teve 3.400 visualizações e 87 cliques, muito acima da média de 1.200 e 31. Replicar formato em Reels e impulsionar nos próximos 7 dias.
+        </div>
+        <span class="action-tag conteudo">Conteúdo</span>
+        <div class="action-meta">
+          <span class="action-impact">Impacto estimado: <span>+40% cliques</span></span>
+          <span class="action-priority high">prioridade crítica</span>
+          <button class="action-btn">Criar ação →</button>
+        </div>
+      </div>
+      <div class="action-item">
+        <div class="action-context">
+          <strong>Revisar etapa com queda persistente</strong> — A taxa de conversão Alcance → Cliques caiu de 7,2% para 4,8% nas últimas 4 semanas. Possível causa: call-to-action desalinhado com o formato Reels. Testar CTA no primeiro comentário e link de bio dinâmico.
+        </div>
+        <span class="action-tag otimizacao">Otimização</span>
+        <div class="action-meta">
+          <span class="action-impact">Impacto estimado: <span>+50% CTR</span></span>
+          <span class="action-priority high">prioridade crítica</span>
+          <button class="action-btn">Revisar etapa →</button>
+        </div>
+      </div>
+      <div class="action-item">
+        <div class="action-context">
+          <strong>Pausar aquisição em fonte com baixa eficiência</strong> — Tráfego Pago apresentou CAC de R$ 187 nos últimos 30 dias, contra R$ 42 do Instagram Orgânico. ROI negativo em 2 das 4 campanhas ativas. Redirecionar orçamento para conteúdo orgânico e remarketing.
+        </div>
+        <span class="action-tag aquisicao">Aquisição</span>
+        <div class="action-meta">
+          <span class="action-impact">Impacto estimado: <span>redução de 35% no CAC</span></span>
+          <span class="action-priority high">prioridade crítica</span>
+          <button class="action-btn">Avaliar fontes →</button>
+        </div>
+      </div>
+      <div class="action-item">
+        <div class="action-context">
+          <strong>Reforçar CTA de captura nas páginas de alto tráfego</strong> — A página "Ferramentas Gratuitas" tem 8.200 visitas/mês, mas apenas 3,1% de conversão. Adicionar formulário de captura e lead magnet contextual pode elevar para 8-10% sem custo de tráfego adicional.
+        </div>
+        <span class="action-tag otimizacao">Otimização</span>
+        <div class="action-meta">
+          <span class="action-impact">Impacto estimado: <span>+180 leads/mês</span></span>
+          <span class="action-priority med">prioridade média</span>
+          <button class="action-btn">Otimizar página →</button>
+        </div>
+      </div>
+      <div class="action-item">
+        <div class="action-context">
+          <strong>Testar novo ângulo de oferta para leads frios</strong> — Leads do topo de funil que não avançaram em 15 dias representam 68% da base. Sequência de e-mails com novo ângulo (estudo de caso vs. demonstração) pode reativar 15-20% desses contatos.
+        </div>
+        <span class="action-tag vendas">Vendas</span>
+        <div class="action-meta">
+          <span class="action-impact">Impacto estimado: <span>recuperação de 40+ leads</span></span>
+          <span class="action-priority med">prioridade média</span>
+          <button class="action-btn">Criar sequência →</button>
+        </div>
+      </div>
+      <div class="action-item">
+        <div class="action-context">
+          <strong>Ativar agente de Copy para testar variações de headline</strong> — O funil apresenta queda consistente entre Cliques e Leads. Múltiplos testes A/B de headline na página de captura podem identificar a proposta de valor com maior conversão. Agente pode gerar 12 variações em 24h.
+        </div>
+        <span class="action-tag conteudo">Conteúdo</span>
+        <div class="action-meta">
+          <span class="action-impact">Impacto estimado: <span>+25% conversão</span></span>
+          <span class="action-priority med">prioridade média</span>
+          <button class="action-btn">Ativar agente →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insight grid -->
+  <div class="insight-grid">
+    <div class="insight-card">
+      <div class="insight-label">Tendência principal</div>
+      <div class="insight-title">Leads em crescimento sustentado</div>
+      <div class="insight-desc">O volume de leads apresenta trajetória de alta consistente há 8 semanas consecutivas, impulsionado principalmente por <strong>Instagram Orgânico</strong> e <strong>YouTube</strong>. A taxa de crescimento semanal média é de <span class="insight-highlight-green">+5,2%</span>.</div>
+      <div class="insight-stat">
+        <span class="insight-stat-value insight-highlight-green">+42%</span>
+        <span class="insight-stat-label">vs. início do período</span>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Maior queda</div>
+      <div class="insight-title">Alcance orgânico no Instagram</div>
+      <div class="insight-desc">O alcance orgânico semanal caiu de 12.400 para 7.800 nas últimas 3 semanas. Possível causa: alteração no algoritmo priorizando Reels em detrimento de posts estáticos. <span class="insight-highlight-amber">-37% em 21 dias.</span></div>
+      <div class="insight-stat">
+        <span class="insight-stat-value" style="color:var(--color-danger);">-37%</span>
+        <span class="insight-stat-label">alcance orgânico</span>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Melhor recuperação</div>
+      <div class="insight-title">Conversas via YouTube</div>
+      <div class="insight-desc">Após 4 semanas de queda, as conversas originadas do YouTube cresceram <span class="insight-highlight-green">+62%</span> nas últimas 2 semanas. O vídeo "Cases de sucesso 2025" gerou pico de 28 conversas em 48h.</div>
+      <div class="insight-stat">
+        <span class="insight-stat-value insight-highlight-green">+62%</span>
+        <span class="insight-stat-label">conversas em 14 dias</span>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Oportunidade prioritária</div>
+      <div class="insight-title">Base de leads frios para reaquecimento</div>
+      <div class="insight-desc">68% dos leads captados nos últimos 90 dias não avançaram no funil. Uma campanha de reativação com conteúdo educativo e estudo de caso pode recuperar <span class="insight-highlight-violet">15-20%</span> desses contatos.</div>
+      <div class="insight-stat">
+        <span class="insight-stat-value insight-highlight-violet">847</span>
+        <span class="insight-stat-label">leads inativos</span>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Anomalia recente</div>
+      <div class="insight-title">Pico atípico de propostas</div>
+      <div class="insight-desc">Na semana passada foram registradas 12 propostas enviadas em um único dia — <span class="insight-highlight-amber">3x a média diária</span>. A anomalia coincide com o lançamento de uma oferta relâmpago. Avaliar se é escalável ou sazonal.</div>
+      <div class="insight-stat">
+        <span class="insight-stat-value" style="color:var(--color-signal-blue);">3,0x</span>
+        <span class="insight-stat-label">acima da média</span>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-label">Diagnóstico resumido</div>
+      <div class="insight-title">Operação crescendo com ruído de canal</div>
+      <div class="insight-desc">O negócio está em trajetória positiva de leads e conversas, mas enfrenta <strong>queda estrutural de alcance orgânico</strong> no Instagram e <strong>ineficiência no tráfego pago</strong>. A recomendação é: (1) diversificar canais de topo, (2) pausar campanhas com CAC alto, (3) ativar reaquecimento da base inativa. O potencial de crescimento imediato é de <span class="insight-highlight-green">+25%</span> em vendas sem aumentar orçamento.</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function() {
+  // Filter bar select hover
+  var selects = document.querySelectorAll('.filter-group select');
+  selects.forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      // placeholder for real filter logic
+    });
+  });
+
+  // Chart
+  var ctx = document.getElementById('trendChart').getContext('2d');
+  var gradientLeads = ctx.createLinearGradient(0, 0, 0, 280);
+  gradientLeads.addColorStop(0, 'rgba(123,104,238,0.12)');
+  gradientLeads.addColorStop(1, 'rgba(123,104,238,0)');
+
+  var gradientConversas = ctx.createLinearGradient(0, 0, 0, 280);
+  gradientConversas.addColorStop(0, 'rgba(0,145,255,0.10)');
+  gradientConversas.addColorStop(1, 'rgba(0,145,255,0)');
+
+  var gradientPropostas = ctx.createLinearGradient(0, 0, 0, 280);
+  gradientPropostas.addColorStop(0, 'rgba(46,125,50,0.08)');
+  gradientPropostas.addColorStop(1, 'rgba(46,125,50,0)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5', 'Sem 6', 'Sem 7', 'Sem 8', 'Sem 9', 'Sem 10', 'Sem 11', 'Sem 12'],
+      datasets: [{
+        label: 'Leads',
+        data: [68, 72, 85, 79, 94, 102, 98, 115, 108, 124, 118, 142],
+        borderColor: '#7b68ee',
+        backgroundColor: gradientLeads,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3,
+        pointBackgroundColor: '#7b68ee',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        pointHoverRadius: 5,
+        pointHoverBorderWidth: 2,
+        borderWidth: 2
+      }, {
+        label: 'Conversas',
+        data: [22, 25, 30, 28, 34, 38, 36, 42, 40, 48, 44, 52],
+        borderColor: '#0091ff',
+        backgroundColor: gradientConversas,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3,
+        pointBackgroundColor: '#0091ff',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        pointHoverRadius: 5,
+        pointHoverBorderWidth: 2,
+        borderWidth: 2
+      }, {
+        label: 'Propostas',
+        data: [6, 7, 9, 8, 10, 11, 10, 13, 12, 15, 14, 18],
+        borderColor: '#2e7d32',
+        backgroundColor: gradientPropostas,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3,
+        pointBackgroundColor: '#2e7d32',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        pointHoverRadius: 5,
+        pointHoverBorderWidth: 2,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#090c1d',
+          titleFont: { family: 'Plus Jakarta Sans', size: 12, weight: '600' },
+          bodyFont: { family: 'Inter', size: 12 },
+          padding: 12,
+          cornerRadius: 6,
+          displayColors: true,
+          boxPadding: 4,
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ': ' + context.parsed.y;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Inter', size: 11 },
+            color: '#646464',
+            maxRotation: 0
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0,0,0,0.05)',
+            drawBorder: false
+          },
+          ticks: {
+            font: { family: 'Inter', size: 11 },
+            color: '#646464',
+            stepSize: 20,
+            callback: function(value) {
+              return value;
+            }
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      elements: {
+        line: { borderJoinStyle: 'round' }
+      }
+    }
+  });
+
+  // Auto-resize chart canvas
+  var resizeChart = function() {
+    var chartWrap = document.querySelector('.chart-wrap');
+    if (chartWrap) {
+      chartWrap.style.height = '280px';
+    }
+  };
+  resizeChart();
+  window.addEventListener('resize', resizeChart);
+})();
+</script>
+
+<!-- Palette overlay -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+  <div class="palette" id="paletteModal">
+    <div class="palette-search-wrap">
+      <span class="palette-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </div>
+    <div class="palette-results" id="paletteResults">
+      <div class="palette-empty" id="paletteEmpty">
+        <div class="palette-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="palette-empty-title">Nenhum resultado encontrado</div>
+        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-spacer"></span>
+      <span class="palette-footer-esc">Esc para fechar</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var isOpen = false;
+  var activeIndex = -1;
+  var items = [];
+  var overlay = document.getElementById('paletteOverlay');
+  var input = document.getElementById('paletteInput');
+  var results = document.getElementById('paletteResults');
+  var empty = document.getElementById('paletteEmpty');
+  function updateItems() {
+    items = Array.from(results.querySelectorAll('.palette-item'));
+  }
+  window.togglePalette = function() {
+    isOpen = !isOpen;
+    overlay.classList.toggle('open', isOpen);
+    if (isOpen) {
+      input.value = '';
+      input.focus();
+      updateItems();
+      activeIndex = -1;
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  };
+  window.closePaletteOutside = function(e) {
+    if (e.target === overlay) {
+      isOpen = false;
+      overlay.classList.remove('open');
+    }
+  };
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      isOpen = false;
+      overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.min(activeIndex + 1, visibleItems.length - 1);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (activeIndex >= 0 && activeIndex < visibleItems.length) {
+        visibleItems[activeIndex].click();
+      }
+    }
+  });
+  function highlightItem(visibleItems) {
+    visibleItems.forEach(function(i) { i.classList.remove('active'); });
+    if (visibleItems[activeIndex]) {
+      visibleItems[activeIndex].classList.add('active');
+      visibleItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      togglePalette();
+    }
+  });
+  window.navigateTo = function(url) {
+    window.location.href = url;
+  };
+})();
+</script>
+
+<!-- Script de integração iframe e banco de dados unificado -->
+<script>
+(function() {
+  // 1. Aplicar classe de modo iframe se estiver rodando em frame
+  if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+    
+    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href')) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          const fileName = href.split('?')[0].split('#')[0].split('/').pop();
+          if (fileName.endsWith('.html') && fileName !== 'contact.html') {
+            const tabName = fileName.replace('.html', '');
+            if (window.parent && typeof window.parent.switchTab === 'function') {
+              e.preventDefault();
+              window.parent.switchTab(tabName);
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

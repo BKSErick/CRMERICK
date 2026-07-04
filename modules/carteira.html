@@ -1,0 +1,1487 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Carteira — Hub Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../hub.css" />
+<style>
+:root {
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.03);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+:focus-visible { outline: 2px solid var(--color-brand-violet); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(123,104,238,0.15); color: var(--color-midnight-ink); }
+
+/* Section spacing */
+.sec { margin-bottom: 36px; }
+.sec-header { margin-bottom: 18px; }
+.sec-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.sec-subtitle {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* KPI row — 5 columns */
+.kpi-row-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+/* Risk KPI variant */
+.kpi-card.risk .kpi-value { color: var(--color-danger); }
+.kpi-card.success .kpi-value { color: var(--color-success); }
+.kpi-card.warning .kpi-value { color: var(--color-warning); }
+.kpi-card.violet .kpi-value { color: var(--color-brand-violet); }
+
+/* Health bar */
+.health-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.health-track {
+  width: 52px;
+  height: 4px;
+  background: var(--color-cloud);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.health-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width var(--duration-fast) var(--ease-out);
+}
+.health-fill.green { background: var(--color-success); }
+.health-fill.yellow { background: var(--color-warning); }
+.health-fill.red { background: var(--color-danger); }
+.health-fill.blue { background: var(--color-signal-blue); }
+.health-score {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.health-score.green { color: var(--color-success); }
+.health-score.yellow { color: var(--color-warning); }
+.health-score.red { color: var(--color-danger); }
+.health-score.blue { color: var(--color-signal-blue); }
+
+/* Client table extras */
+.client-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.client-name { font-weight: 600; font-size: 13px; }
+.client-extra { font-size: 11px; color: var(--color-slate); font-family: var(--font-inter); }
+.client-ticket { font-size: 13px; font-weight: 600; font-family: var(--font-mono); }
+.client-time { font-size: 12px; color: var(--color-charcoal); font-family: var(--font-inter); }
+
+/* Risk cards grid */
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.risk-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.risk-card:hover { border-color: var(--color-brand-violet); box-shadow: var(--shadow-card); }
+.risk-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.risk-client { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.risk-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.risk-level.critical { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.risk-level.high { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.risk-level.medium { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+.risk-signals { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.risk-signal {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.4;
+}
+.risk-signal svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 2px; }
+.risk-signal .red { color: var(--color-danger); }
+.risk-signal .yellow { color: var(--color-warning); }
+.risk-action {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-brand-violet);
+  font-family: var(--font-inter);
+  padding: 8px 10px;
+  background: var(--color-paper);
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.risk-history {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.4;
+}
+.risk-chance {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-linen);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.risk-chance.critical { color: var(--color-danger); }
+.risk-chance.high { color: var(--color-warning); }
+.risk-chance.medium { color: var(--color-slate); }
+
+/* Exception cards */
+.exc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.exc-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.exc-card:hover { border-color: var(--color-brand-violet); }
+.exc-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.exc-client { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.exc-tag {
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--font-inter);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.exc-tag.icp { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.exc-tag.contract { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.exc-tag.conflict { background: rgba(100,100,100,0.1); color: var(--color-charcoal); }
+.exc-tag.model { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+.exc-detail {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.exc-meta {
+  font-size: 11px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+  padding-top: 8px;
+  border-top: 1px solid var(--color-linen);
+}
+.exc-meta strong { font-weight: 600; color: var(--color-charcoal); }
+
+/* Strong cases grid */
+.case-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.case-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.case-card:hover { border-color: var(--color-brand-violet); box-shadow: var(--shadow-card); }
+.case-card-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  margin-bottom: 10px;
+}
+.case-card-icon svg { width: 14px; height: 14px; }
+.case-card-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.case-card-desc {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+}
+.case-card-tag {
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-top: 10px;
+}
+.case-card-tag.doc { background: rgba(123,104,238,0.1); color: var(--color-brand-violet); }
+.case-card-tag.proof { background: rgba(46,125,50,0.1); color: var(--color-success); }
+.case-card-tag.strategic { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+
+/* History / trend grid */
+.trend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.trend-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.trend-card:hover { border-color: var(--color-brand-violet); }
+.trend-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.trend-stat {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.trend-stat.green { color: var(--color-success); }
+.trend-stat.red { color: var(--color-danger); }
+.trend-stat.violet { color: var(--color-brand-violet); }
+.trend-stat.slate { color: var(--color-slate); }
+.trend-context {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.trend-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-linen);
+}
+.trend-sublist-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+}
+.trend-sublist-item .val { font-weight: 600; font-family: var(--font-mono); }
+.trend-sublist-item .val.green { color: var(--color-success); }
+.trend-sublist-item .val.red { color: var(--color-danger); }
+.trend-sublist-item .val.slate { color: var(--color-slate); }
+
+/* Section divider */
+.sec-divider { height: 1px; background: var(--color-cloud); margin: 28px 0; }
+
+/* Staggered fade-in */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.sec { animation: fadeUp 0.4s var(--ease-out) both; }
+.sec:nth-child(2) { animation-delay: 0.05s; }
+.sec:nth-child(3) { animation-delay: 0.1s; }
+.sec:nth-child(4) { animation-delay: 0.15s; }
+.sec:nth-child(5) { animation-delay: 0.2s; }
+.sec:nth-child(6) { animation-delay: 0.25s; }
+.sec:nth-child(7) { animation-delay: 0.3s; }
+.sec:nth-child(8) { animation-delay: 0.35s; }
+.sec:nth-child(9) { animation-delay: 0.4s; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .kpi-row-5 { grid-template-columns: repeat(3, 1fr); }
+  .risk-grid { grid-template-columns: repeat(2, 1fr); }
+  .trend-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 1024px) {
+  .case-grid { grid-template-columns: repeat(2, 1fr); }
+  .exc-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .kpi-row-5 { grid-template-columns: 1fr; }
+  .risk-grid { grid-template-columns: 1fr; }
+  .case-grid { grid-template-columns: 1fr; }
+  .trend-grid { grid-template-columns: 1fr; }
+  .table-wrap { overflow-x: auto; }
+}
+/* Palette — Busca Global */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9,12,29,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  max-height: 70vh;
+  background: var(--color-pure-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open .palette {
+  transform: translateY(0) scale(1);
+}
+.palette-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+  flex-shrink: 0;
+}
+.palette-search-icon {
+  flex-shrink: 0;
+  color: var(--color-slate);
+  display: grid;
+  place-items: center;
+}
+.palette-search-icon svg { width: 18px; height: 18px; }
+.palette-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: 500 17px/1.4 var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  outline: none;
+  letter-spacing: -0.01em;
+}
+.palette-input::placeholder {
+  color: var(--color-slate);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.palette-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.palette-shortcuts kbd {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 0.02em;
+}
+.palette-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-results::-webkit-scrollbar { width: 4px; }
+.palette-results::-webkit-scrollbar-track { background: transparent; }
+.palette-results::-webkit-scrollbar-thumb { background: var(--color-cloud); border-radius: 999px; }
+.palette-group { padding: 6px 12px; }
+.palette-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+}
+.palette-group-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-linen);
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-item:hover { background: var(--color-paper); }
+.palette-item.active {
+  background: rgba(123,104,238,0.08);
+}
+.palette-item-type {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.palette-item-type svg { width: 13px; height: 13px; }
+.palette-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-title mark {
+  background: rgba(123,104,238,0.15);
+  color: var(--color-midnight-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-context mark {
+  background: rgba(123,104,238,0.12);
+  color: var(--color-charcoal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.palette-tag {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.palette-tag.page { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+.palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.command { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.hot { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.palette-item-action {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.palette-item:hover .palette-item-action { opacity: 1; }
+.palette-item-status {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-item-status.green { background: var(--color-success); }
+.palette-item-status.orange { background: var(--color-warning); }
+.palette-item-status.violet { background: var(--color-brand-violet); }
+.palette-item-status.blue { background: var(--color-signal-blue); }
+.palette-item-status.slate { background: var(--color-slate); }
+.palette-item-status.red { background: var(--color-danger); }
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  flex-shrink: 0;
+}
+.palette-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-footer-item kbd {
+  font: 500 9px/1 var(--font-mono);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.palette-footer-spacer { flex: 1; }
+.palette-footer-esc {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.palette-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: var(--color-paper);
+  display: grid; place-items: center;
+  color: var(--color-slate);
+  margin-bottom: 14px;
+}
+.palette-empty-icon svg { width: 20px; height: 20px; }
+.palette-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  margin-bottom: 4px;
+}
+.palette-empty-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+  font: 500 12px/1 var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+}
+.topbar-search-btn:hover { border-color: var(--color-brand-violet); background: var(--color-pure-white); color: var(--color-charcoal); }
+.topbar-search-btn svg { flex-shrink: 0; }
+.topbar-search-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .palette { width: calc(100vw - 24px); max-height: 80vh; }
+  .palette-search-wrap { padding: 14px 16px; }
+  .palette-input { font-size: 15px; }
+  .palette-overlay { padding-top: 8vh; }
+  .topbar-search-btn kbd { display: none; }
+  .topbar-search-btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">H</div>
+    <div>
+      <div class="sidebar-brand-text">Hub</div>
+      <div class="sidebar-brand-sub">Operacional</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Navegação</div>
+    <a class="nav-item" href="home.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+      Início
+    </a>
+    <a class="nav-item" href="north-star.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+      North Star
+    </a>
+    <a class="nav-item" href="comando.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Sala de Comando
+    </a>
+    <a class="nav-item" href="lab.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Lab
+    </a>
+    <a class="nav-item" href="brain.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+      Brain
+    </a>
+    <a class="nav-item" href="funil.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      Funis
+    </a>
+    <a class="nav-item" href="pipeline.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" href="conteudo.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Conteúdo
+    </a>
+    <a class="nav-item" href="brandbook.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Brandbook
+    </a>
+    <a class="nav-item" href="agentes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+      Agentes
+    </a>
+    <a class="nav-item" href="sinais.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sinais
+    </a>
+    <a class="nav-item" href="instagram.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a>
+    <div class="sidebar-group-label">Gestão</div>
+    <a class="nav-item active" href="carteira.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Carteira
+    </a>
+    <a class="nav-item" href="calendar.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </a>
+    <a class="nav-item" href="reunioes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reuniões
+    </a>
+    <a class="nav-item" href="configuracoes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">ES</div>
+    <div>
+      <div class="sidebar-user">Erick Sena</div>
+      <div class="sidebar-user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<header class="topbar">
+  <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Carteira</span></span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar…
+    <kbd><span>⌘</span>K</kbd>
+  </button>
+  <span class="source-tag blue" style="margin:0;font-size:10px;">Churn Watch</span>
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- 1. Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Carteira</h1>
+      <div class="subtitle">Visão executiva da carteira de clientes — receita, risco, qualidade da base e projeções. Acompanhamento de MRR, saúda das contas e exceções fora do ICP.</div>
+    </div>
+    <div class="page-header-right">
+      <div class="label">MRR total</div>
+      <div class="value">R$ 187.430</div>
+      <div class="sub" style="font-size:12px;color:var(--color-slate);font-family:var(--font-inter);margin-top:2px;">84 clientes ativos</div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filterbar">
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <select>
+        <option>Últimos 30 dias</option>
+        <option>Últimos 7 dias</option>
+        <option>Últimos 90 dias</option>
+        <option>Este mês</option>
+        <option>Personalizado</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+      <select>
+        <option>Todos os segmentos</option>
+        <option>Premium</option>
+        <option>Essencial</option>
+        <option>Startup</option>
+        <option>Enterprise</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <select>
+        <option>Todos os status</option>
+        <option>Ativo</option>
+        <option>Em risco</option>
+        <option>Expirado</option>
+        <option>Cancelado</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <select>
+        <option>Todos os tickets</option>
+        <option>Até R$ 1.000</option>
+        <option>R$ 1.000–3.000</option>
+        <option>R$ 3.000–7.000</option>
+        <option>Acima de R$ 7.000</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <select>
+        <option>Todos os riscos</option>
+        <option>Crítico</option>
+        <option>Alto</option>
+        <option>Médio</option>
+        <option>Baixo</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 2. KPI row -->
+  <div class="kpi-row-5 sec">
+    <div class="kpi-card success">
+      <div class="kpi-label">MRR Ativo</div>
+      <div class="kpi-value">R$ 187,4K</div>
+      <div class="kpi-trend up">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        +4,2% vs. mês anterior
+      </div>
+    </div>
+    <div class="kpi-card violet">
+      <div class="kpi-label">MRR Projetado</div>
+      <div class="kpi-value">R$ 214,8K</div>
+      <div class="kpi-trend up">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        +14,6% com expansões previstas
+      </div>
+    </div>
+    <div class="kpi-card risk">
+      <div class="kpi-label">Clientes em Risco</div>
+      <div class="kpi-value">12</div>
+      <div class="kpi-trend down">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        +2 desde o mês passado
+      </div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-label">Melhor Case</div>
+      <div class="kpi-value" style="font-size:22px;">R$ 8.900</div>
+      <div class="kpi-trend up">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        Dr. Cardoso — 14 meses de contrato
+      </div>
+    </div>
+    <div class="kpi-card warning">
+      <div class="kpi-label">Exceções Fora do ICP</div>
+      <div class="kpi-value">8</div>
+      <div class="kpi-trend down">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        R$ 22.400 em MRR exposto
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Clientes ativos -->
+  <div class="sec">
+    <div class="sec-header">
+      <div class="sec-title">Clientes ativos</div>
+      <div class="sec-subtitle">84 contas ativas — visão consolidada de ticket, segmento, tempo de contrato e saúde da conta. Organizado por ticket decrescente.</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Segmento</th>
+            <th>Tempo de contrato</th>
+            <th>Ticket mensal</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Saúde da conta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Dr. Carlos Cardoso</span><span class="client-extra">Clínica Odontológica</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet);">Premium</span></td>
+            <td><span class="client-time">14 meses</span></td>
+            <td><span class="client-ticket">R$ 8.900</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Erick</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill green" style="width:92%"></div></div>
+                <span class="health-score green">92</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Clínica Bem-Estar</span><span class="client-extra">Medicina Integrativa</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(0,145,255,0.08);color:var(--color-signal-blue);">Enterprise</span></td>
+            <td><span class="client-time">22 meses</span></td>
+            <td><span class="client-ticket">R$ 7.200</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Erick</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill green" style="width:88%"></div></div>
+                <span class="health-score green">88</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Studio Pilates Luara</span><span class="client-extra">Fitness & Saúde</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet);">Premium</span></td>
+            <td><span class="client-time">8 meses</span></td>
+            <td><span class="client-ticket">R$ 5.400</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Camila</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill green" style="width:85%"></div></div>
+                <span class="health-score green">85</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Espaço Saúde Total</span><span class="client-extra">Clínica Multidisciplinar</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(100,100,100,0.08);color:var(--color-charcoal);">Essencial</span></td>
+            <td><span class="client-time">4 meses</span></td>
+            <td><span class="client-ticket">R$ 2.900</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Rafael</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill yellow" style="width:62%"></div></div>
+                <span class="health-score yellow">62</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Dra. Marina Lopes</span><span class="client-extra">Dermatologia</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(46,125,50,0.08);color:var(--color-success);">Startup</span></td>
+            <td><span class="client-time">3 meses</span></td>
+            <td><span class="client-ticket">R$ 1.800</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Erick</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill blue" style="width:74%"></div></div>
+                <span class="health-score blue">74</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Clínica VetCare</span><span class="client-extra">Veterinária</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(0,145,255,0.08);color:var(--color-signal-blue);">Enterprise</span></td>
+            <td><span class="client-time">11 meses</span></td>
+            <td><span class="client-ticket">R$ 6.800</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Camila</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill green" style="width:90%"></div></div>
+                <span class="health-score green">90</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Instituto Movimento</span><span class="client-extra">Fisioterapia</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(100,100,100,0.08);color:var(--color-charcoal);">Essencial</span></td>
+            <td><span class="client-time">6 meses</span></td>
+            <td><span class="client-ticket">R$ 2.200</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Rafael</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill yellow" style="width:55%"></div></div>
+                <span class="health-score yellow">55</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div class="client-cell"><span class="client-name">Núcleo Vida Ativa</span><span class="client-extra">Personal Training</span></div></td>
+            <td><span class="front-tag oferta" style="background:rgba(46,125,50,0.08);color:var(--color-success);">Startup</span></td>
+            <td><span class="client-time">2 meses</span></td>
+            <td><span class="client-ticket">R$ 1.200</span></td>
+            <td><span class="status-pill active">Ativo</span></td>
+            <td><span class="exp-owner">Erick</span></td>
+            <td>
+              <div class="health-bar">
+                <div class="health-track"><div class="health-fill blue" style="width:70%"></div></div>
+                <span class="health-score blue">70</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. Clientes em risco -->
+  <div class="sec">
+    <div class="sec-header">
+      <div class="sec-title">Clientes em risco</div>
+      <div class="sec-subtitle">12 contas com sinais de alerta ativos — nível de risco, próximas ações e probabilidade de churn. Prioridade por ticket exposto.</div>
+    </div>
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-card-header">
+          <span class="risk-client">Espaço Saúde Total</span>
+          <span class="risk-level critical">Crítico</span>
+        </div>
+        <div class="risk-signals">
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="red">3 semanas sem login na plataforma</span>
+          </div>
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="red">Ticket caiu de R$ 3.200 para R$ 2.900 (plano inferior)</span>
+          </div>
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">NPS: 38 (queda de 22 pontos no trimestre)</span>
+          </div>
+        </div>
+        <div class="risk-action">Próxima ação: Reunião de recuperação agendada para 12 jul — apresentar ROI do período de uso</div>
+        <div class="risk-history">Histórico: Cliente migrou do plano Premium para Essencial há 60 dias. Relato de insatisfação com suporte.</div>
+        <div class="risk-chance critical">Churn: 72%</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-header">
+          <span class="risk-client">Instituto Movimento</span>
+          <span class="risk-level high">Alto</span>
+        </div>
+        <div class="risk-signals">
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="red">Cancelou integração com sistema de agendamentos</span>
+          </div>
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Uso caiu 60% nos últimos 30 dias</span>
+          </div>
+        </div>
+        <div class="risk-action">Próxima ação: Oferecer treinamento gratuito para equipe e onboarding de novas funcionalidades</div>
+        <div class="risk-history">Histórico: Cliente reclama de dificuldade de adoção pela equipe. Solicitaram redução de escopo.</div>
+        <div class="risk-chance high">Churn: 48%</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-header">
+          <span class="risk-client">Studio Corpore</span>
+          <span class="risk-level high">Alto</span>
+        </div>
+        <div class="risk-signals">
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="red">Em atraso com pagamento (15 dias)</span>
+          </div>
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Contato de cobrança não responde há 7 dias</span>
+          </div>
+        </div>
+        <div class="risk-action">Próxima ação: Acionar equipe jurídica + oferta de parcelamento do débito</div>
+        <div class="risk-history">Histórico: Segundo atraso em 6 meses. Primeiro foi resolvido com renegociação.</div>
+        <div class="risk-chance high">Churn: 55%</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-header">
+          <span class="risk-client">Clínica Mais Vida</span>
+          <span class="risk-level medium">Médio</span>
+        </div>
+        <div class="risk-signals">
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Novo concorrente ofereceu proposta 30% mais barata</span>
+          </div>
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Uso estável, mas sem expansão desde o onboarding</span>
+          </div>
+        </div>
+        <div class="risk-action">Próxima ação: Agendar apresentação de ROI e funcionalidades avançadas não utilizadas</div>
+        <div class="risk-history">Histórico: Cliente de 9 meses, ticket de R$ 3.400. Potencial de expansão para R$ 5.200.</div>
+        <div class="risk-chance medium">Churn: 32%</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-header">
+          <span class="risk-client">Dra. Helena Mendes</span>
+          <span class="risk-level medium">Médio</span>
+        </div>
+        <div class="risk-signals">
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Contrato próximo do vencimento (18 dias)</span>
+          </div>
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Não respondeu ao contato de renewal enviado há 10 dias</span>
+          </div>
+        </div>
+        <div class="risk-action">Próxima ação: Ligação direta do comercial + proposta de upgrade com desconto fidelidade</div>
+        <div class="risk-history">Histórico: 2 anos de contrato, ticket de R$ 4.600. Já renovou 3 vezes.</div>
+        <div class="risk-chance medium">Churn: 25%</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-header">
+          <span class="risk-client">Academia Corpo Livre</span>
+          <span class="risk-level medium">Médio</span>
+        </div>
+        <div class="risk-signals">
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Ticket reduzido de R$ 2.800 para R$ 1.600 há 3 meses</span>
+          </div>
+          <div class="risk-signal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
+            <span class="yellow">Adoção de apenas 2 de 6 módulos contratados</span>
+          </div>
+        </div>
+        <div class="risk-action">Próxima ação: Programa de reativação com onboarding direcionado para módulos ociosos</div>
+        <div class="risk-history">Histórico: Cliente antigo (18 meses) passou por reestruturação. Potencial de retorno ao ticket original.</div>
+        <div class="risk-chance medium">Churn: 28%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Exceções e desalinhamentos -->
+  <div class="sec">
+    <div class="sec-header">
+      <div class="sec-title">Exceções e desalinhamentos</div>
+      <div class="sec-subtitle">Clientes fora do ICP, contratos ruins, conflitos operacionais e contas que não devem virar modelo. Receita exposta: R$ 22.400/mês.</div>
+    </div>
+    <div class="exc-grid">
+      <div class="exc-card">
+        <div class="exc-card-header">
+          <span class="exc-client">Clínica PetCare</span>
+          <span class="exc-tag icp">Fora do ICP</span>
+        </div>
+        <div class="exc-detail">Segmento veterinário com necessidades muito distintas do core do produto. Alta demanda de suporte customizado que não escala. Consumo de recursos desproporcional ao ticket (R$ 2.200).</div>
+        <div class="exc-meta"><strong>Risco:</strong> Produto não atende 40% das需求的. Contrato vigente até dez/2026.</div>
+      </div>
+      <div class="exc-card">
+        <div class="exc-card-header">
+          <span class="exc-client">Rede Mais Saúde</span>
+          <span class="exc-tag contract">Contrato Ruim</span>
+        </div>
+        <div class="exc-detail">Contrato herdado de aquisição com cláusulas desfavoráveis: renovação automática sem reajuste, SLA abusivo e escopo mal definido. Ticket congelado em R$ 1.800 desde 2023.</div>
+        <div class="exc-meta"><strong>Ação:</strong> Revisão contratual programada para agosto. <strong>Impacto:</strong> Potencial de +40% no ticket.</div>
+      </div>
+      <div class="exc-card">
+        <div class="exc-card-header">
+          <span class="exc-client">Grupo Vida Plena</span>
+          <span class="exc-tag conflict">Conflito Operacional</span>
+        </div>
+        <div class="exc-detail">Operação multiclínica com processos internos conflitantes. Cada unidade usa o produto de forma diferente, gerando retrabalho para equipe de suporte e impossibilidade de padronização.</div>
+        <div class="exc-meta"><strong>Situação:</strong> 3 unidades, 3 implementações distintas. Ticket consolidado de R$ 5.600.</div>
+      </div>
+      <div class="exc-card">
+        <div class="exc-card-header">
+          <span class="exc-client">Consultório DR. Bem-Estar</span>
+          <span class="exc-tag model">Não virar modelo</span>
+        </div>
+        <div class="exc-detail">Cliente com perfil atípico: baixíssimo uso de tecnologia, demanda de atendimento manual constante, ticket mínimo (R$ 900). Não reproduz o padrão de cliente ideal para a plataforma.</div>
+        <div class="exc-meta"><strong>Diretriz:</strong> Não renovar contrato sem upgrade de plano. Não usar como case de venda.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Cases e ativos fortes -->
+  <div class="sec">
+    <div class="sec-header">
+      <div class="sec-title">Cases e ativos fortes</div>
+      <div class="sec-subtitle">Clientes que devem ser documentados, contas com melhor potencial de prova e contas estratégicas para expansão.</div>
+    </div>
+    <div class="case-grid">
+      <div class="case-card">
+        <div class="case-card-icon" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div class="case-card-label">Dr. Carlos Cardoso</div>
+        <div class="case-card-desc">Maior ticket da base (R$ 8.900). Contrato de 14 meses com expansão planejada para R$ 12.000. Case completo de lead magnet + funil de nutrição.</div>
+        <span class="case-card-tag doc">Documentar</span>
+      </div>
+      <div class="case-card">
+        <div class="case-card-icon" style="background:rgba(46,125,50,0.08);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="case-card-label">Clínica Bem-Estar</div>
+        <div class="case-card-desc">Mais longevo da base (22 meses). MRR de R$ 7.200 com 0 ameaças de churn. NPS 94. Case de renovação e expansão orgânica.</div>
+        <span class="case-card-tag proof">Prova social</span>
+      </div>
+      <div class="case-card">
+        <div class="case-card-icon" style="background:rgba(0,145,255,0.08);color:var(--color-signal-blue);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
+        </div>
+        <div class="case-card-label">Clínica VetCare</div>
+        <div class="case-card-desc">Maior potencial de cross-sell: R$ 6.800 atuais, pipeline de expansão de R$ 4.200 em módulos complementares. Conta estratégica para segmento veterinário.</div>
+        <span class="case-card-tag strategic">Estratégica</span>
+      </div>
+      <div class="case-card">
+        <div class="case-card-icon" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div class="case-card-label">Studio Pilates Luara</div>
+        <div class="case-card-desc">Ticket de R$ 5.400 com adoção completa do produto (6/6 módulos). Case perfeito de onboarding bem-sucedido. Pronto para depoimento.</div>
+        <span class="case-card-tag doc">Documentar</span>
+      </div>
+      <div class="case-card">
+        <div class="case-card-icon" style="background:rgba(46,125,50,0.08);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="case-card-label">Dra. Marina Lopes</div>
+        <div class="case-card-desc">Cliente startup em tração acelerada. Ticket subiu de R$ 800 para R$ 1.800 em 3 meses. Potencial de atingir R$ 4.500 em 12 meses.</div>
+        <span class="case-card-tag proof">Prova social</span>
+      </div>
+      <div class="case-card">
+        <div class="case-card-icon" style="background:rgba(0,145,255,0.08);color:var(--color-signal-blue);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
+        </div>
+        <div class="case-card-label">Academia Corpo Livre</div>
+        <div class="case-card-desc">Conta de 18 meses com potencial de reativação. Programa de reonboarding pode recuperar ticket de R$ 2.800. Estratégico para segmento fitness.</div>
+        <span class="case-card-tag strategic">Estratégica</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-divider"></div>
+
+  <!-- 7. Histórico e tendência -->
+  <div class="sec">
+    <div class="sec-header">
+      <div class="sec-title">Histórico e tendência</div>
+      <div class="sec-subtitle">Movimentação da carteira nos últimos 30 dias — entradas, saídas, expansão, retração, churn e variação de ticket médio.</div>
+    </div>
+    <div class="trend-grid">
+      <div class="trend-card">
+        <div class="trend-label">Entradas</div>
+        <div class="trend-stat green">+4</div>
+        <div class="trend-context">Novos clientes no período</div>
+        <div class="trend-sublist">
+          <div class="trend-sublist-item"><span>Dra. Marina Lopes</span><span class="val green">R$ 1.800</span></div>
+          <div class="trend-sublist-item"><span>Núcleo Vida Ativa</span><span class="val green">R$ 1.200</span></div>
+          <div class="trend-sublist-item"><span>Clínica Mais Saúde</span><span class="val green">R$ 3.400</span></div>
+          <div class="trend-sublist-item"><span>Studio Fit Plus</span><span class="val green">R$ 2.600</span></div>
+        </div>
+      </div>
+      <div class="trend-card">
+        <div class="trend-label">Saídas</div>
+        <div class="trend-stat red">-2</div>
+        <div class="trend-context">Cancelamentos no período</div>
+        <div class="trend-sublist">
+          <div class="trend-sublist-item"><span>Clínica Nova Vida</span><span class="val red">-R$ 1.800</span></div>
+          <div class="trend-sublist-item"><span>Dr. Paulo Sérgio</span><span class="val red">-R$ 1.200</span></div>
+          <div class="trend-sublist-item"><span>MRR perdido total</span><span class="val red">-R$ 3.000</span></div>
+        </div>
+      </div>
+      <div class="trend-card">
+        <div class="trend-label">Expansão</div>
+        <div class="trend-stat green">+R$ 5.800</div>
+        <div class="trend-context">Upsells e upgrades no período</div>
+        <div class="trend-sublist">
+          <div class="trend-sublist-item"><span>Clínica Bem-Estar</span><span class="val green">+R$ 2.200</span></div>
+          <div class="trend-sublist-item"><span>Studio Pilates Luara</span><span class="val green">+R$ 1.800</span></div>
+          <div class="trend-sublist-item"><span>Clínica VetCare</span><span class="val green">+R$ 1.800</span></div>
+        </div>
+      </div>
+      <div class="trend-card">
+        <div class="trend-label">Retração</div>
+        <div class="trend-stat red">-R$ 3.200</div>
+        <div class="trend-context">Downgrades e reduções no período</div>
+        <div class="trend-sublist">
+          <div class="trend-sublist-item"><span>Espaço Saúde Total</span><span class="val red">-R$ 1.400</span></div>
+          <div class="trend-sublist-item"><span>Academia Corpo Livre</span><span class="val red">-R$ 1.200</span></div>
+          <div class="trend-sublist-item"><span>Studio Corpore</span><span class="val red">-R$ 600</span></div>
+        </div>
+      </div>
+      <div class="trend-card">
+        <div class="trend-label">Churn</div>
+        <div class="trend-stat red">2,4%</div>
+        <div class="trend-context">Taxa de churn no período (vs. 1,8% mês anterior)</div>
+        <div class="trend-sublist">
+          <div class="trend-sublist-item"><span>Churn por cancelamento</span><span class="val red">1,6%</span></div>
+          <div class="trend-sublist-item"><span>Churn por inadimplência</span><span class="val red">0,8%</span></div>
+          <div class="trend-sublist-item"><span>Churn acumulado (12m)</span><span class="val slate">18,2%</span></div>
+        </div>
+      </div>
+      <div class="trend-card">
+        <div class="trend-label">Ticket Médio</div>
+        <div class="trend-stat violet">R$ 2.231</div>
+        <div class="trend-context">Variação de +2,8% vs. mês anterior</div>
+        <div class="trend-sublist">
+          <div class="trend-sublist-item"><span>Ticket médio Premium</span><span class="val green">R$ 5.200</span></div>
+          <div class="trend-sublist-item"><span>Ticket médio Essencial</span><span class="val slate">R$ 2.100</span></div>
+          <div class="trend-sublist-item"><span>Ticket médio Startup</span><span class="val slate">R$ 1.400</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function() {
+  // Sidebar active highlight
+  var navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(function(item) {
+    item.addEventListener('click', function() {
+      navItems.forEach(function(n) { n.classList.remove('active'); });
+      this.classList.add('active');
+    });
+  });
+})();
+</script>
+
+<!-- Palette overlay -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+  <div class="palette" id="paletteModal">
+    <div class="palette-search-wrap">
+      <span class="palette-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </div>
+    <div class="palette-results" id="paletteResults">
+      <div class="palette-empty" id="paletteEmpty">
+        <div class="palette-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="palette-empty-title">Nenhum resultado encontrado</div>
+        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-spacer"></span>
+      <span class="palette-footer-esc">Esc para fechar</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var isOpen = false;
+  var activeIndex = -1;
+  var items = [];
+  var overlay = document.getElementById('paletteOverlay');
+  var input = document.getElementById('paletteInput');
+  var results = document.getElementById('paletteResults');
+  var empty = document.getElementById('paletteEmpty');
+  function updateItems() {
+    items = Array.from(results.querySelectorAll('.palette-item'));
+  }
+  window.togglePalette = function() {
+    isOpen = !isOpen;
+    overlay.classList.toggle('open', isOpen);
+    if (isOpen) {
+      input.value = '';
+      input.focus();
+      updateItems();
+      activeIndex = -1;
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  };
+  window.closePaletteOutside = function(e) {
+    if (e.target === overlay) {
+      isOpen = false;
+      overlay.classList.remove('open');
+    }
+  };
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      isOpen = false;
+      overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.min(activeIndex + 1, visibleItems.length - 1);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (activeIndex >= 0 && activeIndex < visibleItems.length) {
+        visibleItems[activeIndex].click();
+      }
+    }
+  });
+  function highlightItem(visibleItems) {
+    visibleItems.forEach(function(i) { i.classList.remove('active'); });
+    if (visibleItems[activeIndex]) {
+      visibleItems[activeIndex].classList.add('active');
+      visibleItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      togglePalette();
+    }
+  });
+  window.navigateTo = function(url) {
+    window.location.href = url;
+  };
+})();
+</script>
+
+<!-- Script de integração iframe e banco de dados unificado -->
+<script>
+(function() {
+  // 1. Aplicar classe de modo iframe se estiver rodando em frame
+  if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+    
+    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href')) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          const fileName = href.split('?')[0].split('#')[0].split('/').pop();
+          if (fileName.endsWith('.html') && fileName !== 'contact.html') {
+            const tabName = fileName.replace('.html', '');
+            if (window.parent && typeof window.parent.switchTab === 'function') {
+              e.preventDefault();
+              window.parent.switchTab(tabName);
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

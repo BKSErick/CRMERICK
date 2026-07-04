@@ -1,0 +1,1515 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reuniões — Hub Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../hub.css" />
+<style>
+:root {
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+:focus-visible { outline: 2px solid var(--color-brand-violet); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(123,104,238,0.15); color: var(--color-midnight-ink); }
+
+.mtg-section { margin-bottom: 36px; }
+.mtg-section-header { margin-bottom: 18px; }
+.mtg-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.mtg-section-subtitle {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* Hero — next meeting */
+.hero-meeting {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 28px 32px;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+.hero-meeting:hover { box-shadow: var(--shadow-card); }
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(123,104,238,0.1);
+  color: var(--color-brand-violet);
+  margin-bottom: 14px;
+}
+.hero-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+.hero-meta {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-bottom: 18px;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--color-cloud);
+}
+.hero-block { }
+.hero-block-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.hero-block-items { display: flex; flex-direction: column; gap: 5px; }
+.hero-block-item {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-cloud);
+}
+.hero-block-item strong { font-weight: 600; color: var(--color-midnight-ink); }
+.hero-block-item .highlight { color: var(--color-brand-violet); font-weight: 600; }
+.hero-block-item .warn { color: var(--color-warning); font-weight: 600; }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px; top: 4px; bottom: 4px;
+  width: 2px;
+  background: var(--color-cloud);
+  border-radius: 2px;
+}
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-item:last-child { margin-bottom: 0; }
+.timeline-dot {
+  position: absolute;
+  left: -24px; top: 4px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--color-brand-violet);
+  border: 3px solid var(--color-pure-white);
+  box-shadow: 0 0 0 2px var(--color-brand-violet);
+  z-index: 1;
+}
+.timeline-dot.realizada { background: var(--color-success); box-shadow: 0 0 0 2px var(--color-success); }
+.timeline-dot.cancelada { background: var(--color-danger); box-shadow: 0 0 0 2px var(--color-danger); }
+.timeline-dot.planejada { background: var(--color-signal-blue); box-shadow: 0 0 0 2px var(--color-signal-blue); }
+.timeline-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.timeline-card:hover { border-color: var(--color-brand-violet); }
+.timeline-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.timeline-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.timeline-date {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.timeline-participants {
+  font-size: 12px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+  margin-bottom: 8px;
+}
+.timeline-decisions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--color-pure-white);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+.timeline-decision {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+}
+.timeline-decision svg { flex-shrink: 0; margin-top: 2px; }
+.timeline-pendencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.timeline-pendencia {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  padding: 2px 8px;
+  background: var(--color-pure-white);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-cloud);
+}
+
+/* Decisions grid */
+.decisions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+.decision-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.decision-card:hover { border-color: var(--color-brand-violet); box-shadow: var(--shadow-card); }
+.decision-card-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: grid; place-items: center;
+  margin-bottom: 10px;
+}
+.decision-card-icon svg { width: 13px; height: 13px; }
+.decision-card-text {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.decision-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+.decision-card-owner {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.decision-card-impact {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.decision-card-impact.alto { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.decision-card-impact.medio { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.decision-card-impact.baixo { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+
+/* Pendencias grid */
+.pend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.pend-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+  cursor: default;
+}
+.pend-card:hover { border-color: var(--color-brand-violet); }
+.pend-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.pend-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.pend-card-owner {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  margin-top: 2px;
+}
+.pend-card-meta {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-linen);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pend-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.pend-tag.urgent { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.pend-tag.attention { background: rgba(237,108,2,0.1); color: var(--color-warning); }
+.pend-tag.done { background: rgba(46,125,50,0.1); color: var(--color-success); }
+.pend-tag.pending { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+.pend-tag.blocked { background: rgba(100,100,100,0.1); color: var(--color-slate); }
+.pend-tag.waiting { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+
+/* People grid */
+.people-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.person-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.person-card:hover { border-color: var(--color-brand-violet); box-shadow: var(--shadow-card); }
+.person-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.person-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--color-linen);
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 600;
+  color: var(--color-charcoal);
+  flex-shrink: 0;
+}
+.person-info { flex: 1; min-width: 0; }
+.person-name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.person-role { font-size: 11px; color: var(--color-slate); font-family: var(--font-inter); }
+.person-frequency {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  flex-shrink: 0;
+}
+.person-context {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--color-paper);
+  border-radius: var(--radius-sm);
+}
+.person-context .signal-pos { color: var(--color-success); font-weight: 600; }
+.person-context .signal-neg { color: var(--color-warning); font-weight: 600; }
+
+/* Synthesis */
+.synthesis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.synthesis-card {
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  border: 1px solid var(--color-cloud);
+  background: var(--color-pure-white);
+}
+.synthesis-card-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: grid; place-items: center;
+  margin-bottom: 10px;
+}
+.synthesis-card-icon svg { width: 13px; height: 13px; }
+.synthesis-card-label {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.synthesis-items { display: flex; flex-direction: column; gap: 8px; }
+.synthesis-item {
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  line-height: 1.5;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--color-cloud);
+}
+.synthesis-item strong { font-weight: 600; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .decisions-grid { grid-template-columns: 1fr 1fr; }
+  .pend-grid { grid-template-columns: 1fr 1fr; }
+  .people-grid { grid-template-columns: 1fr 1fr; }
+  .synthesis-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 1024px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .decisions-grid { grid-template-columns: 1fr; }
+  .pend-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .people-grid { grid-template-columns: 1fr; }
+  .synthesis-grid { grid-template-columns: 1fr; }
+  .timeline-card-header { flex-direction: column; align-items: flex-start; }
+}
+/* Palette — Busca Global */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9,12,29,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  max-height: 70vh;
+  background: var(--color-pure-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open .palette {
+  transform: translateY(0) scale(1);
+}
+.palette-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+  flex-shrink: 0;
+}
+.palette-search-icon {
+  flex-shrink: 0;
+  color: var(--color-slate);
+  display: grid;
+  place-items: center;
+}
+.palette-search-icon svg { width: 18px; height: 18px; }
+.palette-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: 500 17px/1.4 var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  outline: none;
+  letter-spacing: -0.01em;
+}
+.palette-input::placeholder {
+  color: var(--color-slate);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.palette-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.palette-shortcuts kbd {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 0.02em;
+}
+.palette-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-results::-webkit-scrollbar { width: 4px; }
+.palette-results::-webkit-scrollbar-track { background: transparent; }
+.palette-results::-webkit-scrollbar-thumb { background: var(--color-cloud); border-radius: 999px; }
+.palette-group { padding: 6px 12px; }
+.palette-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+}
+.palette-group-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-linen);
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-item:hover { background: var(--color-paper); }
+.palette-item.active {
+  background: rgba(123,104,238,0.08);
+}
+.palette-item-type {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.palette-item-type svg { width: 13px; height: 13px; }
+.palette-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-title mark {
+  background: rgba(123,104,238,0.15);
+  color: var(--color-midnight-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-context mark {
+  background: rgba(123,104,238,0.12);
+  color: var(--color-charcoal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.palette-tag {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.palette-tag.page { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+.palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.command { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.hot { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.palette-item-action {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.palette-item:hover .palette-item-action { opacity: 1; }
+.palette-item-status {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-item-status.green { background: var(--color-success); }
+.palette-item-status.orange { background: var(--color-warning); }
+.palette-item-status.violet { background: var(--color-brand-violet); }
+.palette-item-status.blue { background: var(--color-signal-blue); }
+.palette-item-status.slate { background: var(--color-slate); }
+.palette-item-status.red { background: var(--color-danger); }
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  flex-shrink: 0;
+}
+.palette-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-footer-item kbd {
+  font: 500 9px/1 var(--font-mono);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.palette-footer-spacer { flex: 1; }
+.palette-footer-esc {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.palette-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: var(--color-paper);
+  display: grid; place-items: center;
+  color: var(--color-slate);
+  margin-bottom: 14px;
+}
+.palette-empty-icon svg { width: 20px; height: 20px; }
+.palette-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  margin-bottom: 4px;
+}
+.palette-empty-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+  font: 500 12px/1 var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+}
+.topbar-search-btn:hover { border-color: var(--color-brand-violet); background: var(--color-pure-white); color: var(--color-charcoal); }
+.topbar-search-btn svg { flex-shrink: 0; }
+.topbar-search-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .palette { width: calc(100vw - 24px); max-height: 80vh; }
+  .palette-search-wrap { padding: 14px 16px; }
+  .palette-input { font-size: 15px; }
+  .palette-overlay { padding-top: 8vh; }
+  .topbar-search-btn kbd { display: none; }
+  .topbar-search-btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">H</div>
+    <div>
+      <div class="sidebar-brand-text">Hub</div>
+      <div class="sidebar-brand-sub">Operacional</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Navegação</div>
+    <a class="nav-item" href="home.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+      Início
+    </a>
+    <a class="nav-item" href="north-star.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+      North Star
+    </a>
+    <a class="nav-item" href="comando.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Sala de Comando
+    </a>
+    <a class="nav-item" href="lab.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Lab
+    </a>
+    <a class="nav-item" href="brain.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+      Brain
+    </a>
+    <a class="nav-item" href="funil.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      Funis
+    </a>
+    <a class="nav-item" href="pipeline.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" href="conteudo.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Conteúdo
+    </a>
+    <a class="nav-item" href="brandbook.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Brandbook
+    </a>
+    <a class="nav-item" href="agentes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+      Agentes
+    </a>
+    <a class="nav-item" href="sinais.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sinais
+    </a>
+    <a class="nav-item" href="instagram.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a>
+    <div class="sidebar-group-label">Gestão</div>
+    <a class="nav-item" href="carteira.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Carteira
+    </a>
+    <a class="nav-item" href="calendar.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </a>
+    <a class="nav-item active" href="reunioes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reuniões
+    </a>
+    <a class="nav-item" href="configuracoes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">ES</div>
+    <div>
+      <div class="sidebar-user">Erick Sena</div>
+      <div class="sidebar-user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<header class="topbar">
+  <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Reuniões</span></span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar…
+    <kbd><span>⌘</span>K</kbd>
+  </button>
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- 1. Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Reuniões</h1>
+      <div class="subtitle">Central de alinhamento inteligente — contexto, decisões capturadas, follow-ups e visão executiva de cada encontro.</div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filterbar">
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <select>
+        <option>Últimos 30 dias</option>
+        <option>Últimos 7 dias</option>
+        <option>Últimos 90 dias</option>
+        <option>Personalizado</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+      <select>
+        <option>Todos os tipos</option>
+        <option>Planejamento</option>
+        <option>Estratégica</option>
+        <option>Comercial</option>
+        <option>1:1</option>
+        <option>Review</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <select>
+        <option>Todas as pessoas</option>
+        <option>Erick Sena</option>
+        <option>Carla Souza</option>
+        <option>Pedro Alves</option>
+        <option>Ana Lima</option>
+        <option>Rafael Torres</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <select>
+        <option>Todos os status</option>
+        <option>Realizada</option>
+        <option>Planejada</option>
+        <option>Cancelada</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      <select>
+        <option>Todos os projetos</option>
+        <option>Growth</option>
+        <option>Comercial</option>
+        <option>Produto</option>
+        <option>Conteúdo</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 2. Bloco principal — próxima reunião -->
+  <div class="mtg-section">
+    <div class="mtg-section-header">
+      <div class="mtg-section-title">Próxima reunião</div>
+      <div class="mtg-section-subtitle">O próximo encontro crítico da semana. Contexto preparado para decisão, não para informação.</div>
+    </div>
+    <div class="hero-meeting">
+      <div class="hero-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Amanhã — 09:00 – 10:30
+      </div>
+      <div class="hero-title">Revisão Estratégica de Q3</div>
+      <div class="hero-meta">Erick Sena · Carla Souza · Pedro Alves · Ana Lima · Rafael Torres</div>
+      <div class="hero-grid">
+        <div class="hero-block">
+          <div class="hero-block-label">Pauta</div>
+          <div class="hero-block-items">
+            <div class="hero-block-item"><strong>1.</strong> Resultados de Junho vs. metas do trimestre</div>
+            <div class="hero-block-item"><strong>2.</strong> Revisão de OKRs e redistribuição de prioridades</div>
+            <div class="hero-block-item"><strong>3.</strong> Gargalos identificados no funil de aquisição</div>
+            <div class="hero-block-item"><strong>4.</strong> Decisão sobre investimento em mídia paga</div>
+          </div>
+        </div>
+        <div class="hero-block">
+          <div class="hero-block-label">Contexto relevante</div>
+          <div class="hero-block-items">
+            <div class="hero-block-item">Pipeline de julho está <span class="warn">27% abaixo da meta</span>. Conversão de lead em conversa caiu de 30% para 22% nas últimas 2 semanas.</div>
+            <div class="hero-block-item">Post de diagnóstico "5 erros" gerou <span class="highlight">2,8× mais alcance</span> que a média — validar escalabilidade.</div>
+          </div>
+          <div class="hero-block-label" style="margin-top:10px;">Decisões pendentes</div>
+          <div class="hero-block-items">
+            <div class="hero-block-item"><span class="warn">●</span> Aprovar ou não o aumento de budget de mídia para R$ 5K/mês</div>
+            <div class="hero-block-item"><span class="warn">●</span> Definir prioridade entre nova feature de automação vs. melhorar lead capture</div>
+          </div>
+          <div class="hero-block-label" style="margin-top:10px;">Follow-up crítico</div>
+          <div class="hero-block-items">
+            <div class="hero-block-item"><span class="highlight">!</span> Carla precisa trazer a análise de CAC dos últimos 3 meses. Sem esse dado, a decisão de budget fica comprometida.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Linha do tempo de reuniões -->
+  <div class="mtg-section">
+    <div class="mtg-section-header">
+      <div class="mtg-section-title">Linha do tempo</div>
+      <div class="mtg-section-subtitle">Reuniões recentes com decisões extraídas, pendências abertas e contexto capturado.</div>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot realizada"></div>
+        <div class="timeline-card">
+          <div class="timeline-card-header">
+            <span class="timeline-title">Sprint Planning — Semana 27</span>
+            <span class="timeline-date">01 Jul</span>
+          </div>
+          <div class="timeline-participants">Erick Sena · Carla Souza · Pedro Alves · Ana Lima</div>
+          <div class="timeline-decisions">
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Aprovado:</strong> Redução de 20% nas tarefas de sustentação para liberar capacidade para projeto de automação</span>
+            </div>
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Definido:</strong> Prioridade máxima para feature de lead capture automatizada — prazo: 30 jul</span>
+            </div>
+          </div>
+          <div class="timeline-pendencias">
+            <span class="timeline-pendencia">3 pendências abertas</span>
+            <span class="timeline-pendencia">Owner: Pedro</span>
+          </div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot realizada"></div>
+        <div class="timeline-card">
+          <div class="timeline-card-header">
+            <span class="timeline-title">Revisão de Funil e Pipeline</span>
+            <span class="timeline-date">30 Jun</span>
+          </div>
+          <div class="timeline-participants">Erick Sena · Carla Souza · Rafael Torres</div>
+          <div class="timeline-decisions">
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Aprovado:</strong> Revisão dos critérios de qualificação de leads — novo scoring baseado em engajamento real</span>
+            </div>
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Em análise:</strong> Proposta de automação de follow-up para leads parados há +7 dias</span>
+            </div>
+          </div>
+          <div class="timeline-pendencias">
+            <span class="timeline-pendencia">2 pendências abertas</span>
+            <span class="timeline-pendencia">Owner: Carla</span>
+          </div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot realizada"></div>
+        <div class="timeline-card">
+          <div class="timeline-card-header">
+            <span class="timeline-title">Comercial — Revisão de Propostas</span>
+            <span class="timeline-date">28 Jun</span>
+          </div>
+          <div class="timeline-participants">Carla Souza · Rafael Torres · Erick Sena</div>
+          <div class="timeline-decisions">
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Aprovado:</strong> Nova estrutura de proposta com estudos de caso anexados — testar por 30 dias</span>
+            </div>
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Definido:</strong> Desconto máximo de 15% para fechar 3 deals em julho</span>
+            </div>
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Pendente:</strong> Definir política de follow-up para clientes que pediram 72h para decisão</span>
+            </div>
+          </div>
+          <div class="timeline-pendencias">
+            <span class="timeline-pendencia">4 pendências abertas</span>
+            <span class="timeline-pendencia">Owner: Rafael</span>
+          </div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot realizada"></div>
+        <div class="timeline-card">
+          <div class="timeline-card-header">
+            <span class="timeline-title">Apresentação de Resultados Mensais</span>
+            <span class="timeline-date">25 Jun</span>
+          </div>
+          <div class="timeline-participants">Erick Sena · CMO · Pedro Alves · Ana lima · Lucas Mendes</div>
+          <div class="timeline-decisions">
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Aprovado:</strong> Aumento de 20% no budget de mídia paga para Q3</span>
+            </div>
+            <div class="timeline-decision">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>OKR novo:</strong> Incluir "CAC por canal" como métrica obrigatória nos reports mensais</span>
+            </div>
+          </div>
+          <div class="timeline-pendencias">
+            <span class="timeline-pendencia">2 pendências abertas</span>
+            <span class="timeline-pendencia">Owner: Ana</span>
+          </div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot cancelada"></div>
+        <div class="timeline-card">
+          <div class="timeline-card-header">
+            <span class="timeline-title">Sprint Planning — Semana 25</span>
+            <span class="timeline-date">20 Jun</span>
+          </div>
+          <div class="timeline-participants">Erick Sena · Carla Souza · Pedro Alves · Ana Lima</div>
+          <div class="timeline-decisions" style="background:var(--color-paper);color:var(--color-slate);">
+            <span style="font-size:12px;font-family:var(--font-inter);">Reunião cancelada por indisponibilidade de participantes. Pauta absorvida na semana seguinte.</span>
+          </div>
+          <div class="timeline-pendencias">
+            <span class="timeline-pendencia" style="color:var(--color-slate);">Cancelada</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Decisões capturadas -->
+  <div class="mtg-section">
+    <div class="mtg-section-header">
+      <div class="mtg-section-title">Decisões capturadas</div>
+      <div class="mtg-section-subtitle">Decisões extraídas das reuniões dos últimos 30 dias. Toda decisão tem owner e impacto mapeado.</div>
+    </div>
+    <div class="decisions-grid">
+      <div class="decision-card">
+        <div class="decision-card-icon" style="background:rgba(46,125,50,0.1);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="decision-card-text">Aumentar budget de mídia paga em 20% para Q3</div>
+        <div class="decision-card-meta">
+          <span class="decision-card-owner">Erick Sena</span>
+          <span class="decision-card-impact alto">Alto impacto</span>
+          <span class="status-pill won" style="font-size:10px;">aprovado</span>
+        </div>
+      </div>
+      <div class="decision-card">
+        <div class="decision-card-icon" style="background:rgba(46,125,50,0.1);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="decision-card-text">Antecipar lançamento da feature de automação de lead capture para agosto</div>
+        <div class="decision-card-meta">
+          <span class="decision-card-owner">Pedro Alves</span>
+          <span class="decision-card-impact alto">Alto impacto</span>
+          <span class="status-pill won" style="font-size:10px;">aprovado</span>
+        </div>
+      </div>
+      <div class="decision-card">
+        <div class="decision-card-icon" style="background:rgba(0,145,255,0.1);color:var(--color-signal-blue);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="decision-card-text">Revisar critérios de qualificação de leads — novo scoring com base em engajamento real</div>
+        <div class="decision-card-meta">
+          <span class="decision-card-owner">Carla Souza</span>
+          <span class="decision-card-impact medio">Impacto médio</span>
+          <span class="status-pill analyzing" style="font-size:10px;">em análise</span>
+        </div>
+      </div>
+      <div class="decision-card">
+        <div class="decision-card-icon" style="background:rgba(46,125,50,0.1);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="decision-card-text">Nova estrutura de propostas comerciais com estudos de caso anexados</div>
+        <div class="decision-card-meta">
+          <span class="decision-card-owner">Rafael Torres</span>
+          <span class="decision-card-impact medio">Impacto médio</span>
+          <span class="status-pill running" style="font-size:10px;">em implementação</span>
+        </div>
+      </div>
+      <div class="decision-card">
+        <div class="decision-card-icon" style="background:rgba(46,125,50,0.1);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="decision-card-text">Incluir CAC por canal como métrica obrigatória em reports mensais</div>
+        <div class="decision-card-meta">
+          <span class="decision-card-owner">Ana Lima</span>
+          <span class="decision-card-impact medio">Impacto médio</span>
+          <span class="status-pill won" style="font-size:10px;">aprovado</span>
+        </div>
+      </div>
+      <div class="decision-card">
+        <div class="decision-card-icon" style="background:rgba(237,108,2,0.1);color:var(--color-warning);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="decision-card-text">Definir política de follow-up para clientes com decisão pendente há +72h</div>
+        <div class="decision-card-meta">
+          <span class="decision-card-owner">Carla Souza</span>
+          <span class="decision-card-impact baixo">Baixo impacto</span>
+          <span class="status-pill analyzing" style="font-size:10px;">em análise</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Pendências / Follow-ups -->
+  <div class="mtg-section">
+    <div class="mtg-section-header">
+      <div class="mtg-section-title">Pendências &amp; Follow-ups</div>
+      <div class="mtg-section-subtitle">O que precisa de retorno, o que está travado e o que depende de alguém para avançar.</div>
+    </div>
+    <div class="pend-grid">
+      <div class="pend-card">
+        <div class="pend-card-header">
+          <span class="pend-card-title">Análise de CAC dos últimos 3 meses</span>
+          <span class="pend-tag urgent">Urgente</span>
+        </div>
+        <div class="pend-card-owner">Carla Souza</div>
+        <div class="pend-card-meta">
+          <span style="font-size:11px;color:var(--color-slate);font-family:var(--font-inter);">Vence: 05 Jul</span>
+          <span style="font-size:11px;color:var(--color-danger);font-family:var(--font-inter);font-weight:500;">Bloqueia decisão de budget</span>
+        </div>
+      </div>
+      <div class="pend-card">
+        <div class="pend-card-header">
+          <span class="pend-card-title">Atualizar pipeline com deals da semana</span>
+          <span class="pend-tag attention">Atenção</span>
+        </div>
+        <div class="pend-card-owner">Pedro Alves</div>
+        <div class="pend-card-meta">
+          <span style="font-size:11px;color:var(--color-slate);font-family:var(--font-inter);">Vence: 05 Jul</span>
+        </div>
+      </div>
+      <div class="pend-card">
+        <div class="pend-card-header">
+          <span class="pend-card-title">Preparar report de resultados de Q2 para o board</span>
+          <span class="pend-tag attention">Atenção</span>
+        </div>
+        <div class="pend-card-owner">Ana Lima</div>
+        <div class="pend-card-meta">
+          <span style="font-size:11px;color:var(--color-slate);font-family:var(--font-inter);">Vence: 10 Jul</span>
+          <span style="font-size:11px;color:var(--color-warning);font-family:var(--font-inter);font-weight:500;">Depende de dados do comercial</span>
+        </div>
+      </div>
+      <div class="pend-card">
+        <div class="pend-card-header">
+          <span class="pend-card-title">Follow-up leads parados há +7 dias</span>
+          <span class="pend-tag pending">Pendente</span>
+        </div>
+        <div class="pend-card-owner">Rafael Torres</div>
+        <div class="pend-card-meta">
+          <span style="font-size:11px;color:var(--color-slate);font-family:var(--font-inter);">Vence: 06 Jul</span>
+          <span style="font-size:11px;color:var(--color-warning);font-family:var(--font-inter);font-weight:500;">12 leads aguardando contato</span>
+        </div>
+      </div>
+      <div class="pend-card">
+        <div class="pend-card-header">
+          <span class="pend-card-title">Revisar OKRs do time para Q3</span>
+          <span class="pend-tag waiting">Aguardando</span>
+        </div>
+        <div class="pend-card-owner">Erick Sena</div>
+        <div class="pend-card-meta">
+          <span style="font-size:11px;color:var(--color-slate);font-family:var(--font-inter);">Vence: 08 Jul</span>
+          <span style="font-size:11px;color:var(--color-brand-violet);font-family:var(--font-inter);font-weight:500;">Aguardando input do CMO</span>
+        </div>
+      </div>
+      <div class="pend-card">
+        <div class="pend-card-header">
+          <span class="pend-card-title">Definir política de follow-up para clientes</span>
+          <span class="pend-tag blocked">Travado</span>
+        </div>
+        <div class="pend-card-owner">Carla Souza</div>
+        <div class="pend-card-meta">
+          <span style="font-size:11px;color:var(--color-slate);font-family:var(--font-inter);">Venceu: 28 Jun</span>
+          <span style="font-size:11px;color:var(--color-danger);font-family:var(--font-inter);font-weight:500;">Depende de aprovação do comercial</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Pessoas e contexto -->
+  <div class="mtg-section">
+    <div class="mtg-section-header">
+      <div class="mtg-section-title">Pessoas &amp; contexto</div>
+      <div class="mtg-section-subtitle">Quem aparece com mais frequência nas reuniões, o contexto da relação e sinais de tensão ou oportunidade.</div>
+    </div>
+    <div class="people-grid">
+      <div class="person-card">
+        <div class="person-row">
+          <div class="person-avatar">ES</div>
+          <div class="person-info">
+            <div class="person-name">Erick Sena</div>
+            <div class="person-role">CEO · 12 reuniões nos últimos 30 dias</div>
+          </div>
+          <div class="person-frequency">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Alta
+          </div>
+        </div>
+        <div class="person-context">
+          Presença em todas as reuniões estratégicas. <span class="signal-pos">Relação forte com CMO e comercial.</span> Principal tomador de decisão. Contexto atual: pressão por resultados de Q3 e definição de budget.
+        </div>
+      </div>
+      <div class="person-card">
+        <div class="person-row">
+          <div class="person-avatar">CS</div>
+          <div class="person-info">
+            <div class="person-name">Carla Souza</div>
+            <div class="person-role">Head de Growth · 10 reuniões</div>
+          </div>
+          <div class="person-frequency">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Alta
+          </div>
+        </div>
+        <div class="person-context">
+          Lidera frente de aquisição e funil. <span class="signal-pos">Ótima relação com time de conteúdo.</span> Acumulou pendências esta semana — risco de atraso na análise de CAC. <span class="signal-neg">Atenção à sobrecarga.</span>
+        </div>
+      </div>
+      <div class="person-card">
+        <div class="person-row">
+          <div class="person-avatar">PA</div>
+          <div class="person-info">
+            <div class="person-name">Pedro Alves</div>
+            <div class="person-role">Tech Lead · 7 reuniões</div>
+          </div>
+          <div class="person-frequency">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Média
+          </div>
+        </div>
+        <div class="person-context">
+          Focado em produto e automação. <span class="signal-pos">Entregas dentro do prazo.</span> Participa de reuniões de planejamento e review técnico. <span class="signal-neg">Necessita de mais contexto de negócio nas reuniões.</span>
+        </div>
+      </div>
+      <div class="person-card">
+        <div class="person-row">
+          <div class="person-avatar">AL</div>
+          <div class="person-info">
+            <div class="person-name">Ana Lima</div>
+            <div class="person-role">Head de Conteúdo · 6 reuniões</div>
+          </div>
+          <div class="person-frequency">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-signal-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Média
+          </div>
+        </div>
+        <div class="person-context">
+          Responsável por conteúdo e brand. <span class="signal-pos">Time de conteúdo integrado à estratégia de funil.</span> Preparando report de Q2 para o board. Oportunidade de aproximar conteúdo dos resultados de pipeline.
+        </div>
+      </div>
+      <div class="person-card">
+        <div class="person-row">
+          <div class="person-avatar">RT</div>
+          <div class="person-info">
+            <div class="person-name">Rafael Torres</div>
+            <div class="person-role">Comercial · 5 reuniões</div>
+          </div>
+          <div class="person-frequency">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Em crescimento
+          </div>
+        </div>
+        <div class="person-context">
+          Novo na equipe comercial. <span class="signal-pos">Trazendo boas propostas e estruturação de processo.</span> <span class="signal-neg">Ainda precisa de suporte em follow-up e priorização de leads.</span> Contexto: aprendendo a usar o pipeline e scoring.
+        </div>
+      </div>
+      <div class="person-card">
+        <div class="person-row">
+          <div class="person-avatar">CM</div>
+          <div class="person-info">
+            <div class="person-name">CMO</div>
+            <div class="person-role">Chief Marketing Officer · 4 reuniões</div>
+          </div>
+          <div class="person-frequency">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Pontual
+          </div>
+        </div>
+        <div class="person-context">
+          Participa de reuniões de resultado e definição de estratégia. <span class="signal-pos">Apoiou aumento de budget de mídia.</span> <span class="signal-neg">Disponibilidade limitada — agendar com 2 semanas de antecedência.</span> Decisões que dependem do CMO têm maior lead time.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Síntese da semana -->
+  <div class="mtg-section">
+    <div class="mtg-section-header">
+      <div class="mtg-section-title">Síntese da semana</div>
+      <div class="mtg-section-subtitle">Principais alinhamentos, riscos identificados e próximos movimentos com base nas reuniões dos últimos 7 dias.</div>
+    </div>
+    <div class="synthesis-grid">
+      <div class="synthesis-card">
+        <div class="synthesis-card-icon" style="background:rgba(46,125,50,0.1);color:var(--color-success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="synthesis-card-label" style="color:var(--color-success);">Alinhamentos</div>
+        <div class="synthesis-items">
+          <div class="synthesis-item"><strong>Budget de mídia</strong> aprovado para Q3 — aumento de 20%. Ana prepara novo plano de mídia até 15 jul.</div>
+          <div class="synthesis-item"><strong>Feature de automação</strong> antecipada para agosto. Pedro inicia sprint de desenvolvimento na semana 28.</div>
+          <div class="synthesis-item"><strong>Scoring de leads</strong> será revisado. Carla propõe novo modelo baseado em engajamento real (não apenas em cliques).</div>
+        </div>
+      </div>
+      <div class="synthesis-card">
+        <div class="synthesis-card-icon" style="background:rgba(211,47,47,0.1);color:var(--color-danger);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <div class="synthesis-card-label" style="color:var(--color-danger);">Riscos</div>
+        <div class="synthesis-items">
+          <div class="synthesis-item"><strong>Pipeline 27% abaixo da meta</strong> de julho. Conversão lead→conversa caiu de 30% para 22%. Risco de não bater a meta do trimestre.</div>
+          <div class="synthesis-item"><strong>Carla sobrecarregada</strong> — 3 pendências críticas acumuladas. Risco de gargalo na análise de CAC que bloqueia decisão de budget.</div>
+          <div class="synthesis-item"><strong>Dependência do CMO</strong> para aprovações estratégicas. Lead time de resposta pode atrasar ativações de Q3.</div>
+        </div>
+      </div>
+      <div class="synthesis-card">
+        <div class="synthesis-card-icon" style="background:rgba(0,145,255,0.1);color:var(--color-signal-blue);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="synthesis-card-label" style="color:var(--color-signal-blue);">Próximos movimentos</div>
+        <div class="synthesis-items">
+          <div class="synthesis-item"><strong>Revisão Estratégica de Q3</strong> amanhã 09:00. Decisão crítica: aprovar ou não budget de mídia. Carla precisa trazer análise de CAC.</div>
+          <div class="synthesis-item"><strong>Distribuir pendências da Carla</strong> — realocar follow-up de leads para Rafael, liberar capacidade para análise de CAC.</div>
+          <div class="synthesis-item"><strong>Agendar 1:1 com CMO</strong> para validar OKRs de Q3 e desbloquear decisões pendentes antes da reunião de review.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function() {
+  // Sidebar mobile close
+  document.addEventListener('click', function(e) {
+    var s = document.getElementById('sidebar');
+    if (s && s.classList.contains('open')) {
+      if (!s.contains(e.target) && !e.target.closest('.mobile-menu-btn')) s.classList.remove('open');
+    }
+  });
+
+  // Staggered fade-in
+  var REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!REDUCED_MOTION) {
+    var cards = document.querySelectorAll('.hero-meeting, .timeline-card, .decision-card, .pend-card, .person-card, .synthesis-card');
+    cards.forEach(function(card, i) {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(12px)';
+      card.style.transition = 'opacity 400ms cubic-bezier(0.16, 1, 0.3, 1), transform 400ms cubic-bezier(0.16, 1, 0.3, 1)';
+      setTimeout(function() {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 80 + i * 40);
+    });
+  }
+})();
+</script>
+<!-- Palette overlay -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+  <div class="palette" id="paletteModal">
+    <div class="palette-search-wrap">
+      <span class="palette-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </div>
+    <div class="palette-results" id="paletteResults">
+      <div class="palette-empty" id="paletteEmpty">
+        <div class="palette-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="palette-empty-title">Nenhum resultado encontrado</div>
+        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-spacer"></span>
+      <span class="palette-footer-esc">Esc para fechar</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var isOpen = false;
+  var activeIndex = -1;
+  var items = [];
+  var overlay = document.getElementById('paletteOverlay');
+  var input = document.getElementById('paletteInput');
+  var results = document.getElementById('paletteResults');
+  var empty = document.getElementById('paletteEmpty');
+  function updateItems() {
+    items = Array.from(results.querySelectorAll('.palette-item'));
+  }
+  window.togglePalette = function() {
+    isOpen = !isOpen;
+    overlay.classList.toggle('open', isOpen);
+    if (isOpen) {
+      input.value = '';
+      input.focus();
+      updateItems();
+      activeIndex = -1;
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  };
+  window.closePaletteOutside = function(e) {
+    if (e.target === overlay) {
+      isOpen = false;
+      overlay.classList.remove('open');
+    }
+  };
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      isOpen = false;
+      overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.min(activeIndex + 1, visibleItems.length - 1);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (activeIndex >= 0 && activeIndex < visibleItems.length) {
+        visibleItems[activeIndex].click();
+      }
+    }
+  });
+  function highlightItem(visibleItems) {
+    visibleItems.forEach(function(i) { i.classList.remove('active'); });
+    if (visibleItems[activeIndex]) {
+      visibleItems[activeIndex].classList.add('active');
+      visibleItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      togglePalette();
+    }
+  });
+  window.navigateTo = function(url) {
+    window.location.href = url;
+  };
+})();
+</script>
+
+<!-- Script de integração iframe e banco de dados unificado -->
+<script>
+(function() {
+  // 1. Aplicar classe de modo iframe se estiver rodando em frame
+  if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+    
+    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href')) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          const fileName = href.split('?')[0].split('#')[0].split('/').pop();
+          if (fileName.endsWith('.html') && fileName !== 'contact.html') {
+            const tabName = fileName.replace('.html', '');
+            if (window.parent && typeof window.parent.switchTab === 'function') {
+              e.preventDefault();
+              window.parent.switchTab(tabName);
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

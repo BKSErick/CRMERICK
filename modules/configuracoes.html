@@ -1,0 +1,1417 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Configurações — Hub Operacional</title>
+<link rel="stylesheet" href="../hub.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --color-brand-violet: #7b68ee;
+  --color-ultra-violet: #6647f0;
+  --color-signal-blue: #0091ff;
+  --color-midnight-ink: #090c1d;
+  --color-charcoal: #292d34;
+  --color-carbon: #202023;
+  --color-slate: #646464;
+  --color-cloud: #e8e8e8;
+  --color-paper: #f8f9fa;
+  --color-linen: #e9ebf0;
+  --color-pure-white: #ffffff;
+  --color-success: #2e7d32;
+  --color-warning: #ed6c02;
+  --color-danger: #d32f2f;
+  --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Sometype Mono', 'JetBrains Mono', ui-monospace, monospace;
+  --sidebar-w: 232px;
+  --topbar-h: 60px;
+  --radius-sm: 6px;
+  --radius-card: 10px;
+  --radius-pill: 999px;
+  --duration-fast: 150ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  background: var(--color-pure-white);
+  -webkit-font-smoothing: antialiased;
+}
+a { text-decoration: none; color: inherit; }
+
+.settings-layout {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+}
+
+.settings-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  position: sticky;
+  top: calc(var(--topbar-h) + 28px);
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-slate);
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  letter-spacing: -0.01em;
+}
+.settings-nav-item svg { flex-shrink: 0; opacity: 0.5; transition: opacity var(--duration-fast) ease; }
+.settings-nav-item:hover { color: var(--color-charcoal); background: var(--color-paper); }
+.settings-nav-item:hover svg { opacity: 0.7; }
+.settings-nav-item.active { color: var(--color-brand-violet); background: rgba(123,104,238,0.08); }
+.settings-nav-item.active svg { opacity: 1; }
+
+.settings-divider {
+  height: 1px;
+  background: var(--color-cloud);
+  margin: 8px 0;
+}
+
+.settings-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-section { display: none; }
+.settings-section.active { display: block; }
+
+.settings-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.settings-section-desc {
+  font-size: 13px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+  margin-bottom: 20px;
+}
+
+/* User table */
+.user-table-wrap {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.user-table-wrap table { width: 100%; border-collapse: collapse; }
+.user-table-wrap th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 11px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--color-cloud);
+}
+.user-table-wrap td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-linen);
+  vertical-align: middle;
+}
+.user-table-wrap tr:last-child td { border-bottom: none; }
+.user-table-wrap tr:hover td { background: var(--color-pure-white); }
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--color-linen);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-charcoal);
+  flex-shrink: 0;
+}
+.user-name { font-weight: 500; }
+.user-email { font-size: 12px; color: var(--color-slate); font-family: var(--font-inter); }
+
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-inter);
+}
+.role-pill.admin { background: rgba(123,104,238,0.1); color: var(--color-brand-violet); }
+.role-pill.editor { background: rgba(0,145,255,0.1); color: var(--color-signal-blue); }
+.role-pill.viewer { background: rgba(100,100,100,0.1); color: var(--color-slate); }
+
+.user-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-family: var(--font-inter);
+}
+.user-status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+}
+.user-status-dot.active { background: var(--color-success); }
+.user-status-dot.inactive { background: var(--color-slate); }
+
+.last-access { font-size: 12px; color: var(--color-slate); font-family: var(--font-inter); }
+
+.add-user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-violet);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-plus-jakarta);
+  cursor: pointer;
+  transition: background var(--duration-fast) ease;
+  margin-top: 16px;
+}
+.add-user-btn:hover { background: var(--color-ultra-violet); }
+
+/* Source cards grid */
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.source-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  transition: border-color var(--duration-fast) ease;
+  cursor: default;
+}
+.source-card:hover { border-color: var(--color-brand-violet); }
+.source-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.source-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.source-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+}
+.source-status.connected { color: var(--color-success); }
+.source-status.pending { color: var(--color-warning); }
+.source-status.configure { color: var(--color-signal-blue); }
+.source-status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.source-status-dot.connected { background: var(--color-success); }
+.source-status-dot.pending { background: var(--color-warning); }
+.source-status-dot.configure { background: var(--color-signal-blue); }
+.source-card-desc {
+  font-size: 12px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+  line-height: 1.5;
+}
+.source-card-action {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-brand-violet);
+  font-family: var(--font-inter);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) ease;
+}
+.source-card-action:hover { opacity: 0.7; }
+
+/* Integrations cards */
+.integrations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* Preferences */
+.pref-group {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  margin-bottom: 12px;
+}
+.pref-group:last-child { margin-bottom: 0; }
+.pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+.pref-row + .pref-row { border-top: 1px solid var(--color-linen); }
+.pref-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.pref-desc {
+  font-size: 11px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+  margin-top: 1px;
+}
+.pref-control {
+  flex-shrink: 0;
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  cursor: pointer;
+}
+.toggle input { display: none; }
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--color-cloud);
+  border-radius: 999px;
+  transition: background var(--duration-fast) ease;
+}
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--duration-fast) ease;
+}
+.toggle input:checked + .toggle-slider { background: var(--color-brand-violet); }
+.toggle input:checked + .toggle-slider::after { transform: translateX(18px); }
+
+select.pref-select {
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  padding: 6px 28px 6px 10px;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23646464' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+select.pref-select:focus { border-color: var(--color-brand-violet); }
+
+/* Permissions cards */
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.role-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  transition: border-color var(--duration-fast) ease;
+  cursor: default;
+}
+.role-card:hover { border-color: var(--color-brand-violet); }
+.role-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.role-card-desc {
+  font-size: 12px;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.role-perms {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.role-perm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-charcoal);
+  font-family: var(--font-inter);
+}
+.role-perm svg { flex-shrink: 0; }
+.role-perm .check { color: var(--color-success); }
+.role-perm .cross { color: var(--color-slate); opacity: 0.5; }
+
+/* Faturamento placeholder */
+.billing-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+.billing-placeholder svg { color: var(--color-cloud); margin-bottom: 12px; }
+.billing-placeholder h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.billing-placeholder p { font-size: 13px; color: var(--color-slate); font-family: var(--font-inter); }
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.table-search {
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  color: var(--color-midnight-ink);
+  background: var(--color-pure-white);
+  outline: none;
+  width: 220px;
+  transition: border-color var(--duration-fast) ease;
+}
+.table-search:focus { border-color: var(--color-brand-violet); }
+.table-search::placeholder { color: var(--color-slate); }
+
+@media (max-width: 768px) {
+  .settings-layout { flex-direction: column; }
+  .settings-sidebar { width: 100%; position: static; }
+  .settings-nav { flex-direction: row; flex-wrap: wrap; }
+  .settings-divider { display: none; }
+  .sources-grid { grid-template-columns: 1fr; }
+  .integrations-grid { grid-template-columns: 1fr; }
+  .roles-grid { grid-template-columns: 1fr; }
+  .table-actions { flex-direction: column; gap: 10px; align-items: stretch; }
+  .table-search { width: 100%; }
+}
+/* Palette — Busca Global */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9,12,29,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  max-height: 70vh;
+  background: var(--color-pure-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open .palette {
+  transform: translateY(0) scale(1);
+}
+.palette-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+  flex-shrink: 0;
+}
+.palette-search-icon {
+  flex-shrink: 0;
+  color: var(--color-slate);
+  display: grid;
+  place-items: center;
+}
+.palette-search-icon svg { width: 18px; height: 18px; }
+.palette-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: 500 17px/1.4 var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  outline: none;
+  letter-spacing: -0.01em;
+}
+.palette-input::placeholder {
+  color: var(--color-slate);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.palette-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.palette-shortcuts kbd {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 0.02em;
+}
+.palette-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-results::-webkit-scrollbar { width: 4px; }
+.palette-results::-webkit-scrollbar-track { background: transparent; }
+.palette-results::-webkit-scrollbar-thumb { background: var(--color-cloud); border-radius: 999px; }
+.palette-group { padding: 6px 12px; }
+.palette-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+}
+.palette-group-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-linen);
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-item:hover { background: var(--color-paper); }
+.palette-item.active {
+  background: rgba(123,104,238,0.08);
+}
+.palette-item-type {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.palette-item-type svg { width: 13px; height: 13px; }
+.palette-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-title mark {
+  background: rgba(123,104,238,0.15);
+  color: var(--color-midnight-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-context mark {
+  background: rgba(123,104,238,0.12);
+  color: var(--color-charcoal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.palette-tag {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.palette-tag.page { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+.palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.command { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.hot { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.palette-item-action {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.palette-item:hover .palette-item-action { opacity: 1; }
+.palette-item-status {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-item-status.green { background: var(--color-success); }
+.palette-item-status.orange { background: var(--color-warning); }
+.palette-item-status.violet { background: var(--color-brand-violet); }
+.palette-item-status.blue { background: var(--color-signal-blue); }
+.palette-item-status.slate { background: var(--color-slate); }
+.palette-item-status.red { background: var(--color-danger); }
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  flex-shrink: 0;
+}
+.palette-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-footer-item kbd {
+  font: 500 9px/1 var(--font-mono);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.palette-footer-spacer { flex: 1; }
+.palette-footer-esc {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.palette-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: var(--color-paper);
+  display: grid; place-items: center;
+  color: var(--color-slate);
+  margin-bottom: 14px;
+}
+.palette-empty-icon svg { width: 20px; height: 20px; }
+.palette-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  margin-bottom: 4px;
+}
+.palette-empty-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+  font: 500 12px/1 var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+}
+.topbar-search-btn:hover { border-color: var(--color-brand-violet); background: var(--color-pure-white); color: var(--color-charcoal); }
+.topbar-search-btn svg { flex-shrink: 0; }
+.topbar-search-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .palette { width: calc(100vw - 24px); max-height: 80vh; }
+  .palette-search-wrap { padding: 14px 16px; }
+  .palette-input { font-size: 15px; }
+  .palette-overlay { padding-top: 8vh; }
+  .topbar-search-btn kbd { display: none; }
+  .topbar-search-btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">H</div>
+    <div>
+      <div class="sidebar-brand-text">Hub</div>
+      <div class="sidebar-brand-sub">Operacional</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Navegação</div>
+    <a class="nav-item" href="home.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+      Início
+    </a>
+    <a class="nav-item" href="north-star.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+      North Star
+    </a>
+    <a class="nav-item" href="comando.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Sala de Comando
+    </a>
+    <a class="nav-item" href="lab.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Lab
+    </a>
+    <a class="nav-item" href="brain.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+      Brain
+    </a>
+    <a class="nav-item" href="funil.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      Funis
+    </a>
+    <a class="nav-item" href="pipeline.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" href="conteudo.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Conteúdo
+    </a>
+    <a class="nav-item" href="brandbook.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Brandbook
+    </a>
+    <a class="nav-item" href="agentes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+      Agentes
+    </a>
+    <a class="nav-item" href="sinais.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sinais
+    </a>
+    <a class="nav-item" href="instagram.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a>
+    <div class="sidebar-group-label">Gestão</div>
+    <a class="nav-item" href="carteira.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Carteira
+    </a>
+    <a class="nav-item" href="calendar.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </a>
+    <a class="nav-item" href="reunioes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reuniões
+    </a>
+    <a class="nav-item active" href="configuracoes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">ES</div>
+    <div>
+      <div class="sidebar-user">Erick Sena</div>
+      <div class="sidebar-user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Topbar -->
+<header class="topbar">
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Configurações</span></span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar…
+    <kbd><span>⌘</span>K</kbd>
+  </button>
+  <input class="topbar-search" type="search" placeholder="Buscar em configurações…" />
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Configurações</h1>
+      <div class="subtitle">Usuários, fontes de dados, integrações, permissões e preferências do sistema.</div>
+    </div>
+  </div>
+
+  <!-- Settings layout -->
+  <div class="settings-layout">
+
+    <!-- Settings sidebar -->
+    <aside class="settings-sidebar">
+      <nav class="settings-nav">
+        <a class="settings-nav-item" data-section="geral" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          Geral
+        </a>
+        <a class="settings-nav-item active" data-section="usuarios" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Usuários
+        </a>
+        <a class="settings-nav-item" data-section="fontes" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+          Fontes de Dados
+        </a>
+        <a class="settings-nav-item" data-section="integracoes" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Integrações
+        </a>
+        <a class="settings-nav-item" data-section="permissoes" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Permissões
+        </a>
+        <a class="settings-nav-item" data-section="preferencias" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          Preferências
+        </a>
+        <div class="settings-divider"></div>
+        <a class="settings-nav-item" data-section="faturamento" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Faturamento
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Settings content -->
+    <div class="settings-content">
+
+      <!-- === Geral === -->
+      <div class="settings-section" id="section-geral">
+        <div class="settings-section-title">Geral</div>
+        <div class="settings-section-desc">Configurações básicas do sistema.</div>
+        <div class="pref-group">
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Nome do workspace</div>
+              <div class="pref-desc">Como seu espaço é identificado no Hub Operacional</div>
+            </div>
+            <div class="pref-control">
+              <input class="table-search" type="text" value="Hub Operacional" style="width:200px" />
+            </div>
+          </div>
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Idioma do sistema</div>
+              <div class="pref-desc">Idioma padrão para todos os usuários</div>
+            </div>
+            <div class="pref-control">
+              <select class="pref-select">
+                <option>Português (Brasil)</option>
+                <option>English (US)</option>
+                <option>Español</option>
+              </select>
+            </div>
+          </div>
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Fuso horário</div>
+              <div class="pref-desc">Usado para relatórios e registros de atividade</div>
+            </div>
+            <div class="pref-control">
+              <select class="pref-select">
+                <option>America/Sao_Paulo (GMT-3)</option>
+                <option>America/New_York (GMT-5)</option>
+                <option>Europe/Lisbon (GMT+1)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === Usuários === -->
+      <div class="settings-section active" id="section-usuarios">
+        <div class="settings-section-title">Usuários</div>
+        <div class="settings-section-desc">Gerencie quem tem acesso ao Hub Operacional.</div>
+
+        <div class="table-actions">
+          <input class="table-search" type="search" placeholder="Buscar usuários…" />
+        </div>
+
+        <div class="user-table-wrap">
+          <table>
+            <thead>
+              <tr><th>Nome</th><th>Email</th><th>Função</th><th>Status</th><th>Último acesso</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="user-cell"><div class="user-avatar">ES</div><div><div class="user-name">Erick Sena</div><div class="user-email">erick@huboperacional.com</div></div></div></td>
+                <td>erick@huboperacional.com</td>
+                <td><span class="role-pill admin">Admin</span></td>
+                <td><span class="user-status"><span class="user-status-dot active"></span> Ativo</span></td>
+                <td class="last-access">Agora mesmo</td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="user-avatar">CM</div><div><div class="user-name">Camila Martins</div><div class="user-email">camila@huboperacional.com</div></div></div></td>
+                <td>camila@huboperacional.com</td>
+                <td><span class="role-pill editor">Editor</span></td>
+                <td><span class="user-status"><span class="user-status-dot active"></span> Ativo</span></td>
+                <td class="last-access">2 horas atrás</td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="user-avatar">RT</div><div><div class="user-name">Rafael Torres</div><div class="user-email">rafael@huboperacional.com</div></div></div></td>
+                <td>rafael@huboperacional.com</td>
+                <td><span class="role-pill editor">Editor</span></td>
+                <td><span class="user-status"><span class="user-status-dot active"></span> Ativo</span></td>
+                <td class="last-access">1 dia atrás</td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="user-avatar">JL</div><div><div class="user-name">Julia Lemos</div><div class="user-email">julia@huboperacional.com</div></div></div></td>
+                <td>julia@huboperacional.com</td>
+                <td><span class="role-pill viewer">Visualizador</span></td>
+                <td><span class="user-status"><span class="user-status-dot inactive"></span> Inativo</span></td>
+                <td class="last-access">14 dias atrás</td>
+              </tr>
+              <tr>
+                <td><div class="user-cell"><div class="user-avatar">PN</div><div><div class="user-name">Paulo Nascimento</div><div class="user-email">paulo@huboperacional.com</div></div></div></td>
+                <td>paulo@huboperacional.com</td>
+                <td><span class="role-pill admin">Admin</span></td>
+                <td><span class="user-status"><span class="user-status-dot active"></span> Ativo</span></td>
+                <td class="last-access">3 dias atrás</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button class="add-user-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar Usuário
+        </button>
+      </div>
+
+      <!-- === Fontes de Dados === -->
+      <div class="settings-section" id="section-fontes">
+        <div class="settings-section-title">Fontes de Dados</div>
+        <div class="settings-section-desc">Conecte e gerencie as fontes de dados do seu hub.</div>
+
+        <div class="sources-grid">
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">Instagram</span>
+              <span class="source-status connected"><span class="source-status-dot connected"></span> Conectado</span>
+            </div>
+            <div class="source-card-desc">Métricas orgânicas, stories, Reels e engajamento do perfil @huboperacional.</div>
+            <span class="source-card-action">Configurar →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">YouTube</span>
+              <span class="source-status connected"><span class="source-status-dot connected"></span> Conectado</span>
+            </div>
+            <div class="source-card-desc">Visualizações, inscrições e desempenho de vídeos do canal Hub Operacional.</div>
+            <span class="source-card-action">Configurar →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">Google Analytics</span>
+              <span class="source-status configure"><span class="source-status-dot configure"></span> Configurar</span>
+            </div>
+            <div class="source-card-desc">Tráfego do site, conversões e comportamento de visitantes.</div>
+            <span class="source-card-action">Conectar →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">CRM</span>
+              <span class="source-status connected"><span class="source-status-dot connected"></span> Conectado</span>
+            </div>
+            <div class="source-card-desc">Pipeline de vendas, deals, contatos e atividades comerciais.</div>
+            <span class="source-card-action">Configurar →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">WhatsApp</span>
+              <span class="source-status pending"><span class="source-status-dot pending"></span> Pendente</span>
+            </div>
+            <div class="source-card-desc">Conversas, mensagens e métricas de atendimento via WhatsApp Business.</div>
+            <span class="source-card-action">Configurar →</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- === Integrações === -->
+      <div class="settings-section" id="section-integracoes">
+        <div class="settings-section-title">Integrações</div>
+        <div class="settings-section-desc">Conecte o Hub Operacional com outras ferramentas.</div>
+
+        <div class="integrations-grid">
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">Zapier</span>
+              <span class="source-status connected"><span class="source-status-dot connected"></span> Ativo</span>
+            </div>
+            <div class="source-card-desc">Automações entre o Hub e +5000 apps. 12 zaps ativos.</div>
+            <span class="source-card-action">Gerenciar →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">Webhooks</span>
+              <span class="source-status connected"><span class="source-status-dot connected"></span> Ativo</span>
+            </div>
+            <div class="source-card-desc">Webhooks de entrada e saída para integrações customizadas.</div>
+            <span class="source-card-action">Gerenciar →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">API</span>
+              <span class="source-status connected"><span class="source-status-dot connected"></span> Ativo</span>
+            </div>
+            <div class="source-card-desc">API RESTful para acesso programático a todos os dados do hub.</div>
+            <span class="source-card-action">Ver documentação →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">Slack</span>
+              <span class="source-status pending"><span class="source-status-dot pending"></span> Pendente</span>
+            </div>
+            <div class="source-card-desc">Notificações e alertas diretamente no seu workspace do Slack.</div>
+            <span class="source-card-action">Conectar →</span>
+          </div>
+          <div class="source-card">
+            <div class="source-card-header">
+              <span class="source-card-name">Notion</span>
+              <span class="source-status pending"><span class="source-status-dot pending"></span> Pendente</span>
+            </div>
+            <div class="source-card-desc">Sincronize dados do Hub com bancos e documentos do Notion.</div>
+            <span class="source-card-action">Conectar →</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- === Permissões === -->
+      <div class="settings-section" id="section-permissoes">
+        <div class="settings-section-title">Permissões</div>
+        <div class="settings-section-desc">Gerencie os níveis de acesso e permissões do sistema.</div>
+
+        <div class="roles-grid">
+          <div class="role-card">
+            <div class="role-card-name">Admin</div>
+            <div class="role-card-desc">Acesso total ao sistema. Pode gerenciar usuários, configurações e todos os dados.</div>
+            <div class="role-perms">
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Gerenciar usuários</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Configurar fontes</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Gerenciar integrações</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Acessar todos os módulos</span>
+            </div>
+          </div>
+          <div class="role-card">
+            <div class="role-card-name">Editor</div>
+            <div class="role-card-desc">Pode criar e editar conteúdo, gerenciar pipelines e acessar relatórios.</div>
+            <div class="role-perms">
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Criar e editar conteúdo</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Gerenciar pipelines</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Acessar relatórios</span>
+              <span class="role-perm"><svg class="cross" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Gerenciar usuários</span>
+            </div>
+          </div>
+          <div class="role-card">
+            <div class="role-card-name">Visualizador</div>
+            <div class="role-card-desc">Acesso somente leitura. Pode visualizar dashboards e relatórios.</div>
+            <div class="role-perms">
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Visualizar dashboards</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Visualizar relatórios</span>
+              <span class="role-perm"><svg class="cross" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Editar conteúdo</span>
+              <span class="role-perm"><svg class="cross" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Gerenciar configurações</span>
+            </div>
+          </div>
+          <div class="role-card">
+            <div class="role-card-name">Agente</div>
+            <div class="role-card-desc">Perfil automatizado para agentes de IA. Acesso estruturado via API.</div>
+            <div class="role-perms">
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Ler dados públicos</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Executar automações</span>
+              <span class="role-perm"><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Acessar fila de tarefas</span>
+              <span class="role-perm"><svg class="cross" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Modificar configurações</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === Preferências === -->
+      <div class="settings-section" id="section-preferencias">
+        <div class="settings-section-title">Preferências</div>
+        <div class="settings-section-desc">Personalize sua experiência no Hub Operacional.</div>
+
+        <div class="pref-group">
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Tema escuro</div>
+              <div class="pref-desc">Alternar entre tema claro e escuro</div>
+            </div>
+            <div class="pref-control">
+              <label class="toggle">
+                <input type="checkbox" id="themeToggle" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Idioma</div>
+              <div class="pref-desc">Idioma da interface</div>
+            </div>
+            <div class="pref-control">
+              <select class="pref-select">
+                <option>Português (Brasil)</option>
+                <option>English (US)</option>
+              </select>
+            </div>
+          </div>
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Fuso horário</div>
+              <div class="pref-desc">Fuso usado para exibição de datas e horários</div>
+            </div>
+            <div class="pref-control">
+              <select class="pref-select">
+                <option>America/Sao_Paulo (GMT-3)</option>
+                <option>America/New_York (GMT-5)</option>
+              </select>
+            </div>
+          </div>
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Notificações por email</div>
+              <div class="pref-desc">Receber resumos semanais e alertas importantes</div>
+            </div>
+            <div class="pref-control">
+              <label class="toggle">
+                <input type="checkbox" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Notificações push</div>
+              <div class="pref-desc">Alertas em tempo real no navegador</div>
+            </div>
+            <div class="pref-control">
+              <label class="toggle">
+                <input type="checkbox" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="pref-row">
+            <div>
+              <div class="pref-label">Notificações no Slack</div>
+              <div class="pref-desc">Enviar alertas para o workspace do Slack</div>
+            </div>
+            <div class="pref-control">
+              <label class="toggle">
+                <input type="checkbox" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === Faturamento === -->
+      <div class="settings-section" id="section-faturamento">
+        <div class="settings-section-title">Faturamento</div>
+        <div class="settings-section-desc">Informações de cobrança e plano contratado.</div>
+        <div class="billing-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <h3>Módulo de Faturamento</h3>
+          <p>Gerencie seu plano, métodos de pagamento e histórico de faturas.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function() {
+  var navItems = document.querySelectorAll('.settings-nav-item');
+  var sections = document.querySelectorAll('.settings-section');
+
+  navItems.forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      var sectionName = this.getAttribute('data-section');
+      if (!sectionName) return;
+
+      navItems.forEach(function(n) { n.classList.remove('active'); });
+      this.classList.add('active');
+
+      sections.forEach(function(s) { s.classList.remove('active'); });
+      var target = document.getElementById('section-' + sectionName);
+      if (target) target.classList.add('active');
+    });
+  });
+})();
+</script>
+
+<!-- Palette overlay -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+  <div class="palette" id="paletteModal">
+    <div class="palette-search-wrap">
+      <span class="palette-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </div>
+    <div class="palette-results" id="paletteResults">
+      <div class="palette-empty" id="paletteEmpty">
+        <div class="palette-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="palette-empty-title">Nenhum resultado encontrado</div>
+        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-spacer"></span>
+      <span class="palette-footer-esc">Esc para fechar</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var isOpen = false;
+  var activeIndex = -1;
+  var items = [];
+  var overlay = document.getElementById('paletteOverlay');
+  var input = document.getElementById('paletteInput');
+  var results = document.getElementById('paletteResults');
+  var empty = document.getElementById('paletteEmpty');
+  function updateItems() {
+    items = Array.from(results.querySelectorAll('.palette-item'));
+  }
+  window.togglePalette = function() {
+    isOpen = !isOpen;
+    overlay.classList.toggle('open', isOpen);
+    if (isOpen) {
+      input.value = '';
+      input.focus();
+      updateItems();
+      activeIndex = -1;
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  };
+  window.closePaletteOutside = function(e) {
+    if (e.target === overlay) {
+      isOpen = false;
+      overlay.classList.remove('open');
+    }
+  };
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      isOpen = false;
+      overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.min(activeIndex + 1, visibleItems.length - 1);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (activeIndex >= 0 && activeIndex < visibleItems.length) {
+        visibleItems[activeIndex].click();
+      }
+    }
+  });
+  function highlightItem(visibleItems) {
+    visibleItems.forEach(function(i) { i.classList.remove('active'); });
+    if (visibleItems[activeIndex]) {
+      visibleItems[activeIndex].classList.add('active');
+      visibleItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      togglePalette();
+    }
+  });
+  window.navigateTo = function(url) {
+    window.location.href = url;
+  };
+})();
+</script>
+
+<!-- Script de integração iframe e banco de dados unificado -->
+<script>
+(function() {
+  // 1. Aplicar classe de modo iframe se estiver rodando em frame
+  if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+    
+    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href')) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          const fileName = href.split('?')[0].split('#')[0].split('/').pop();
+          if (fileName.endsWith('.html') && fileName !== 'contact.html') {
+            const tabName = fileName.replace('.html', '');
+            if (window.parent && typeof window.parent.switchTab === 'function') {
+              e.preventDefault();
+              window.parent.switchTab(tabName);
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

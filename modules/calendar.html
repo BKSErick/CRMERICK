@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calendário — Hub Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../hub.css">
+<style>
+:root {
+  --duration-slow: 280ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-button: 9px;
+}
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.cal-month {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.cal-nav {
+  display: flex;
+  gap: 8px;
+}
+.cal-nav-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--color-cloud);
+  border-radius: 50%;
+  background: var(--color-pure-white);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  color: var(--color-charcoal);
+  transition: border-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+.cal-nav-btn:hover { border-color: var(--color-brand-violet); color: var(--color-brand-violet); }
+.cal-today-btn {
+  padding: 7px 16px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-button);
+  background: var(--color-pure-white);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  color: var(--color-charcoal);
+  transition: border-color var(--duration-fast) ease;
+}
+.cal-today-btn:hover { border-color: var(--color-brand-violet); }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--color-cloud);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.cal-day-header {
+  background: var(--color-paper);
+  padding: 10px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-slate);
+  font-family: var(--font-inter);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cal-day {
+  background: var(--color-pure-white);
+  min-height: 120px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background var(--duration-fast) ease;
+  position: relative;
+}
+.cal-day:hover { background: var(--color-paper); }
+.cal-day.other-month { background: var(--color-paper); }
+.cal-day.other-month:hover { background: var(--color-linen); }
+.cal-day.today { background: rgba(123,104,238,0.04); }
+.cal-day.today .cal-day-num {
+  background: var(--color-brand-violet);
+  color: #fff;
+  border-radius: 50%;
+  width: 26px; height: 26px;
+  display: grid;
+  place-items: center;
+}
+.cal-day-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-charcoal);
+  margin-bottom: 4px;
+}
+.cal-deal {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  margin-bottom: 2px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) ease;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cal-deal:hover { opacity: 0.8; }
+.cal-deal .cal-deal-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cal-deal .cal-deal-value {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.cal-deal-more {
+  font-size: 10px;
+  color: var(--color-brand-violet);
+  font-family: var(--font-inter);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.cal-summary {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.cal-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  font-size: 13px;
+  font-family: var(--font-inter);
+}
+.cal-stat-value {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-midnight-ink);
+  font-family: var(--font-plus-jakarta);
+}
+.cal-stat-label { color: var(--color-slate); }
+@media (max-width: 768px) {
+  .cal-day { min-height: 80px; }
+}
+/* Palette — Busca Global */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9,12,29,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette {
+  width: 680px;
+  max-width: calc(100vw - 48px);
+  max-height: 70vh;
+  background: var(--color-pure-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-overlay.open .palette {
+  transform: translateY(0) scale(1);
+}
+.palette-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--color-cloud);
+  flex-shrink: 0;
+}
+.palette-search-icon {
+  flex-shrink: 0;
+  color: var(--color-slate);
+  display: grid;
+  place-items: center;
+}
+.palette-search-icon svg { width: 18px; height: 18px; }
+.palette-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: 500 17px/1.4 var(--font-plus-jakarta);
+  color: var(--color-midnight-ink);
+  outline: none;
+  letter-spacing: -0.01em;
+}
+.palette-input::placeholder {
+  color: var(--color-slate);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.palette-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.palette-shortcuts kbd {
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 0.02em;
+}
+.palette-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-results::-webkit-scrollbar { width: 4px; }
+.palette-results::-webkit-scrollbar-track { background: transparent; }
+.palette-results::-webkit-scrollbar-thumb { background: var(--color-cloud); border-radius: 999px; }
+.palette-group { padding: 6px 12px; }
+.palette-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 6px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-slate);
+  font-weight: 500;
+}
+.palette-group-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-linen);
+}
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.palette-item:hover { background: var(--color-paper); }
+.palette-item.active {
+  background: rgba(123,104,238,0.08);
+}
+.palette-item-type {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.palette-item-type svg { width: 13px; height: 13px; }
+.palette-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.palette-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-title mark {
+  background: rgba(123,104,238,0.15);
+  color: var(--color-midnight-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-context {
+  font-size: 11px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-item-context mark {
+  background: rgba(123,104,238,0.12);
+  color: var(--color-charcoal);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.palette-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.palette-tag {
+  font-size: 9px;
+  font-family: var(--font-inter);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.palette-tag.page { background: rgba(100,100,100,0.08); color: var(--color-slate); }
+.palette-tag.client { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.deal { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.meeting { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.decision { background: rgba(237,108,2,0.08); color: var(--color-warning); }
+.palette-tag.content { background: rgba(123,104,238,0.08); color: var(--color-brand-violet); }
+.palette-tag.asset { background: rgba(100,100,100,0.08); color: var(--color-charcoal); }
+.palette-tag.agent { background: rgba(0,145,255,0.08); color: var(--color-signal-blue); }
+.palette-tag.command { background: rgba(46,125,50,0.08); color: var(--color-success); }
+.palette-tag.hot { background: rgba(211,47,47,0.1); color: var(--color-danger); }
+.palette-item-action {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-fast) ease;
+}
+.palette-item:hover .palette-item-action { opacity: 1; }
+.palette-item-status {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-item-status.green { background: var(--color-success); }
+.palette-item-status.orange { background: var(--color-warning); }
+.palette-item-status.violet { background: var(--color-brand-violet); }
+.palette-item-status.blue { background: var(--color-signal-blue); }
+.palette-item-status.slate { background: var(--color-slate); }
+.palette-item-status.red { background: var(--color-danger); }
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--color-cloud);
+  background: var(--color-paper);
+  flex-shrink: 0;
+}
+.palette-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-footer-item kbd {
+  font: 500 9px/1 var(--font-mono);
+  color: var(--color-charcoal);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.palette-footer-spacer { flex: 1; }
+.palette-footer-esc {
+  font-size: 10px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+}
+.palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.palette-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: var(--color-paper);
+  display: grid; place-items: center;
+  color: var(--color-slate);
+  margin-bottom: 14px;
+}
+.palette-empty-icon svg { width: 20px; height: 20px; }
+.palette-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-midnight-ink);
+  margin-bottom: 4px;
+}
+.palette-empty-desc {
+  font-size: 13px;
+  font-family: var(--font-inter);
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+.topbar-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) ease, background var(--duration-fast) ease;
+  font: 500 12px/1 var(--font-inter);
+  color: var(--color-slate);
+  white-space: nowrap;
+}
+.topbar-search-btn:hover { border-color: var(--color-brand-violet); background: var(--color-pure-white); color: var(--color-charcoal); }
+.topbar-search-btn svg { flex-shrink: 0; }
+.topbar-search-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 12px;
+  font: 500 10px/1 var(--font-mono);
+  color: var(--color-slate);
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: 4px;
+  padding: 2px 5px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .palette { width: calc(100vw - 24px); max-height: 80vh; }
+  .palette-search-wrap { padding: 14px 16px; }
+  .palette-input { font-size: 15px; }
+  .palette-overlay { padding-top: 8vh; }
+  .topbar-search-btn kbd { display: none; }
+  .topbar-search-btn { padding: 6px 10px; }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">H</div>
+    <div>
+      <div class="sidebar-brand-text">Hub</div>
+      <div class="sidebar-brand-sub">Operacional</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-group-label">Navegação</div>
+    <a class="nav-item" href="home.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-9"/></svg>
+      Início
+    </a>
+    <a class="nav-item" href="north-star.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9 9 9 12 2"/></svg>
+      North Star
+    </a>
+    <a class="nav-item" href="comando.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Sala de Comando
+    </a>
+    <a class="nav-item" href="lab.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Lab
+    </a>
+    <a class="nav-item" href="brain.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z"/><path d="M9 12h6"/><path d="M9 8h6"/><path d="M9 16h4"/></svg>
+      Brain
+    </a>
+    <a class="nav-item" href="funil.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      Funis
+    </a>
+    <a class="nav-item" href="pipeline.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Pipeline
+    </a>
+    <a class="nav-item" href="conteudo.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Conteúdo
+    </a>
+    <a class="nav-item" href="brandbook.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Brandbook
+    </a>
+    <a class="nav-item" href="agentes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="5" r="1" fill="currentColor"/></svg>
+      Agentes
+    </a>
+    <a class="nav-item" href="sinais.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sinais
+    </a>
+    <a class="nav-item" href="instagram.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a>
+    <div class="sidebar-group-label">Gestão</div>
+    <a class="nav-item" href="carteira.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Carteira
+    </a>
+    <a class="nav-item active" href="calendar.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </a>
+    <a class="nav-item" href="reunioes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Reuniões
+    </a>
+    <a class="nav-item" href="configuracoes.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-avatar">ES</div>
+    <div>
+      <div class="sidebar-user">Erick Sena</div>
+      <div class="sidebar-user-role">Admin</div>
+    </div>
+  </div>
+</aside>
+
+<header class="topbar">
+  <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="topbar-breadcrumb">Hub Operacional / <span>Calendário</span></span>
+  <div class="topbar-spacer"></div>
+  <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Buscar…
+    <kbd><span>⌘</span>K</kbd>
+  </button>
+  <button class="topbar-btn" onclick="goMonth(-1)" title="Mês anterior">←</button>
+  <button class="topbar-btn primary" onclick="goToday()">Hoje</button>
+  <button class="topbar-btn" onclick="goMonth(1)" title="Próximo mês">→</button>
+</header>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 id="calMonthLabel">Julho 2026</h1>
+    </div>
+  </div>
+
+  <div class="cal-grid" id="calGrid"></div>
+
+  <div class="cal-summary" id="calSummary"></div>
+</main>
+
+<script>
+var stages = (window.parent && window.parent.stages) || [
+  { id: 'prospect', label: 'Prospect', color: '#0091ff' },
+  { id: 'qualified', label: 'Qualified', color: '#7b68ee' },
+  { id: 'proposal', label: 'Proposal', color: '#ed6c02' },
+  { id: 'negotiation', label: 'Negotiation', color: '#d32f2f' },
+  { id: 'won', label: 'Won', color: '#2e7d32' },
+  { id: 'lost', label: 'Lost', color: '#646464' }
+];
+
+var deals = (window.parent && window.parent.deals) || [
+  { id: 1, name: 'TechCorp Solutions', company: 'TechCorp', value: 180000, prob: 80, stage: 'negotiation', owner: 'JM', close: '15/08/2026' },
+  { id: 2, name: 'Inovação Sistemas', company: 'Inovação Ltda', value: 95000, prob: 60, stage: 'proposal', owner: 'CS', close: '22/08/2026' },
+  { id: 3, name: 'DataPrime Analytics', company: 'DataPrime', value: 82000, prob: 40, stage: 'qualified', owner: 'PA', close: '10/09/2026' },
+  { id: 4, name: 'CloudNine Hosting', company: 'CloudNine', value: 76000, prob: 55, stage: 'proposal', owner: 'AL', close: '05/09/2026' },
+  { id: 5, name: 'Nexa Digital', company: 'Nexa Group', value: 64000, prob: 75, stage: 'negotiation', owner: 'RT', close: '28/07/2026' },
+  { id: 6, name: 'Atlas Solutions', company: 'Atlas Corp', value: 120000, prob: 25, stage: 'prospect', owner: 'JM', close: '20/10/2026' },
+  { id: 7, name: 'PrimeWave Tech', company: 'PrimeWave', value: 54000, prob: 35, stage: 'prospect', owner: 'PA', close: '15/11/2026' },
+  { id: 8, name: 'Stellar Systems', company: 'Stellar Inc', value: 156000, prob: 90, stage: 'negotiation', owner: 'CS', close: '01/08/2026' },
+  { id: 9, name: 'Quantum Finance', company: 'Quantum', value: 42000, prob: 45, stage: 'qualified', owner: 'AL', close: '12/09/2026' },
+  { id: 10, name: 'EcoPower Energy', company: 'EcoPower', value: 88000, prob: 30, stage: 'prospect', owner: 'RT', close: '30/11/2026' },
+  { id: 11, name: 'NovaTech BR', company: 'NovaTech', value: 73000, prob: 65, stage: 'proposal', owner: 'JM', close: '08/09/2026' },
+  { id: 12, name: 'Fusion Analytics', company: 'Fusion', value: 210000, prob: 85, stage: 'negotiation', owner: 'PA', close: '10/08/2026' }
+];
+
+var MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+var DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+var currentYear, currentMonth;
+
+function init() {
+  var now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+  render();
+}
+
+function goToday() {
+  var now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+  render();
+}
+
+function goMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  else if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  render();
+}
+
+function parseDate(str) {
+  var parts = (str || '').split('/');
+  if (parts.length !== 3) return null;
+  return new Date(parseInt(parts[2],10), parseInt(parts[1],10) - 1, parseInt(parts[0],10));
+}
+
+function getDealsForDate(date) {
+  var m = date.getMonth(), d = date.getDate(), y = date.getFullYear();
+  return deals.filter(function(deal) {
+    var dd = parseDate(deal.close);
+    if (!dd) return false;
+    return dd.getDate() === d && dd.getMonth() === m && dd.getFullYear() === y;
+  });
+}
+
+function formatCurrency(v) {
+  if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
+  if (v >= 1000) return '$' + (v / 1000).toFixed(0) + 'K';
+  return '$' + v;
+}
+
+function getStageColor(stageId) {
+  var s = stages.find(function(st) { return st.id === stageId; });
+  return s ? s.color : '#646464';
+}
+
+function getStageBg(stageId) {
+  var map = { prospect: 'rgba(0,145,255,0.12)', qualified: 'rgba(123,104,238,0.12)', proposal: 'rgba(237,108,2,0.12)', negotiation: 'rgba(211,47,47,0.12)', won: 'rgba(46,125,50,0.12)', lost: 'rgba(100,100,100,0.12)' };
+  return map[stageId] || 'rgba(100,100,100,0.12)';
+}
+
+function render() {
+  document.getElementById('calMonthLabel').textContent = MONTHS[currentMonth] + ' ' + currentYear;
+
+  var grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  DAYS.forEach(function(d) {
+    var h = document.createElement('div');
+    h.className = 'cal-day-header';
+    h.textContent = d;
+    grid.appendChild(h);
+  });
+
+  var firstDay = new Date(currentYear, currentMonth, 1);
+  var lastDay = new Date(currentYear, currentMonth + 1, 0);
+  var startOffset = firstDay.getDay();
+  var daysInMonth = lastDay.getDate();
+
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + today.getMonth() + '-' + today.getDate();
+
+  var prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
+  for (var i = startOffset - 1; i >= 0; i--) {
+    var dayNum = prevMonthLastDay - i;
+    var cell = document.createElement('div');
+    cell.className = 'cal-day other-month';
+    cell.innerHTML = '<div class="cal-day-num">' + dayNum + '</div>';
+    grid.appendChild(cell);
+  }
+
+  for (var d = 1; d <= daysInMonth; d++) {
+    var cell = document.createElement('div');
+    cell.className = 'cal-day';
+    var dateObj = new Date(currentYear, currentMonth, d);
+    var isToday = dateObj.getFullYear() === today.getFullYear() && dateObj.getMonth() === today.getMonth() && dateObj.getDate() === today.getDate();
+    if (isToday) cell.classList.add('today');
+
+    cell.innerHTML = '<div class="cal-day-num">' + d + '</div>';
+
+    var dayDeals = getDealsForDate(dateObj);
+    if (dayDeals.length > 0) {
+      var visible = dayDeals.slice(0, 3);
+      var extra = dayDeals.length - 3;
+      visible.forEach(function(deal) {
+        var dealEl = document.createElement('div');
+        dealEl.className = 'cal-deal';
+        dealEl.style.background = getStageBg(deal.stage);
+        dealEl.innerHTML = '<span class="cal-deal-dot" style="background:' + getStageColor(deal.stage) + '"></span>' +
+          '<span>' + deal.name + '</span>' +
+          '<span class="cal-deal-value">' + formatCurrency(deal.value) + '</span>';
+        dealEl.addEventListener('click', function(e) {
+          e.stopPropagation();
+          window.location = 'pipeline.html?deal=' + deal.id;
+        });
+        cell.appendChild(dealEl);
+      });
+      if (extra > 0) {
+        var moreEl = document.createElement('div');
+        moreEl.className = 'cal-deal-more';
+        moreEl.textContent = '+' + extra + ' mais';
+        moreEl.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var allDeals = getDealsForDate(dateObj);
+          var msg = 'Deals em ' + d + ' de ' + MONTHS[currentMonth] + ':\n';
+          allDeals.forEach(function(deal) {
+            msg += '\n• ' + deal.name + ' — ' + formatCurrency(deal.value) + ' (' + (stages.find(function(s) { return s.id === deal.stage; }) || {}).label + ')';
+          });
+          alert(msg);
+        });
+        cell.appendChild(moreEl);
+      }
+    }
+
+    grid.appendChild(cell);
+  }
+
+  var totalCells = startOffset + daysInMonth;
+  var remainder = totalCells % 7;
+  if (remainder > 0) {
+    for (var i = 1; i <= 7 - remainder; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'cal-day other-month';
+      cell.innerHTML = '<div class="cal-day-num">' + i + '</div>';
+      grid.appendChild(cell);
+    }
+  }
+
+  renderSummary();
+}
+
+function renderSummary() {
+  var summary = document.getElementById('calSummary');
+  var total = 0;
+  var closingThisMonth = 0;
+  var closingValue = 0;
+  deals.forEach(function(d) {
+    var dd = parseDate(d.close);
+    if (!dd) return;
+    var v = d.value || 0;
+    total += v;
+    if (dd.getMonth() === currentMonth && dd.getFullYear() === currentYear) {
+      closingThisMonth++;
+      closingValue += v;
+    }
+  });
+  summary.innerHTML =
+    '<div class="cal-stat"><div><div class="cal-stat-value">' + formatCurrency(total) + '</div><div class="cal-stat-label">Pipeline total</div></div></div>' +
+    '<div class="cal-stat"><div><div class="cal-stat-value">' + closingThisMonth + '</div><div class="cal-stat-label">Fechamentos este mês</div></div></div>' +
+    '<div class="cal-stat"><div><div class="cal-stat-value">' + formatCurrency(closingValue) + '</div><div class="cal-stat-label">Valor em fechamento</div></div></div>';
+}
+
+document.addEventListener('click', function(e) {
+  var s = document.getElementById('sidebar');
+  if (s && s.classList.contains('open') && !s.contains(e.target) && !e.target.closest('.mobile-menu-btn')) {
+    s.classList.remove('open');
+  }
+});
+
+init();
+</script>
+<!-- Palette overlay -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
+  <div class="palette" id="paletteModal">
+    <div class="palette-search-wrap">
+      <span class="palette-search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="palette-input" id="paletteInput" type="text" placeholder="Buscar páginas, clientes, decisões, reuniões, ativos ou comandos…" autocomplete="off" spellcheck="false" />
+      <span class="palette-shortcuts"><kbd>⌘</kbd><kbd>K</kbd></span>
+    </div>
+    <div class="palette-results" id="paletteResults">
+      <div class="palette-empty" id="paletteEmpty">
+        <div class="palette-empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="palette-empty-title">Nenhum resultado encontrado</div>
+        <div class="palette-empty-desc">Tente buscar por páginas, clientes, deals, reuniões, decisões, conteúdos, ativos, agentes ou comandos.</div>
+      </div>
+    </div>
+    <div class="palette-footer">
+      <span class="palette-footer-item"><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+      <span class="palette-footer-item"><kbd>↵</kbd> Abrir</span>
+      <span class="palette-footer-item"><kbd>⌘</kbd> + <kbd>K</kbd> Alternar</span>
+      <span class="palette-footer-spacer"></span>
+      <span class="palette-footer-esc">Esc para fechar</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var isOpen = false;
+  var activeIndex = -1;
+  var items = [];
+  var overlay = document.getElementById('paletteOverlay');
+  var input = document.getElementById('paletteInput');
+  var results = document.getElementById('paletteResults');
+  var empty = document.getElementById('paletteEmpty');
+  function updateItems() {
+    items = Array.from(results.querySelectorAll('.palette-item'));
+  }
+  window.togglePalette = function() {
+    isOpen = !isOpen;
+    overlay.classList.toggle('open', isOpen);
+    if (isOpen) {
+      input.value = '';
+      input.focus();
+      updateItems();
+      activeIndex = -1;
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  };
+  window.closePaletteOutside = function(e) {
+    if (e.target === overlay) {
+      isOpen = false;
+      overlay.classList.remove('open');
+    }
+  };
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      isOpen = false;
+      overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.min(activeIndex + 1, visibleItems.length - 1);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (visibleItems.length === 0) return;
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(visibleItems);
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var visibleItems = items.filter(function(i) { return i.style.display !== 'none'; });
+      if (activeIndex >= 0 && activeIndex < visibleItems.length) {
+        visibleItems[activeIndex].click();
+      }
+    }
+  });
+  function highlightItem(visibleItems) {
+    visibleItems.forEach(function(i) { i.classList.remove('active'); });
+    if (visibleItems[activeIndex]) {
+      visibleItems[activeIndex].classList.add('active');
+      visibleItems[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      togglePalette();
+    }
+  });
+  window.navigateTo = function(url) {
+    window.location.href = url;
+  };
+})();
+</script>
+
+<!-- Script de integração iframe e banco de dados unificado -->
+<script>
+(function() {
+  // 1. Aplicar classe de modo iframe se estiver rodando em frame
+  if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+    
+    // Interceptar cliques em links para navegar na janela pai (refinado para parâmetros e âncoras)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href')) {
+        const href = link.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          const fileName = href.split('?')[0].split('#')[0].split('/').pop();
+          if (fileName.endsWith('.html') && fileName !== 'contact.html') {
+            const tabName = fileName.replace('.html', '');
+            if (window.parent && typeof window.parent.switchTab === 'function') {
+              e.preventDefault();
+              window.parent.switchTab(tabName);
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
