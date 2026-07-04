@@ -577,6 +577,7 @@
   visibility: hidden;
   opacity: 0;
   transition: opacity var(--duration-normal) var(--ease-out), visibility 0s var(--duration-normal);
+  overflow-y: auto;
 }
 .deal-overlay.open {
   visibility: visible;
@@ -2425,6 +2426,10 @@
           <input class="deal-title" id="ddTitle" value="Carregando…" spellcheck="false" />
         </div>
         <div class="deal-header-actions">
+          <button class="deal-header-btn" onclick="deleteCurrentDeal()" style="color: var(--color-danger); border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.04); font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            Excluir
+          </button>
           <button class="deal-header-btn" onclick="shareDeal()" title="Compartilhar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
           <button class="deal-header-btn" onclick="dealMoreOptions()" title="Mais opções">⋯</button>
           <button class="deal-header-btn" onclick="closeDealDetail()" title="Fechar">✕</button>
@@ -2772,20 +2777,29 @@ var ownerMeta = (window.parent && window.parent.ownerMeta) || {
   MR: { initials: 'MR', cls: 'av-mira', name: 'Mira R.' }
 };
 
-var deals = (window.parent && window.parent.deals) || [
-  { id: 1, name: 'TechCorp Solutions', company: 'TechCorp', value: 180000, prob: 80, stage: 'negotiation', owner: 'JM', ownerName: 'João M.', close: '15/08/2026', tag: 'Enterprise', tagType: 'feature', ticketId: 'NOR-301', points: 5, progress: 0, assignee: 'DP' },
-  { id: 2, name: 'Inovação Sistemas', company: 'Inovação Ltda', value: 95000, prob: 60, stage: 'proposal', owner: 'CS', ownerName: 'Carla S.', close: '22/08/2026', tag: 'SMB', tagType: 'design', ticketId: 'NOR-302', points: 3, progress: 0, assignee: 'MR' },
-  { id: 3, name: 'DataPrime Analytics', company: 'DataPrime', value: 82000, prob: 40, stage: 'qualified', owner: 'PA', ownerName: 'Pedro A.', close: '10/09/2026', tag: 'Enterprise', tagType: 'bug', ticketId: 'NOR-303', points: 2, progress: 80, assignee: 'CA' },
-  { id: 4, name: 'CloudNine Hosting', company: 'CloudNine', value: 76000, prob: 55, stage: 'proposal', owner: 'AL', ownerName: 'Ana L.', close: '05/09/2026', tag: 'Startup', tagType: 'feature', ticketId: 'NOR-304', points: 8, progress: 0, assignee: 'PB' },
-  { id: 5, name: 'Nexa Digital', company: 'Nexa Group', value: 64000, prob: 75, stage: 'negotiation', owner: 'RT', ownerName: 'Rafael T.', close: '28/07/2026', tag: 'SMB', tagType: 'chore', ticketId: 'NOR-305', points: 1, progress: 0, assignee: 'CA' },
-  { id: 6, name: 'Atlas Solutions', company: 'Atlas Corp', value: 120000, prob: 25, stage: 'prospect', owner: 'JM', ownerName: 'João M.', close: '20/10/2026', tag: 'Enterprise', tagType: 'research', ticketId: 'NOR-306', points: 8, progress: 0, assignee: 'PB' },
-  { id: 7, name: 'PrimeWave Tech', company: 'PrimeWave', value: 54000, prob: 35, stage: 'prospect', owner: 'PA', ownerName: 'Pedro A.', close: '15/11/2026', tag: 'Startup', tagType: 'feature', ticketId: 'NOR-307', points: 5, progress: 0, assignee: 'DP' },
-  { id: 8, name: 'Stellar Systems', company: 'Stellar Inc', value: 156000, prob: 90, stage: 'negotiation', owner: 'CS', ownerName: 'Carla S.', close: '01/08/2026', tag: 'Enterprise', tagType: 'feature', ticketId: 'NOR-308', points: 5, progress: 0, assignee: 'DP' },
-  { id: 9, name: 'Quantum Finance', company: 'Quantum', value: 42000, prob: 45, stage: 'qualified', owner: 'AL', ownerName: 'Ana L.', close: '12/09/2026', tag: 'SMB', tagType: 'bug', ticketId: 'NOR-309', points: 2, progress: 0, assignee: 'CA' },
-  { id: 10, name: 'EcoPower Energy', company: 'EcoPower', value: 88000, prob: 30, stage: 'prospect', owner: 'RT', ownerName: 'Rafael T.', close: '30/11/2026', tag: 'Startup', tagType: 'design', ticketId: 'NOR-310', points: 3, progress: 0, assignee: 'MR' },
-  { id: 11, name: 'NovaTech BR', company: 'NovaTech', value: 73000, prob: 65, stage: 'proposal', owner: 'JM', ownerName: 'João M.', close: '08/09/2026', tag: 'SMB', tagType: 'feature', ticketId: 'NOR-311', points: 3, progress: 0, assignee: 'DP' },
-  { id: 12, name: 'Fusion Analytics', company: 'Fusion', value: 210000, prob: 85, stage: 'negotiation', owner: 'PA', ownerName: 'Pedro A.', close: '10/08/2026', tag: 'Enterprise', tagType: 'chore', ticketId: 'NOR-312', points: 1, progress: 0, assignee: 'CA' }
-];
+var deals;
+try {
+  var storedDeals = localStorage.getItem('crm_erick_deals');
+  if (storedDeals) deals = JSON.parse(storedDeals);
+} catch(e) {
+  console.error(e);
+}
+if (!deals) {
+  deals = (window.parent && window.parent.deals) || [
+    { id: 1, name: 'TechCorp Solutions', company: 'TechCorp', value: 180000, prob: 80, stage: 'negotiation', owner: 'JM', ownerName: 'João M.', close: '15/08/2026', tag: 'Enterprise', tagType: 'feature', ticketId: 'NOR-301', points: 5, progress: 0, assignee: 'DP' },
+    { id: 2, name: 'Inovação Sistemas', company: 'Inovação Ltda', value: 95000, prob: 60, stage: 'proposal', owner: 'CS', ownerName: 'Carla S.', close: '22/08/2026', tag: 'SMB', tagType: 'design', ticketId: 'NOR-302', points: 3, progress: 0, assignee: 'MR' },
+    { id: 3, name: 'DataPrime Analytics', company: 'DataPrime', value: 82000, prob: 40, stage: 'qualified', owner: 'PA', ownerName: 'Pedro A.', close: '10/09/2026', tag: 'Enterprise', tagType: 'bug', ticketId: 'NOR-303', points: 2, progress: 80, assignee: 'CA' },
+    { id: 4, name: 'CloudNine Hosting', company: 'CloudNine', value: 76000, prob: 55, stage: 'proposal', owner: 'AL', ownerName: 'Ana L.', close: '05/09/2026', tag: 'Startup', tagType: 'feature', ticketId: 'NOR-304', points: 8, progress: 0, assignee: 'PB' },
+    { id: 5, name: 'Nexa Digital', company: 'Nexa Group', value: 64000, prob: 75, stage: 'negotiation', owner: 'RT', ownerName: 'Rafael T.', close: '28/07/2026', tag: 'SMB', tagType: 'chore', ticketId: 'NOR-305', points: 1, progress: 0, assignee: 'CA' },
+    { id: 6, name: 'Atlas Solutions', company: 'Atlas Corp', value: 120000, prob: 25, stage: 'prospect', owner: 'JM', ownerName: 'João M.', close: '20/10/2026', tag: 'Enterprise', tagType: 'research', ticketId: 'NOR-306', points: 8, progress: 0, assignee: 'PB' },
+    { id: 7, name: 'PrimeWave Tech', company: 'PrimeWave', value: 54000, prob: 35, stage: 'prospect', owner: 'PA', ownerName: 'Pedro A.', close: '15/11/2026', tag: 'Startup', tagType: 'feature', ticketId: 'NOR-307', points: 5, progress: 0, assignee: 'DP' },
+    { id: 8, name: 'Stellar Systems', company: 'Stellar Inc', value: 156000, prob: 90, stage: 'negotiation', owner: 'CS', ownerName: 'Carla S.', close: '01/08/2026', tag: 'Enterprise', tagType: 'feature', ticketId: 'NOR-308', points: 5, progress: 0, assignee: 'DP' },
+    { id: 9, name: 'Quantum Finance', company: 'Quantum', value: 42000, prob: 45, stage: 'qualified', owner: 'AL', ownerName: 'Ana L.', close: '12/09/2026', tag: 'SMB', tagType: 'bug', ticketId: 'NOR-309', points: 2, progress: 0, assignee: 'CA' },
+    { id: 10, name: 'EcoPower Energy', company: 'EcoPower', value: 88000, prob: 30, stage: 'prospect', owner: 'RT', ownerName: 'Rafael T.', close: '30/11/2026', tag: 'Startup', tagType: 'design', ticketId: 'NOR-310', points: 3, progress: 0, assignee: 'MR' },
+    { id: 11, name: 'NovaTech BR', company: 'NovaTech', value: 73000, prob: 65, stage: 'proposal', owner: 'JM', ownerName: 'João M.', close: '08/09/2026', tag: 'SMB', tagType: 'feature', ticketId: 'NOR-311', points: 3, progress: 0, assignee: 'DP' },
+    { id: 12, name: 'Fusion Analytics', company: 'Fusion', value: 210000, prob: 85, stage: 'negotiation', owner: 'PA', ownerName: 'Pedro A.', close: '10/08/2026', tag: 'Enterprise', tagType: 'chore', ticketId: 'NOR-312', points: 1, progress: 0, assignee: 'CA' }
+  ];
+}
 
 // Activity data per deal
 var activityData = {};
@@ -2853,6 +2867,11 @@ var tagTypeColor = {
 var memberIds = ['JM','CS','PA','AL','RT'];
 
 function renderBoard() {
+  try {
+    localStorage.setItem('crm_erick_deals', JSON.stringify(deals));
+  } catch(e) {
+    console.error(e);
+  }
   var board = document.getElementById('kanbanBoard');
   board.innerHTML = '';
   var filtered = getFilteredDeals();
@@ -3251,6 +3270,20 @@ function copyHuberickMessage() {
   }).catch(function(err) {
     console.error('Failed to copy: ', err);
   });
+}
+
+function deleteCurrentDeal() {
+  var currentDealId = document.getElementById('dealDetailModal').getAttribute('data-current-deal');
+  if (!currentDealId) return;
+  
+  if (confirm('Tem certeza de que deseja excluir este deal permanentemente?')) {
+    deals = deals.filter(function(d) { return d.id !== currentDealId; });
+    if (window.parent && window.parent.deals) {
+      window.parent.deals = window.parent.deals.filter(function(d) { return d.id !== currentDealId; });
+    }
+    closeDealDetail();
+    renderBoard();
+  }
 }
 
 function renderActivityFeed(acts) {
