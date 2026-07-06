@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "CRM + Lead ops scripts",
   "scripts": {
+    "build": "node scripts/build.js",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",
