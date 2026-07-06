@@ -136,18 +136,102 @@ function copyMsg(btn) {
 }
 window.copyMsg = copyMsg;
 
-fetch('./js/disparo-data.json')
-  .then(r => r.json())
-  .then(d => {
-    DATA = d;
-    $('#stTotal').textContent = d.length;
-    $('#stReady').textContent = d.filter(x => x.phone && x.message).length;
-    const ufs = [...new Set(d.map(x => ufOf(x.address)).filter(Boolean))].sort();
-    $('#uf').insertAdjacentHTML('beforeend', ufs.map(u => `<option value="${u}">${u}</option>`).join(''));
-    ['q', 'uf', 'status', 'filterReady', 'sort'].forEach(id => $('#' + id).addEventListener('input', render));
-    render();
-  })
-  .catch(e => { $('#list').innerHTML = '<div class="empty">Erro ao carregar disparo-data.json. Abra via localhost (não file://).<br>' + e.message + '</div>'; });
+function loadFromParent() {
+  // Tenta ler do parent (iframe dentro do index.html)
+  const parentDeals = (window.parent && window.parent.deals) ? window.parent.deals
+                    : (window.deals || []);
+
+  if (!parentDeals || parentDeals.length === 0) {
+    // Retry em 800ms caso o Supabase ainda esteja carregando
+    setTimeout(loadFromParent, 800);
+    return;
+  }
+
+  // Extrai número de telefone limpo (só dígitos, com DDI 55 se BR)
+  function cleanPhone(raw) {
+    if (!raw || raw === '—') return '';
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    // Se já tem DDI (começa com 55 e tem 12-13 dígitos)
+    if (digits.startsWith('55') && digits.length >= 12) return digits;
+    // Adiciona DDI 55
+    return '55' + digits;
+  }
+
+  DATA = parentDeals
+    .filter(d => d.copyText || d.whatsapp) // só deals com algum conteúdo útil
+    .map(d => {
+      // Pega o link wa.me do contact correspondente ou gera a partir do deal
+      let waRaw = '';
+      let phone = '';
+      // Tenta pegar do window.parent.contacts
+      const contacts = (window.parent && window.parent.contacts) ? window.parent.contacts : [];
+      const contact = contacts.find(c => c.name === d.name || c.company === d.company);
+      if (contact) {
+        waRaw = contact.phone || '';
+        if (contact.whatsapp) {
+          // Extrai o número do link wa.me
+          const m = contact.whatsapp.match(/wa\.me\/(\d+)/);
+          if (m) phone = m[1];
+        }
+      }
+      if (!phone) phone = cleanPhone(waRaw);
+
+      // Gera link whatsapp com a copy personalizada
+      let waLink = '';
+      if (phone && d.copyText) {
+        waLink = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(d.copyText);
+      } else if (contact && contact.whatsapp) {
+        waLink = contact.whatsapp;
+        if (!phone) {
+          const m = contact.whatsapp.match(/wa\.me\/(\d+)/);
+          if (m) phone = m[1];
+        }
+      }
+
+      // Score: usa d.points (0-10 dos sabotadores) → escala pra 0-100
+      const score = d.points ? Math.round(d.points * 10) : 0;
+
+      // Site URL (limpa URLs falsas de Google Fonts)
+      const badPatterns = ['fonts.googleapis', 'fonts.gstatic'];
+      const siteUrl = d.siteUrl && !badPatterns.some(p => d.siteUrl.includes(p)) ? d.siteUrl : '';
+
+      return {
+        name:      d.name || d.company || '',
+        phone:     phone,
+        phoneRaw:  waRaw || (phone ? '+' + phone : ''),
+        message:   d.copyText || '',
+        score:     score,
+        address:   '',           // não temos endereço nos dados atuais
+        status:    d.stage || 'prospect',
+        website:   siteUrl,
+        auditFile: d.analysisUrl
+          ? (d.analysisUrl.startsWith('http') ? d.analysisUrl : 'https://crmerick.vercel.app/' + d.analysisUrl)
+          : '',
+        waLink:    waLink,
+      };
+    });
+
+  $('#stTotal').textContent = DATA.length;
+  $('#stReady').textContent = DATA.filter(x => x.phone && x.message).length;
+
+  // Popula filtro de UF (vazio por ora, sem endereço nos dados)
+  ['q', 'uf', 'status', 'filterReady', 'sort'].forEach(id => {
+    const el = $('#' + id);
+    if (el) el.addEventListener('input', render);
+  });
+  render();
+}
+
+// Também sobrescreve waLink no render para usar o link pronto se existir
+const _origWaLink = waLink;
+function waLink(phone, msg) {
+  return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+}
+
+// Inicia carregamento
+loadFromParent();
+
 </script>
 </body>
 </html>

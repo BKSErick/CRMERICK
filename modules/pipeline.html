@@ -3306,11 +3306,21 @@ function openDealDetail(dealId) {
   var dd = initDealData(d);
   // Description: contenteditable div
   if (!dd.description) {
-    dd.description = '## Contrato — ' + d.company + '\n\n**Cliente:** ' + d.company + '\n**Tipo de Serviço:** \n**Valor Mensal:** ';
+    dd.description = 'Contrato — ' + d.company + '\n\nCliente: ' + d.company + '\nTipo de Serviço: \nValor Mensal: ';
   }
   var descEl = document.getElementById('ddDescEditor');
-  descEl.innerHTML = dd.description.replace(/\n/g, '<br>');
+  // Mini markdown-to-html: ## → <h3>, **text** → <b>, \n → <br>
+  function renderMD(md) {
+    return md
+      .replace(/^## (.+)$/gm,  '<h3 style="font-size:14px;font-weight:700;margin:0 0 6px;">$1</h3>')
+      .replace(/^# (.+)$/gm,   '<h2 style="font-size:16px;font-weight:700;margin:0 0 8px;">$1</h2>')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g,     '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  }
+  descEl.innerHTML = renderMD(dd.description);
   descEl.dataset.clean = dd.description;
+
 
   // Custom fields — click to edit
   renderCustomFields(dealId, d);
@@ -3340,15 +3350,18 @@ function openDealDetail(dealId) {
     if (d.analysisUrl) {
       leadBlock.style.display = 'block';
       
-      // Update Site URL
+      // Update Site URL (ignora URLs de fontes/CDN que são artefatos do gerador)
       var siteEl = document.getElementById('huberickSiteUrl');
-      if (d.siteUrl && d.siteUrl !== '—') {
-        siteEl.textContent = d.siteUrl;
-        siteEl.href = d.siteUrl;
+      var badSitePatterns = ['fonts.googleapis', 'fonts.gstatic', 'cdn.', 'cdnjs.'];
+      var cleanSite = d.siteUrl && d.siteUrl !== '—' && !badSitePatterns.some(function(p) { return d.siteUrl.includes(p); }) ? d.siteUrl : '';
+      if (cleanSite) {
+        siteEl.textContent = cleanSite;
+        siteEl.href = cleanSite;
         siteEl.style.display = 'inline-block';
       } else {
         siteEl.textContent = 'Sem site cadastrado';
         siteEl.removeAttribute('href');
+        siteEl.style.display = 'inline-block';
       }
       
       // Update Score Badge
@@ -3363,9 +3376,15 @@ function openDealDetail(dealId) {
         scoreBadge.style.background = '#10B981';
       }
       
-      // Update Report Button
+      // Update Report Button — URL absoluta para funcionar tanto local quanto na Vercel
       var reportBtn = document.getElementById('huberickReportBtn');
-      reportBtn.href = '../' + d.analysisUrl;
+      var reportUrl = d.analysisUrl
+        ? (d.analysisUrl.startsWith('http')
+            ? d.analysisUrl
+            : 'https://crmerick.vercel.app/' + d.analysisUrl)
+        : '#';
+      reportBtn.href = reportUrl;
+      reportBtn.style.display = reportUrl !== '#' ? 'inline-flex' : 'none';
 
       // Telefone + botão de WhatsApp (abre a conversa do lead com a mensagem pronta)
       var phoneEl = document.getElementById('huberickPhone');
