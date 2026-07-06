@@ -962,8 +962,8 @@ a { text-decoration: none; color: inherit; }
     </div>
     <div class="conversion-badge">
       <div class="label">Conversão total</div>
-      <div class="value">0,032<em>%</em></div>
-      <div class="sub">Alcance → Vendas</div>
+      <div class="value" id="funnelHdrConvValue">0,032<em>%</em></div>
+      <div class="sub" id="funnelHdrConvSub">Alcance → Vendas</div>
     </div>
   </div>
 
@@ -1027,27 +1027,27 @@ a { text-decoration: none; color: inherit; }
     <div class="funnel-area">
       <div class="funnel" id="funnel">
         <div class="funnel-stage stage-alcance">
-          <div class="stage-value">28.400</div>
+          <div class="stage-value" id="valStageAlcance">28.400</div>
           <div class="stage-name">Alcance</div>
         </div>
         <div class="funnel-stage stage-cliques">
-          <div class="stage-value">1.920</div>
+          <div class="stage-value" id="valStageCliques">1.920</div>
           <div class="stage-name">Cliques</div>
         </div>
         <div class="funnel-stage stage-leads">
-          <div class="stage-value">314</div>
+          <div class="stage-value" id="valStageLeads">314</div>
           <div class="stage-name">Leads</div>
         </div>
         <div class="funnel-stage stage-conversas">
-          <div class="stage-value">96</div>
+          <div class="stage-value" id="valStageConversas">96</div>
           <div class="stage-name">Conversas iniciadas</div>
         </div>
         <div class="funnel-stage stage-propostas">
-          <div class="stage-value">28</div>
+          <div class="stage-value" id="valStagePropostas">28</div>
           <div class="stage-name">Propostas</div>
         </div>
         <div class="funnel-stage stage-vendas">
-          <div class="stage-value">9</div>
+          <div class="stage-value" id="valStageVendas">9</div>
           <div class="stage-name">Vendas</div>
         </div>
       </div>
@@ -1070,7 +1070,7 @@ a { text-decoration: none; color: inherit; }
       <div class="stage-card">
         <div class="stage-card-header">
           <span class="stage-card-name">Alcance</span>
-          <span class="stage-card-volume">28.400</span>
+          <span class="stage-card-volume" id="cardVolumeAlcance">28.400</span>
         </div>
         <div class="stage-card-metrics">
           <span class="stage-card-metric">CTR <strong>6,8%</strong></span>
@@ -1084,7 +1084,7 @@ a { text-decoration: none; color: inherit; }
       <div class="stage-card">
         <div class="stage-card-header">
           <span class="stage-card-name">Cliques</span>
-          <span class="stage-card-volume">1.920</span>
+          <span class="stage-card-volume" id="cardVolumeCliques">1.920</span>
         </div>
         <div class="stage-card-metrics">
           <span class="stage-card-metric">Conversão <strong>6,8%</strong></span>
@@ -1098,7 +1098,7 @@ a { text-decoration: none; color: inherit; }
       <div class="stage-card">
         <div class="stage-card-header">
           <span class="stage-card-name">Leads</span>
-          <span class="stage-card-volume">314</span>
+          <span class="stage-card-volume" id="cardVolumeLeads">314</span>
         </div>
         <div class="stage-card-metrics">
           <span class="stage-card-metric">Conversão <strong>16,4%</strong></span>
@@ -1112,7 +1112,7 @@ a { text-decoration: none; color: inherit; }
       <div class="stage-card">
         <div class="stage-card-header">
           <span class="stage-card-name">Conversas iniciadas</span>
-          <span class="stage-card-volume">96</span>
+          <span class="stage-card-volume" id="cardVolumeConversas">96</span>
         </div>
         <div class="stage-card-metrics">
           <span class="stage-card-metric">Conversão <strong>30,6%</strong></span>
@@ -1126,7 +1126,7 @@ a { text-decoration: none; color: inherit; }
       <div class="stage-card">
         <div class="stage-card-header">
           <span class="stage-card-name">Propostas</span>
-          <span class="stage-card-volume">28</span>
+          <span class="stage-card-volume" id="cardVolumePropostas">28</span>
         </div>
         <div class="stage-card-metrics">
           <span class="stage-card-metric">Conversão <strong>29,2%</strong></span>
@@ -1140,12 +1140,12 @@ a { text-decoration: none; color: inherit; }
       <div class="stage-card">
         <div class="stage-card-header">
           <span class="stage-card-name">Vendas</span>
-          <span class="stage-card-volume">9</span>
+          <span class="stage-card-volume" id="cardVolumeVendas">9</span>
         </div>
         <div class="stage-card-metrics">
           <span class="stage-card-metric">Conversão <strong>32,1%</strong></span>
           <span class="stage-card-metric up">Queda <strong>-67,9%</strong></span>
-          <span class="stage-card-metric">Ticket médio <strong>R$ 2.450</strong></span>
+          <span class="stage-card-metric">Ticket médio <strong id="cardMetricVendasTicket">R$ 2.450</strong></span>
         </div>
         <div class="stage-card-insight">Conversão final saudável para canal orgânico. 9 vendas em 30 dias com ticket médio de R$ 2.450.</div>
         <span class="stage-card-action">Ver detalhes da venda →</span>
@@ -1350,6 +1350,103 @@ a { text-decoration: none; color: inherit; }
 <!-- Script de integração iframe e banco de dados unificado -->
 <script>
 (function() {
+  function formatNum(num) {
+    return num.toLocaleString('pt-BR');
+  }
+
+  function renderFunnel() {
+    var parentDeals = (window.parent && window.parent.deals) ? window.parent.deals : [];
+    
+    var total = parentDeals.length || 942;
+    var wonCount = parentDeals.filter(function(d) { return d.stage === 'won'; }).length;
+    var negCount = parentDeals.filter(function(d) { return d.stage === 'negotiation'; }).length;
+    var propCount = parentDeals.filter(function(d) { return d.stage === 'proposal'; }).length;
+    var qualCount = parentDeals.filter(function(d) { return d.stage === 'qualified'; }).length;
+
+    var realVendas = wonCount;
+    var realPropostas = negCount + wonCount;
+    var realConversas = propCount + realPropostas;
+    var realLeads = qualCount + realConversas;
+
+    var alcance, cliques, leads, conversas, propostas, vendas;
+
+    if (realLeads === 0) {
+      // Fallback a um funil simulado proporcional para não ficar zerado
+      alcance = total;
+      cliques = Math.round(alcance * 0.068); // 6.8%
+      leads = Math.round(cliques * 0.164); // 16.4%
+      conversas = Math.round(leads * 0.306); // 30.6%
+      propostas = Math.round(conversas * 0.292); // 29.2%
+      vendas = Math.round(propostas * 0.321); // 32.1%
+    } else {
+      alcance = total;
+      cliques = realLeads * 2.5; // Aproximação de cliques
+      leads = realLeads;
+      conversas = realConversas;
+      propostas = realPropostas;
+      vendas = realVendas;
+    }
+
+    // Calcula conversão total
+    var convPct = (vendas / alcance * 100);
+    var convStr = convPct.toFixed(3).replace('.', ',') + '%';
+
+    // 1. Atualizar Header Badge
+    var hdrVal = document.getElementById('funnelHdrConvValue');
+    if (hdrVal) hdrVal.innerHTML = convPct.toFixed(3).replace('.', ',') + '<em>%</em>';
+    
+    var hdrSub = document.getElementById('funnelHdrConvSub');
+    if (hdrSub) hdrSub.textContent = 'Alcance (' + formatNum(alcance) + ') → Vendas (' + formatNum(vendas) + ')';
+
+    // 2. Atualizar Funil Visual
+    var stAlcance = document.getElementById('valStageAlcance');
+    if (stAlcance) stAlcance.textContent = formatNum(alcance);
+
+    var stCliques = document.getElementById('valStageCliques');
+    if (stCliques) stCliques.textContent = formatNum(Math.round(cliques));
+
+    var stLeads = document.getElementById('valStageLeads');
+    if (stLeads) stLeads.textContent = formatNum(leads);
+
+    var stConversas = document.getElementById('valStageConversas');
+    if (stConversas) stConversas.textContent = formatNum(conversas);
+
+    var stPropostas = document.getElementById('valStagePropostas');
+    if (stPropostas) stPropostas.textContent = formatNum(propostas);
+
+    var stVendas = document.getElementById('valStageVendas');
+    if (stVendas) stVendas.textContent = formatNum(vendas);
+
+    // 3. Atualizar Painel Lateral (Volume)
+    var volAlcance = document.getElementById('cardVolumeAlcance');
+    if (volAlcance) volAlcance.textContent = formatNum(alcance);
+
+    var volCliques = document.getElementById('cardVolumeCliques');
+    if (volCliques) volCliques.textContent = formatNum(Math.round(cliques));
+
+    var volLeads = document.getElementById('cardVolumeLeads');
+    if (volLeads) volLeads.textContent = formatNum(leads);
+
+    var volConversas = document.getElementById('cardVolumeConversas');
+    if (volConversas) volConversas.textContent = formatNum(conversas);
+
+    var volPropostas = document.getElementById('cardVolumePropostas');
+    if (volPropostas) volPropostas.textContent = formatNum(propostas);
+
+    var volVendas = document.getElementById('cardVolumeVendas');
+    if (volVendas) volVendas.textContent = formatNum(vendas);
+
+    // Ticket médio real ou mockado
+    var wonDealsList = parentDeals.filter(function(d) { return d.stage === 'won' && d.value > 0; });
+    var avgTicket = 2450;
+    if (wonDealsList.length > 0) {
+      var sum = wonDealsList.reduce(function(acc, d) { return acc + Number(d.value); }, 0);
+      avgTicket = Math.round(sum / wonDealsList.length);
+    }
+    var metricTicket = document.getElementById('cardMetricVendasTicket');
+    if (metricTicket) metricTicket.textContent = 'R$ ' + avgTicket.toLocaleString('pt-BR');
+  }
+
   // 1. Aplicar classe de modo iframe se estiver rodando em frame
   if (window.self !== window.top) {
     document.body.classList.add('iframe-mode');
@@ -1372,6 +1469,9 @@ a { text-decoration: none; color: inherit; }
       }
     });
   }
+
+  renderFunnel();
+  setInterval(renderFunnel, 1000);
 })();
 </script>
 </body>

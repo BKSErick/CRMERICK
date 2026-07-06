@@ -794,8 +794,8 @@
     </div>
     <div class="page-header-right">
       <div class="label">MRR total</div>
-      <div class="value">R$ 187.430</div>
-      <div class="sub" style="font-size:12px;color:var(--color-slate);font-family:var(--font-inter);margin-top:2px;">84 clientes ativos</div>
+      <div class="value" id="hdrMrrTotal">R$ 187.430</div>
+      <div class="sub" id="hdrActiveClients" style="font-size:12px;color:var(--color-slate);font-family:var(--font-inter);margin-top:2px;">84 clientes ativos</div>
     </div>
   </div>
 
@@ -857,40 +857,40 @@
   <div class="kpi-row-5 sec">
     <div class="kpi-card success">
       <div class="kpi-label">MRR Ativo</div>
-      <div class="kpi-value">R$ 187,4K</div>
-      <div class="kpi-trend up">
+      <div class="kpi-value" id="kpiMrrActive">R$ 187,4K</div>
+      <div class="kpi-trend up" id="kpiMrrActiveTrend">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
         +4,2% vs. mês anterior
       </div>
     </div>
     <div class="kpi-card violet">
       <div class="kpi-label">MRR Projetado</div>
-      <div class="kpi-value">R$ 214,8K</div>
-      <div class="kpi-trend up">
+      <div class="kpi-value" id="kpiMrrProjected">R$ 214,8K</div>
+      <div class="kpi-trend up" id="kpiMrrProjectedTrend">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
         +14,6% com expansões previstas
       </div>
     </div>
     <div class="kpi-card risk">
       <div class="kpi-label">Clientes em Risco</div>
-      <div class="kpi-value">12</div>
-      <div class="kpi-trend down">
+      <div class="kpi-value" id="kpiClientsRisk">12</div>
+      <div class="kpi-trend down" id="kpiClientsRiskTrend">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
         +2 desde o mês passado
       </div>
     </div>
     <div class="kpi-card success">
       <div class="kpi-label">Melhor Case</div>
-      <div class="kpi-value" style="font-size:22px;">R$ 8.900</div>
-      <div class="kpi-trend up">
+      <div class="kpi-value" id="kpiBestCase" style="font-size:22px;">R$ 8.900</div>
+      <div class="kpi-trend up" id="kpiBestCaseTrend">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
         Dr. Cardoso — 14 meses de contrato
       </div>
     </div>
     <div class="kpi-card warning">
       <div class="kpi-label">Exceções Fora do ICP</div>
-      <div class="kpi-value">8</div>
-      <div class="kpi-trend down">
+      <div class="kpi-value" id="kpiIcpExceptions">8</div>
+      <div class="kpi-trend down" id="kpiIcpExceptionsTrend">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         R$ 22.400 em MRR exposto
       </div>
@@ -916,7 +916,7 @@
             <th>Saúde da conta</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="activeClientsBody">
           <tr>
             <td><div class="client-cell"><span class="client-name">Dr. Carlos Cardoso</span><span class="client-extra">Clínica Odontológica</span></div></td>
             <td><span class="front-tag oferta" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet);">Premium</span></td>
@@ -1040,7 +1040,7 @@
       <div class="sec-title">Clientes em risco</div>
       <div class="sec-subtitle">12 contas com sinais de alerta ativos — nível de risco, próximas ações e probabilidade de churn. Prioridade por ticket exposto.</div>
     </div>
-    <div class="risk-grid">
+    <div class="risk-grid" id="riskClientsGrid">
       <div class="risk-card">
         <div class="risk-card-header">
           <span class="risk-client">Espaço Saúde Total</span>
@@ -1168,7 +1168,7 @@
       <div class="sec-title">Exceções e desalinhamentos</div>
       <div class="sec-subtitle">Clientes fora do ICP, contratos ruins, conflitos operacionais e contas que não devem virar modelo. Receita exposta: R$ 22.400/mês.</div>
     </div>
-    <div class="exc-grid">
+    <div class="exc-grid" id="excGrid">
       <div class="exc-card">
         <div class="exc-card-header">
           <span class="exc-client">Clínica PetCare</span>
@@ -1210,7 +1210,7 @@
       <div class="sec-title">Cases e ativos fortes</div>
       <div class="sec-subtitle">Clientes que devem ser documentados, contas com melhor potencial de prova e contas estratégicas para expansão.</div>
     </div>
-    <div class="case-grid">
+    <div class="case-grid" id="caseGrid">
       <div class="case-card">
         <div class="case-card-icon" style="background:rgba(123,104,238,0.08);color:var(--color-brand-violet);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -1459,6 +1459,161 @@
 <!-- Script de integração iframe e banco de dados unificado -->
 <script>
 (function() {
+  var defaultClients = [
+    { name: "Dr. Carlos Cardoso", extra: "Clínica Odontológica", segment: "Premium", mrr: 8900, months: 14, status: "active", owner: "Erick", health: 92 },
+    { name: "Clínica Bem-Estar", extra: "Medicina Integrativa", segment: "Enterprise", mrr: 7200, months: 22, status: "active", owner: "Erick", health: 88 },
+    { name: "Studio Pilates Luara", extra: "Fitness & Saúde", segment: "Premium", mrr: 5400, months: 8, status: "active", owner: "Camila", health: 85 },
+    { name: "Espaço Saúde Total", extra: "Clínica Multidisciplinar", segment: "Essencial", mrr: 2900, months: 4, status: "active", owner: "Rafael", health: 62 },
+    { name: "Dra. Marina Lopes", extra: "Dermatologia", segment: "Startup", mrr: 1800, months: 3, status: "active", owner: "Erick", health: 74 },
+    { name: "Clínica VetCare", extra: "Veterinária", segment: "Enterprise", mrr: 6800, months: 11, status: "active", owner: "Camila", health: 90 },
+    { name: "Instituto Movimento", extra: "Fisioterapia", segment: "Essencial", mrr: 2200, months: 6, status: "active", owner: "Rafael", health: 55 },
+    { name: "Núcleo Vida Ativa", extra: "Personal Training", segment: "Startup", mrr: 1200, months: 2, status: "active", owner: "Erick", health: 70 }
+  ];
+
+  function formatPrice(val) {
+    return 'R$ ' + val.toLocaleString('pt-BR');
+  }
+
+  function formatPriceK(val) {
+    return 'R$ ' + (val / 1000).toFixed(1).replace('.', ',') + 'K';
+  }
+
+  function getSegmentBg(seg) {
+    if (seg === 'Enterprise') return 'rgba(0,145,255,0.08)';
+    if (seg === 'Premium') return 'rgba(123,104,238,0.08)';
+    if (seg === 'Startup') return 'rgba(46,125,50,0.08)';
+    return 'rgba(100,100,100,0.08)';
+  }
+
+  function getSegmentColor(seg) {
+    if (seg === 'Enterprise') return 'var(--color-signal-blue)';
+    if (seg === 'Premium') return 'var(--color-brand-violet)';
+    if (seg === 'Startup') return 'var(--color-success)';
+    return 'var(--color-charcoal)';
+  }
+
+  function getHealthClass(score) {
+    if (score >= 80) return 'green';
+    if (score >= 60) return 'yellow';
+    return 'red';
+  }
+
+  function renderAll() {
+    var parentDeals = (window.parent && window.parent.deals) ? window.parent.deals : [];
+    var wonDeals = parentDeals.filter(function(d) { return d.stage === 'won'; });
+    
+    var clients = [];
+    if (wonDeals.length > 0) {
+      clients = wonDeals.map(function(d) {
+        var mrrVal = Number(d.value) || 2500;
+        return {
+          name: d.company || d.name,
+          extra: d.segment || 'Outbound',
+          segment: mrrVal >= 7000 ? 'Enterprise' : (mrrVal >= 4000 ? 'Premium' : (mrrVal >= 2000 ? 'Essencial' : 'Startup')),
+          mrr: mrrVal,
+          months: 1,
+          status: "active",
+          owner: d.ownerName || 'Erick',
+          health: d.points ? Math.max(10, 100 - d.points * 15) : 85
+        };
+      });
+    } else {
+      clients = defaultClients;
+    }
+
+    // Sort by MRR descending
+    clients.sort(function(a, b) { return b.mrr - a.mrr; });
+
+    // 1. Calculate values
+    var totalMrr = clients.reduce(function(acc, c) { return acc + c.mrr; }, 0);
+    var riskClients = clients.filter(function(c) { return c.health < 75; });
+    var riskMrr = riskClients.reduce(function(acc, c) { return acc + c.mrr; }, 0);
+    var bestCase = clients.reduce(function(max, c) { return c.mrr > max ? c.mrr : max; }, 0);
+    var bestCaseClient = clients.find(function(c) { return c.mrr === bestCase; });
+    var icpExceptions = clients.filter(function(c) { return c.health < 65 || c.extra.toLowerCase().indexOf('pet') !== -1; });
+
+    // 2. Render Page Header
+    var hdrMrr = document.getElementById('hdrMrrTotal');
+    if (hdrMrr) hdrMrr.textContent = formatPrice(totalMrr);
+    var hdrClients = document.getElementById('hdrActiveClients');
+    if (hdrClients) hdrClients.textContent = clients.length + ' clientes ativos';
+
+    // 3. Render KPI values
+    var kpiActive = document.getElementById('kpiMrrActive');
+    if (kpiActive) kpiActive.textContent = formatPriceK(totalMrr);
+    
+    var kpiProjected = document.getElementById('kpiMrrProjected');
+    if (kpiProjected) kpiProjected.textContent = formatPriceK(totalMrr * 1.12);
+
+    var kpiRisk = document.getElementById('kpiClientsRisk');
+    if (kpiRisk) kpiRisk.textContent = riskClients.length;
+    var kpiRiskTrend = document.getElementById('kpiClientsRiskTrend');
+    if (kpiRiskTrend) {
+      kpiRiskTrend.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg> R$ ' + riskMrr.toLocaleString('pt-BR') + ' expostos';
+    }
+
+    var kpiBest = document.getElementById('kpiBestCase');
+    if (kpiBest) kpiBest.textContent = formatPrice(bestCase);
+    var kpiBestTrend = document.getElementById('kpiBestCaseTrend');
+    if (kpiBestTrend && bestCaseClient) {
+      kpiBestTrend.textContent = bestCaseClient.name + ' — ' + bestCaseClient.months + ' meses';
+    }
+
+    var kpiIcp = document.getElementById('kpiIcpExceptions');
+    if (kpiIcp) kpiIcp.textContent = icpExceptions.length;
+    var kpiIcpTrend = document.getElementById('kpiIcpExceptionsTrend');
+    if (kpiIcpTrend) {
+      var expAmt = icpExceptions.reduce(function(acc, c) { return acc + c.mrr; }, 0);
+      kpiIcpTrend.textContent = 'R$ ' + expAmt.toLocaleString('pt-BR') + ' em MRR exposto';
+    }
+
+    // 4. Render Table
+    var tbody = document.getElementById('activeClientsBody');
+    if (tbody) {
+      tbody.innerHTML = clients.map(function(c) {
+        var hClass = getHealthClass(c.health);
+        return '<tr>' +
+          '<td><div class="client-cell"><span class="client-name">' + c.name + '</span><span class="client-extra">' + c.extra + '</span></div></td>' +
+          '<td><span class="front-tag oferta" style="background:' + getSegmentBg(c.segment) + ';color:' + getSegmentColor(c.segment) + ';">' + c.segment + '</span></td>' +
+          '<td><span class="client-time">' + c.months + ' meses</span></td>' +
+          '<td><span class="client-ticket">' + formatPrice(c.mrr) + '</span></td>' +
+          '<td><span class="status-pill active">Ativo</span></td>' +
+          '<td><span class="exp-owner">' + c.owner + '</span></td>' +
+          '<td>' +
+            '<div class="health-bar">' +
+              '<div class="health-track"><div class="health-fill ' + hClass + '" style="width:' + c.health + '%"></div></div>' +
+              '<span class="health-score ' + hClass + '">' + c.health + '</span>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    // 5. Render Risk Cards
+    var riskGrid = document.getElementById('riskClientsGrid');
+    if (riskGrid && riskClients.length > 0) {
+      riskGrid.innerHTML = riskClients.map(function(c) {
+        var rLevel = c.health < 60 ? 'Crítico' : 'Alto';
+        var rClass = c.health < 60 ? 'critical' : 'high';
+        return '<div class="risk-card">' +
+          '<div class="risk-card-header">' +
+            '<span class="risk-client">' + c.name + '</span>' +
+            '<span class="risk-level ' + rClass + '">' + rLevel + '</span>' +
+          '</div>' +
+          '<div class="risk-signals">' +
+            '<div class="risk-signal">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>' +
+              '<span class="red">Pontuação de alertas elevada (' + (100 - c.health) + ' pts)</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="risk-action">Próxima ação: Agendar reunião de acompanhamento para reverter o engajamento</div>' +
+          '<div class="risk-history">Responsável: ' + c.owner + ' | Ticket: ' + formatPrice(c.mrr) + '</div>' +
+          '<div class="risk-chance ' + rClass + '">Probabilidade de Churn: ' + (100 - c.health) + '%</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
   // 1. Aplicar classe de modo iframe se estiver rodando em frame
   if (window.self !== window.top) {
     document.body.classList.add('iframe-mode');
@@ -1481,6 +1636,10 @@
       }
     });
   }
+
+  // Run on start and schedule checks for parent data updates
+  renderAll();
+  setInterval(renderAll, 1000);
 })();
 </script>
 </body>
