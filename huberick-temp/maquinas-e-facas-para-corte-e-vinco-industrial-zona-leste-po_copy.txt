@@ -3,7 +3,6 @@ Erick aqui. Passei pela presenca digital da Máquinas e Facas Para Corte e Vinco
 Voces tem uma reputacao forte no Google Maps (4.7★ com 42 avaliacoes), mas nao tem um site ativo.
 Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.
 
-Desenhei um prototipo visual de como seria o site ideal de voces:
-https://crmerick.vercel.app/huberick-temp/maquinas-e-facas-para-corte-e-vinco-industrial-zona-leste-po.html
+Desenhei como seria o site de voces: https://crmerick.vercel.app/huberick-temp/maquinas-e-facas-para-corte-e-vinco-industrial-zona-leste-po.html
 
-Se quiser estruturar isso em poucos dias, me avisa.
+Faz sentido?

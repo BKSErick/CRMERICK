@@ -1,11 +1,11 @@
 Erick aqui. Passei pelo site da Agemec Ind. Mecanica e vi alguns gargalos.
+Ja trabalhei com empresas do setor. Neles eu vi o mesmo padrao.
 
 Os pontos que estao custando contrato pra voces hoje:
 1. Servico forte, mas primeira dobra institucional
 2. CTA de orcamento pouco agressivo
 3. Pouca prova no momento da decisao
 
-Montei um relatorio visual com o que eu faria pra transformar isso:
-https://crmerick.vercel.app/huberick-temp/agemec-ind-mecanica.html
+Montei a analise: https://crmerick.vercel.app/huberick-temp/agemec-ind-mecanica.html
 
-Se quiser resolver, falo em 15 minutos o que muda.
+Faz sentido pra voce?

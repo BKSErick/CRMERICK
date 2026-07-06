@@ -3,7 +3,6 @@ Erick aqui. Passei pela presenca digital da Gigante do ABC Assistência técnica
 Voces tem uma reputacao forte no Google Maps (4.3★ com 18 avaliacoes), mas nao tem um site ativo.
 Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.
 
-Desenhei um prototipo visual de como seria o site ideal de voces:
-https://crmerick.vercel.app/huberick-temp/gigante-do-abc-assistencia-tecnica-de-ventiladores-ventisilv.html
+Desenhei como seria o site de voces: https://crmerick.vercel.app/huberick-temp/gigante-do-abc-assistencia-tecnica-de-ventiladores-ventisilv.html
 
-Se quiser estruturar isso em poucos dias, me avisa.
+Faz sentido?

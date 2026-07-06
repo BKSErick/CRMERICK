@@ -3,7 +3,6 @@ Fala! Analisei a presenca online da ⚡ Eletricista Industrial 24h São Paulo es
 Voces tem uma reputacao forte no Google Maps (um perfil ainda sem avaliacoes), mas nao tem um site ativo.
 Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.
 
-Desenhei um prototipo visual de como seria o site ideal de voces:
-https://crmerick.vercel.app/huberick-temp/eletricista-industrial-24h-sao-paulo.html
+Desenhei como seria o site de voces: https://crmerick.vercel.app/huberick-temp/eletricista-industrial-24h-sao-paulo.html
 
-Se quiser estruturar isso em poucos dias, me avisa.
+Faz sentido?

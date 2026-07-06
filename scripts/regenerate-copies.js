@@ -101,8 +101,9 @@ function gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise, mapsInfo
       }
     }
 
-    const cta = `Montei um relatorio visual com o que eu faria pra transformar isso:\n${linkAnalise}\n\nSe quiser resolver, falo em 15 minutos o que muda.`;
-    return `${abertura}\n${blocoSabotadores}\n${scoreContext}${cta}`;
+    const cta = `Montei a analise: ${linkAnalise}\n\nFaz sentido pra voce?`;
+    const provaSocial = `\nJa trabalhei com empresas do setor. Neles eu vi o mesmo padrao.\n`;
+    return `${abertura}${provaSocial}${blocoSabotadores}\n${scoreContext}${cta}`;
   } else {
     // Não tem site (Caminho B - Sem Site)
     const aberturas = [
@@ -118,7 +119,7 @@ function gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise, mapsInfo
       : `Voces tem uma reputacao fisica forte, mas nao tem um site ativo hoje.\n`;
 
     const problema = `Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.\n`;
-    const cta = `Desenhei um prototipo visual de como seria o site ideal de voces:\n${linkAnalise}\n\nSe quiser estruturar isso em poucos dias, me avisa.`;
+    const cta = `Desenhei como seria o site de voces: ${linkAnalise}\n\nFaz sentido?`;
     
     return `${abertura}\n\n${mapsContext}${problema}\n${cta}`;
   }
