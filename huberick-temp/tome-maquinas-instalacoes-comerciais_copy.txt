@@ -1,11 +1,9 @@
-Erick aqui — dei uma olhada no site da Tomé Máquinas - Instalações Comerciais.
+Erick aqui. Dei uma olhada na presenca digital da Tomé Máquinas - Instalações Comerciais.
 
-Os pontos que estao custando contrato pra voces:
-1. ✅ Aparecer quando te procuram
-2. ✅ Passar credibilidade na validação
-3. ✅ Canal direto de orçamento
+Voces tem uma reputacao forte no Google Maps (4.4★ com 42 avaliacoes), mas nao tem um site ativo.
+Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.
 
-Montei um relatorio visual com o que eu faria pra transformar isso:
+Desenhei um prototipo visual de como seria o site ideal de voces:
 https://crmerick.vercel.app/huberick-temp/tome-maquinas-instalacoes-comerciais.html
 
-Se quiser resolver, falo em 15 minutos o que muda.
+Se quiser estruturar isso em poucos dias, me avisa.

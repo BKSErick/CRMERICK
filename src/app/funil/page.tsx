@@ -236,14 +236,17 @@ export default function FunilPage() {
     [deals],
   );
 
-  const funnelRows = [
-    { label: "Alcance", value: funnel.reach, helper: instagram.status === "live" ? "Instagram 30d" : "Fallback local", width: 100 },
-    { label: "Cliques", value: funnel.clicks, helper: "Estimado por leads", width: 68 },
-    { label: "Leads", value: funnel.leads, helper: "Deals totais", width: 42 },
-    { label: "Conversas", value: funnel.conversations, helper: "Qualified+", width: 27 },
-    { label: "Propostas", value: funnel.proposals, helper: "Proposal+", width: 18 },
-    { label: "Vendas", value: funnel.won, helper: "Won", width: 10 },
+  const funnelBase = [
+    { label: "Alcance", value: funnel.reach, helper: instagram.status === "live" ? "Instagram 30d" : "Instagram indisponivel" },
+    { label: "Cliques", value: funnel.clicks, helper: "Pixel/CAPI" },
+    { label: "Leads", value: funnel.leads, helper: "Deals totais" },
+    { label: "Conversas", value: funnel.conversations, helper: "Qualified+" },
+    { label: "Propostas", value: funnel.proposals, helper: "Proposal+" },
+    { label: "Vendas", value: funnel.won, helper: "Won" },
   ];
+  // Largura da barra proporcional ao valor REAL (antes era fixa/cosmetica).
+  const maxValue = Math.max(...funnelBase.map((r) => r.value), 1);
+  const funnelRows = funnelBase.map((r) => ({ ...r, width: (r.value / maxValue) * 100 }));
 
   const editorialSteps = funnelRows.slice(1).map((row, index) => {
     const previous = funnelRows[index];

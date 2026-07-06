@@ -1,10 +1,11 @@
-Erick aqui. Passei pelo site da Vanmar Usinagem e Manutenção Ltda e anotei alguns pontos.
+Erick aqui. Passei pelo site da Vanmar Usinagem e Manutenção Ltda e vi alguns gargalos.
 
-Os pontos que estao custando contrato pra voces:
+Os pontos que estao custando contrato pra voces hoje:
 1. Site existe, mas precisa provar capacidade em segundos
 2. Contato precisa virar caminho de orcamento
 3. Falta transformar reputacao em prova comercial
 
+O site marcou 75/10 no indice de conversao.
 Montei um relatorio visual com o que eu faria pra transformar isso:
 https://crmerick.vercel.app/huberick-temp/vanmar-usinagem-e-manutencao-ltda.html
 

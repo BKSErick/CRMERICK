@@ -1,11 +1,9 @@
-Fala! Analisei o site da C.A.S Instalação e manutenção elétrica - ABC Paulista essa semana.
+Fala! Analisei a presenca online da C.A.S Instalação e manutenção elétrica - ABC Paulista esta semana.
 
-Os pontos que estao custando contrato pra voces:
-1. ✅ Aparecer quando te procuram
-2. ✅ Passar credibilidade na validação
-3. ✅ Canal direto de orçamento
+Voces tem uma reputacao forte no Google Maps (um perfil ainda sem avaliacoes), mas nao tem um site ativo.
+Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.
 
-Montei um relatorio visual com o que eu faria pra transformar isso:
+Desenhei um prototipo visual de como seria o site ideal de voces:
 https://crmerick.vercel.app/huberick-temp/c-a-s-instalacao-e-manutencao-eletrica-abc-paulista.html
 
-Se quiser resolver, falo em 15 minutos o que muda.
+Se quiser estruturar isso em poucos dias, me avisa.

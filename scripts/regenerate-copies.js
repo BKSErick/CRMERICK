@@ -26,17 +26,24 @@ const LIMIT      = LIMIT_ARG ? parseInt(LIMIT_ARG.split('=')[1]) : Infinity;
  */
 function extrairSabotadores(html) {
   const sabotadores = [];
-  // Pega todos os card-title que contenham ⚠️
-  const regex = /class="card-title"[^>]*>[\s⚠️]*([^<]+)<\/div>/gi;
+  // Pega card-titles que contenham ⚠️
+  const regex = /class="card-title"[^>]*>[\s]*⚠️[\s]*([^<]+)<\/div>/gi;
   let match;
   while ((match = regex.exec(html)) !== null && sabotadores.length < 3) {
     const texto = match[1]
-      .replace(/⚠️/g, '')
       .replace(/\s+/g, ' ')
       .trim();
     if (texto.length > 5) sabotadores.push(texto);
   }
   return sabotadores;
+}
+
+/**
+ * Extrai informações do Google Maps (nota e número de avaliações)
+ */
+function extrairMapsInfo(html) {
+  const m = html.match(/Google Maps \(([^)]+)\)/i);
+  return m ? m[1].trim() : null;
 }
 
 /**
@@ -71,39 +78,50 @@ function extrairEmpresa(html) {
 /**
  * Gera o texto de copy personalizado para a empresa.
  */
-function gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise }) {
-  // Escolhe variação de abertura para evitar que todas sejam iguais
-  const aberturas = [
-    `Erick aqui — dei uma olhada no site da ${empresa}.`,
-    `Fala! Analisei o site da ${empresa} essa semana.`,
-    `Erick aqui. Passei pelo site da ${empresa} e anotei alguns pontos.`,
-  ];
-  // Usa o score ou o número de sabotadores para variar a abertura
-  const seed = empresa.charCodeAt(0) % aberturas.length;
-  const abertura = aberturas[seed];
-
-  // Monta os sabotadores
-  let blocoSabotadores = '';
+function gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise, mapsInfo }) {
+  // Se tem sabotadores, significa que tem site (Caminho A - Site Ruim)
   if (sabotadores.length > 0) {
+    const aberturas = [
+      `Erick aqui — dei uma olhada no site da ${empresa}.`,
+      `Fala! Analisei o site da ${empresa} essa semana.`,
+      `Erick aqui. Passei pelo site da ${empresa} e vi alguns gargalos.`,
+    ];
+    const seed = empresa.charCodeAt(0) % aberturas.length;
+    const abertura = aberturas[seed];
+
     const pontos = sabotadores.map((s, i) => `${i + 1}. ${s}`).join('\n');
-    blocoSabotadores = `\nOs pontos que estao custando contrato pra voces:\n${pontos}\n`;
-  } else {
-    blocoSabotadores = `\nEncontrei pontos que estao custando contrato pra voces antes mesmo de pedirem orcamento.\n`;
-  }
+    const blocoSabotadores = `\nOs pontos que estao custando contrato pra voces hoje:\n${pontos}\n`;
 
-  // Score context
-  let scoreContext = '';
-  if (score !== null && score !== undefined) {
-    if (score === 0) {
-      scoreContext = 'O site zerou no indice de conversao — significa que o comprador sai sem confiar.\n';
-    } else if (score <= 3) {
-      scoreContext = `O site marcou ${score}/10 no indice de conversao — da pra resolver isso rapido.\n`;
+    let scoreContext = '';
+    if (score !== null && score !== undefined) {
+      if (score === 0) {
+        scoreContext = 'O site zerou no indice de conversao — significa que o comprador sai sem confiar.\n';
+      } else {
+        scoreContext = `O site marcou ${score}/10 no indice de conversao.\n`;
+      }
     }
+
+    const cta = `Montei um relatorio visual com o que eu faria pra transformar isso:\n${linkAnalise}\n\nSe quiser resolver, falo em 15 minutos o que muda.`;
+    return `${abertura}\n${blocoSabotadores}\n${scoreContext}${cta}`;
+  } else {
+    // Não tem site (Caminho B - Sem Site)
+    const aberturas = [
+      `Erick aqui. Dei uma olhada na presenca digital da ${empresa}.`,
+      `Fala! Analisei a presenca online da ${empresa} esta semana.`,
+      `Erick aqui. Passei pela presenca digital da ${empresa} e anotei um ponto importante.`,
+    ];
+    const seed = empresa.charCodeAt(0) % aberturas.length;
+    const abertura = aberturas[seed];
+
+    const mapsContext = mapsInfo 
+      ? `Voces tem uma reputacao forte no Google Maps (${mapsInfo}), mas nao tem um site ativo.\n`
+      : `Voces tem uma reputacao fisica forte, mas nao tem um site ativo hoje.\n`;
+
+    const problema = `Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.\n`;
+    const cta = `Desenhei um prototipo visual de como seria o site ideal de voces:\n${linkAnalise}\n\nSe quiser estruturar isso em poucos dias, me avisa.`;
+    
+    return `${abertura}\n\n${mapsContext}${problema}\n${cta}`;
   }
-
-  const cta = `Montei um relatorio visual com o que eu faria pra transformar isso:\n${linkAnalise}\n\nSe quiser resolver, falo em 15 minutos o que muda.`;
-
-  return `${abertura}\n${blocoSabotadores}\n${scoreContext}${cta}`;
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
@@ -128,9 +146,10 @@ for (const arquivo of arquivos) {
     const siteUrl     = extrairSiteUrl(html);
     const sabotadores = extrairSabotadores(html);
     const score       = extrairScore(html);
+    const mapsInfo    = extrairMapsInfo(html);
     const linkAnalise = `${BASE_URL}${encodeURIComponent(arquivo)}`;
 
-    const copy = gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise });
+    const copy = gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise, mapsInfo });
 
     if (DRY_RUN) {
       console.log(`\n── ${arquivo} ──`);
