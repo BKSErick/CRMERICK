@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   'use strict';
 
   var cfg = window.IG_CONFIG;
@@ -233,9 +233,23 @@
     renderRecommendations(sortedByEngagement);
   }
 
+  var defaultPosts = [
+    { title: 'As 6 telas que todo sistema de prospeccao B2B precisa ter', permalink: '#', format: { klass: 'carrossel', label: 'Carrossel' }, reach: 18400, engagement: 5.4, interactions: 994, saves: 312, timestamp: '2026-07-03T12:00:00Z' },
+    { title: '5 erros que matam sua taxa de conversao', permalink: '#', format: { klass: 'reels', label: 'Reels' }, reach: 24200, engagement: 6.2, interactions: 1500, saves: 420, timestamp: '2026-07-04T12:00:00Z' },
+    { title: 'O Garimpo puxando 200 leads em 5 min', permalink: '#', format: { klass: 'reels', label: 'Reels' }, reach: 19800, engagement: 4.8, interactions: 950, saves: 180, timestamp: '2026-07-05T12:00:00Z' },
+    { title: 'Checklist do outbound inteligente: 5 sinais de ICP quente', permalink: '#', format: { klass: 'estatico', label: 'Estatico' }, reach: 12400, engagement: 3.8, interactions: 471, saves: 98, timestamp: '2026-07-06T12:00:00Z' },
+    { title: 'Antes e depois: manual 20 leads/dia vs maquina 300/dia', permalink: '#', format: { klass: 'carrossel', label: 'Carrossel' }, reach: 22800, engagement: 5.9, interactions: 1345, saves: 412, timestamp: '2026-07-06T14:00:00Z' },
+    { title: 'CEO colando lead no Excel as 23h vs minha maquina rodando', permalink: '#', format: { klass: 'reels', label: 'Reels' }, reach: 15400, engagement: 4.1, interactions: 631, saves: 110, timestamp: '2026-07-07T12:00:00Z' },
+    { title: 'Carrossel salvavel: comenta MAQUINA e eu mando o diagnostico', permalink: '#', format: { klass: 'carrossel', label: 'Carrossel' }, reach: 26500, engagement: 6.8, interactions: 1802, saves: 512, timestamp: '2026-07-08T12:00:00Z' },
+    { title: 'Build in public: configurando o ICP do OStrack no Garimpo', permalink: '#', format: { klass: 'reels', label: 'Reels' }, reach: 17200, engagement: 4.5, interactions: 774, saves: 192, timestamp: '2026-07-09T12:00:00Z' }
+  ];
+
   function start() {
     if (!cfg || !cfg.ACCESS_TOKEN || cfg.ACCESS_TOKEN.indexOf('COLE') === 0) {
-      setStatus('API sem token', '');
+      setStatus('Demo (sem token)', 'warning');
+      renderKpis(defaultPosts);
+      renderTable(defaultPosts.slice(0, 8));
+      renderAnalysis(defaultPosts);
       return;
     }
 
@@ -250,13 +264,13 @@
       renderKpis(items);
       renderTable(items.slice(0, 8));
       renderAnalysis(items);
-      setStatus('Meta Graph ao vivo', '');
+      setStatus('Meta Graph ao vivo', 'success');
     }).catch(function (err) {
       console.error('[Conteudo] falha ao carregar Meta Graph:', err.message);
-      setStatus('Falha na API: ' + err.message, '');
-      if (bodyEl) {
-        bodyEl.innerHTML = '<tr><td colspan="7">Nao foi possivel carregar os dados reais do Instagram agora.</td></tr>';
-      }
+      setStatus('Demo (erro API)', 'warning');
+      renderKpis(defaultPosts);
+      renderTable(defaultPosts.slice(0, 8));
+      renderAnalysis(defaultPosts);
     });
   }
 

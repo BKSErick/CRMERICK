@@ -846,9 +846,17 @@ a { text-decoration: none; color: inherit; }
   .palette { width: calc(100vw - 24px); max-height: 80vh; }
   .palette-search-wrap { padding: 14px 16px; }
   .palette-input { font-size: 15px; }
-  .palette-overlay { padding-top: 8vh; }
-  .topbar-search-btn kbd { display: none; }
-  .topbar-search-btn { padding: 6px 10px; }
+}
+body.iframe-mode .sidebar {
+  display: none !important;
+}
+body.iframe-mode .topbar {
+  display: none !important;
+}
+body.iframe-mode .main {
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  padding: 20px !important;
 }
 </style>
 </head>
