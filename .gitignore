@@ -1,5 +1,6 @@
 # Segredos / credenciais — NUNCA commitar
 js/config.js
+js/supabase-client.js
 .env
 .env.*
 
@@ -9,6 +10,7 @@ js/disparo-data.json
 
 # Node
 node_modules/
+package-lock.json
 
 # OS
 Thumbs.db

@@ -48,6 +48,82 @@
   </style>
   <!-- Carregar Banco de Dados Mockado Centralizado no Escopo Global do Shell -->
   <script src="js/mock-db.js"></script>
+  <!-- Supabase CDN + Client para sincronização assíncrona -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (window.sbGetDeals && window.sbGetContacts) {
+        console.log('[Supabase] Sincronizando dados em tempo real...');
+        try {
+          const [dealsData, contactsData] = await Promise.all([
+            window.sbGetDeals(),
+            window.sbGetContacts()
+          ]);
+          
+          if (dealsData && dealsData.length > 0) {
+            window.deals = dealsData.map(d => ({
+              id: d.id,
+              name: d.name,
+              company: d.company,
+              value: Number(d.value) || 0,
+              prob: Number(d.prob) || 0,
+              stage: d.stage,
+              owner: d.owner,
+              ownerName: d.owner_name,
+              close: d.close_date || '—',
+              tag: d.tag || '—',
+              tagType: d.tag_type || 'chore',
+              ticketId: d.ticket_id,
+              points: d.points || 0,
+              progress: d.progress || 0,
+              assignee: d.assignee,
+              analysisUrl: d.analysis_url,
+              copyText: d.copy_text,
+              siteUrl: d.site_url
+            }));
+            console.log(`[Supabase] ${window.deals.length} deals sincronizados.`);
+          }
+          
+          if (contactsData && contactsData.length > 0) {
+            window.contacts = contactsData.map(c => ({
+              name: c.name,
+              company: c.company,
+              email: c.email || '—',
+              phone: c.phone || '—',
+              whatsapp: c.whatsapp,
+              status: c.status || 'lead',
+              initials: c.initials,
+              owner: c.owner,
+              ownerName: c.owner_name,
+              notes: c.notes
+            }));
+            console.log(`[Supabase] ${window.contacts.length} contatos sincronizados.`);
+          }
+
+          // Atualiza iframes que já foram carregados
+          document.querySelectorAll('.tab-iframe').forEach(iframe => {
+            try {
+              if (iframe.contentWindow) {
+                if (typeof iframe.contentWindow.renderBoard === 'function') {
+                  iframe.contentWindow.deals = window.deals;
+                  iframe.contentWindow.renderBoard();
+                }
+                if (typeof iframe.contentWindow.renderTable === 'function') {
+                  iframe.contentWindow.contacts = window.contacts;
+                  iframe.contentWindow.renderTable(window.contacts);
+                }
+              }
+            } catch (e) {
+              // Previne erros de cross-origin se houver algum iframe externo
+            }
+          });
+        } catch(err) {
+          console.warn('[Supabase] Falha ao sincronizar dados, usando mock-db.js local.', err.message);
+        }
+      }
+    });
+  </script>
 </head>
 <body>
 

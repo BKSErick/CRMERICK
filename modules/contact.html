@@ -1008,19 +1008,48 @@ function saveEditContact() {
   var name = document.getElementById('editName').value.trim();
   var email = document.getElementById('editEmail').value.trim();
   var phone = document.getElementById('editPhone').value.trim();
+  
+  var id = getParam('id');
+  var c = contactsDB.find(function(x) { return x.name === id; });
+  if (!c) return;
+
+  var originalName = c.name;
+
   if (name) {
+    c.name = name;
     document.getElementById('profileName').textContent = name;
     document.getElementById('ovName').textContent = name;
     document.getElementById('pageContactName').textContent = name;
   }
   if (email) {
+    c.email = email;
     document.getElementById('profileEmail').textContent = email;
     document.getElementById('ovEmail').textContent = email;
   }
   if (phone) {
+    c.phone = phone;
     document.getElementById('profilePhone').textContent = phone;
     document.getElementById('ovPhone').textContent = phone;
   }
+  
+  if (window.parent && window.parent.sb) {
+    window.parent.sb.from('contacts')
+      .update({
+        name: c.name,
+        email: c.email,
+        phone: c.phone
+      })
+      .eq('name', originalName)
+      .then(function(res) {
+        console.log('[Supabase] Contato atualizado com sucesso no banco.');
+      });
+  }
+
+  if (name && name !== originalName) {
+    var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?id=' + encodeURIComponent(name);
+    window.history.replaceState({ path: newUrl }, '', newUrl);
+  }
+
   closeEditContactModal();
 }
 function addField() {

@@ -1,1 +1,12 @@
-Oi! Dei uma olhada na Control Tech Automação Industrial e vi que voces ja tem site (https://controltech.ind.br/). Para manutencao industrial, o ponto nao e so ter site: e fazer o comprador bater o olho e confiar antes de pedir orcamento. Montei uma analise rapida com os ajustes que eu faria para transformar o site em prova comercial: [COLE_O_LINK_DA_PAGINA]
+Fala! Analisei o site da Control Tech Automação Industrial essa semana.
+
+Os pontos que estao custando contrato pra voces:
+1. Site existe, mas precisa provar capacidade em segundos
+2. Contato precisa virar caminho de orcamento
+3. Falta transformar reputacao em prova comercial
+
+O site zerou no indice de conversao — significa que o comprador sai sem confiar.
+Montei um relatorio visual com o que eu faria pra transformar isso:
+https://crmerick.vercel.app/huberick-temp/control-tech-automacao-industrial.html
+
+Se quiser resolver, falo em 15 minutos o que muda.

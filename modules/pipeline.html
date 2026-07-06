@@ -3050,6 +3050,10 @@ function onDrop(e) {
   d.stage = targetStage;
   draggedDealId = null;
   renderBoard();
+  
+  if (window.parent && window.parent.sbUpdateDealStage) {
+    window.parent.sbUpdateDealStage(d.id, targetStage);
+  }
 }
 
 /* ---- Filters ---- */
@@ -3157,25 +3161,74 @@ function addDeal() {
   var ownerNames = ['João M.','Carla S.','Pedro A.','Ana L.','Rafael T.'];
   var oi = Math.floor(Math.random() * owners.length);
   var tagTypes = ['feature','bug','design','chore','research'];
-  deals.push({
-    id: newId,
+  
+  var newDealObj = {
     name: name,
     company: company || '—',
     value: val,
     prob: prob,
     stage: currentStage,
     owner: owners[oi],
-    ownerName: ownerNames[oi],
-    close: '—',
+    owner_name: ownerNames[oi],
+    close_date: '—',
     tag: '—',
-    tagType: tagTypes[Math.floor(Math.random() * tagTypes.length)],
-    ticketId: 'NOR-' + (300 + newId),
+    tag_type: tagTypes[Math.floor(Math.random() * tagTypes.length)],
+    ticket_id: 'NOR-' + (300 + newId),
     points: Math.floor(Math.random() * 8) + 1,
     progress: 0,
-    assignee: owners[Math.floor(Math.random() * owners.length)]
-  });
+    assignee: owners[Math.floor(Math.random() * owners.length)],
+    status: 'open'
+  };
+  
+  if (window.parent && window.parent.sbCreateDeal) {
+    window.parent.sbCreateDeal(newDealObj).then(function(inserted) {
+      if (inserted) {
+        var camelDeal = {
+          id: inserted.id,
+          name: inserted.name,
+          company: inserted.company,
+          value: Number(inserted.value) || 0,
+          prob: Number(inserted.prob) || 0,
+          stage: inserted.stage,
+          owner: inserted.owner,
+          ownerName: inserted.owner_name,
+          close: inserted.close_date || '—',
+          tag: inserted.tag || '—',
+          tagType: inserted.tag_type,
+          ticketId: inserted.ticket_id,
+          points: inserted.points,
+          progress: inserted.progress,
+          assignee: inserted.assignee,
+          analysisUrl: inserted.analysis_url,
+          copyText: inserted.copy_text,
+          siteUrl: inserted.site_url
+        };
+        deals.push(camelDeal);
+        renderBoard();
+      }
+    });
+  } else {
+    var camelDeal = {
+      id: newId,
+      name: name,
+      company: company || '—',
+      value: val,
+      prob: prob,
+      stage: currentStage,
+      owner: owners[oi],
+      ownerName: ownerNames[oi],
+      close: '—',
+      tag: '—',
+      tagType: newDealObj.tag_type,
+      ticketId: newDealObj.ticket_id,
+      points: newDealObj.points,
+      progress: 0,
+      assignee: newDealObj.assignee
+    };
+    deals.push(camelDeal);
+    renderBoard();
+  }
   closeAddDealModal();
-  renderBoard();
 }
 
 /* ---- Deal Detail Modal ---- */
@@ -3424,6 +3477,21 @@ function updateDealField(field, value) {
   if (!d) return;
   d[field] = value;
   renderBoard();
+  
+  if (window.parent && window.parent.sbUpdateDeal) {
+    var dbField = field;
+    if (field === 'ownerName') dbField = 'owner_name';
+    else if (field === 'close') dbField = 'close_date';
+    else if (field === 'tagType') dbField = 'tag_type';
+    else if (field === 'ticketId') dbField = 'ticket_id';
+    else if (field === 'analysisUrl') dbField = 'analysis_url';
+    else if (field === 'copyText') dbField = 'copy_text';
+    else if (field === 'siteUrl') dbField = 'site_url';
+    
+    var updates = {};
+    updates[dbField] = value;
+    window.parent.sbUpdateDeal(d.id, updates);
+  }
 }
 
 function bindTitleEdit(d) {

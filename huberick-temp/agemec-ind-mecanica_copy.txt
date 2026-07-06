@@ -1,1 +1,11 @@
-Oi! Vi a pagina de solucoes da Agemec. Voces ja mostram servicos fortes como fresamento, usinagem CNC, torneamento e manutencao industrial, mas a pagina ainda deixa o comprador trabalhar demais para confiar e pedir orcamento. Montei uma analise visual rapida com os pontos que eu ajustaria: [COLE_O_LINK_DA_PAGINA]
+Erick aqui. Passei pelo site da Agemec Ind. Mecanica e anotei alguns pontos.
+
+Os pontos que estao custando contrato pra voces:
+1. Servico forte, mas primeira dobra institucional
+2. CTA de orcamento pouco agressivo
+3. Pouca prova no momento da decisao
+
+Montei um relatorio visual com o que eu faria pra transformar isso:
+https://crmerick.vercel.app/huberick-temp/agemec-ind-mecanica.html
+
+Se quiser resolver, falo em 15 minutos o que muda.

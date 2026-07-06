@@ -1,0 +1,18 @@
+{
+  "name": "crm-erick",
+  "version": "1.0.0",
+  "description": "CRM + Lead ops scripts",
+  "scripts": {
+    "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
+    "copy:regen": "node scripts/regenerate-copies.js",
+    "copy:sync": "node scripts/sync-mock-db-copies.js",
+    "copy:all": "npm run copy:regen && npm run copy:sync",
+    "db:schema": "echo 'Run scripts/supabase-schema.sql no SQL Editor do Supabase'",
+    "db:seed": "node scripts/seed-supabase.js",
+    "leads:import": "node js/import-huberick-leads.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
+    "pg": "^8.22.0"
+  }
+}

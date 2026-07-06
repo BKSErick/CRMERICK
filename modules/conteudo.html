@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
@@ -786,45 +786,52 @@
   <div class="topbar-spacer"></div>
   <button class="topbar-search-btn" onclick="togglePalette()" aria-label="Abrir busca global">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    Buscar
+    Buscar...
     <kbd><span>Ctrl</span>K</kbd>
   </button>
-  <input class="topbar-search" type="search" placeholder="Buscar conteudo" />
+  <input class="topbar-search" type="search" placeholder="Buscar conteudo..." />
+  <button class="topbar-btn primary" type="button">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Novo conteudo
+  </button>
 </header>
+
 <!-- Main -->
 <main class="main">
   <div class="page-header">
     <div class="page-header-left">
       <h1>Conteudo</h1>
-      <div class="subtitle">Calendario editorial real da semana do Erick. Sem performance mock, sem funil fake e sem texto quebrado.</div>
-    </div>
-    <div class="page-header-right">
-      <div class="label">Fonte</div>
-      <div class="value text-violet">Plano editorial</div>
+      <div class="subtitle">Calendario editorial do Erick com cards clicaveis e metricas reais puxadas pela Meta Graph API.</div>
     </div>
   </div>
-  <div class="card" style="margin-bottom:20px">
-    <div class="card-header">
-      <span class="card-title">Diretrizes da semana</span>
-      <span class="card-badge">R$0</span>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Posts publicados</div>
+      <div class="kpi-value" id="contentKpiPublished">--</div>
+      <div class="kpi-trend up">Ultimos posts carregados da API</div>
     </div>
-    <div class="card-body" style="display:grid;gap:10px">
-      <div class="funnel-link-card">
-        <div class="section-subtitle" style="margin:0">Base real do plano</div>
-        <div class="funnel-link-content">Flywheel entre Garimpo, outbound manual e conteudo build in public.</div>
-        <div class="funnel-link-attr">Meta de execucao: 5 posts por semana, 2 a 3 reels por semana e 10 a 20 contatos frios por dia.</div>
-      </div>
-      <div class="funnel-link-card">
-        <div class="section-subtitle" style="margin:0">CTA padrao</div>
-        <div class="funnel-link-content">Comenta MAQUINA que eu mando o diagnostico do gargalo.</div>
-        <div class="funnel-link-attr">Use nos carrosseis salvaveis e nos posts de contraste manual vs maquina.</div>
-      </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Alcance total</div>
+      <div class="kpi-value" id="contentKpiReach">--</div>
+      <div class="kpi-trend up">Soma de alcance dos posts recentes</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Engajamento medio</div>
+      <div class="kpi-value" id="contentKpiEngagement">--</div>
+      <div class="kpi-trend up">Interacoes sobre alcance</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Salvamentos totais</div>
+      <div class="kpi-value" id="contentKpiSaves">--</div>
+      <div class="kpi-trend up">Dado real da Meta Graph API</div>
     </div>
   </div>
+
   <div class="card" style="margin-bottom:28px">
     <div class="card-header">
-      <span class="card-title">Calendario editorial - proximos 7 dias</span>
-      <span class="card-badge">Clique para abrir</span>
+      <span class="card-title">Calendario Editorial - Proximos 7 dias</span>
+      <span class="card-badge">7 dias</span>
     </div>
     <div class="card-body">
       <div class="calendar-scroll">
@@ -833,10 +840,7 @@
           <div class="calendar-day-cards">
             <div class="calendar-post" data-post-title="As 6 telas que todo sistema de prospeccao B2B precisa ter">
               <div class="calendar-post-title">As 6 telas que todo sistema de prospeccao B2B precisa ter</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill carrossel">Carrossel</span>
-                <span class="status-conteudo publicado">Publicado</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill carrossel">Carrossel</span><span class="status-conteudo publicado">Publicado</span></div>
               <div class="calendar-post-stat">Checklist salvavel com CTA de diagnostico</div>
             </div>
           </div>
@@ -846,10 +850,7 @@
           <div class="calendar-day-cards">
             <div class="calendar-post" data-post-title="5 erros que matam sua taxa de conversao">
               <div class="calendar-post-title">5 erros que matam sua taxa de conversao</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill reels">Reels</span>
-                <span class="status-conteudo agendado">Agendado</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill reels">Reels</span><span class="status-conteudo agendado">Agendado</span></div>
               <div class="calendar-post-stat">Video curto com hook forte e contraste operacional</div>
             </div>
           </div>
@@ -859,10 +860,7 @@
           <div class="calendar-day-cards">
             <div class="calendar-post" data-post-title="O Garimpo puxando 200 leads em 5 min">
               <div class="calendar-post-title">O Garimpo puxando 200 leads em 5 min</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill reels">Reels</span>
-                <span class="status-conteudo agendado">Agendado</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill reels">Reels</span><span class="status-conteudo agendado">Agendado</span></div>
               <div class="calendar-post-stat">Screen record da maquina rodando</div>
             </div>
           </div>
@@ -872,18 +870,12 @@
           <div class="calendar-day-cards">
             <div class="calendar-post" data-post-title="Checklist do outbound inteligente: 5 sinais de ICP quente">
               <div class="calendar-post-title">Checklist do outbound inteligente: 5 sinais de ICP quente</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill estatico">Estatico</span>
-                <span class="status-conteudo rascunho">Rascunho</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill estatico">Estatico</span><span class="status-conteudo rascunho">Rascunho</span></div>
               <div class="calendar-post-stat">Post curto para salvar e comentar ICP</div>
             </div>
             <div class="calendar-post" data-post-title="Antes e depois: manual 20 leads/dia vs maquina 300/dia">
               <div class="calendar-post-title">Antes e depois: manual 20 leads/dia vs maquina 300/dia</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill carrossel">Carrossel</span>
-                <span class="status-conteudo rascunho">Rascunho</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill carrossel">Carrossel</span><span class="status-conteudo rascunho">Rascunho</span></div>
               <div class="calendar-post-stat">Contraste numerico real da operacao</div>
             </div>
           </div>
@@ -893,10 +885,7 @@
           <div class="calendar-day-cards">
             <div class="calendar-post" data-post-title="CEO colando lead no Excel as 23h vs minha maquina rodando">
               <div class="calendar-post-title">CEO colando lead no Excel as 23h vs minha maquina rodando</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill reels">Reels</span>
-                <span class="status-conteudo rascunho">Rascunho</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill reels">Reels</span><span class="status-conteudo rascunho">Rascunho</span></div>
               <div class="calendar-post-stat">Trend de contraste manual vs sistema</div>
             </div>
           </div>
@@ -906,10 +895,7 @@
           <div class="calendar-day-cards">
             <div class="calendar-post" data-post-title="Carrossel salvavel: comenta MAQUINA e eu mando o diagnostico">
               <div class="calendar-post-title">Carrossel salvavel: comenta MAQUINA e eu mando o diagnostico</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill carrossel">Carrossel</span>
-                <span class="status-conteudo rascunho">Rascunho</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill carrossel">Carrossel</span><span class="status-conteudo rascunho">Rascunho</span></div>
               <div class="calendar-post-stat">CTA direto para puxar conversa no direct</div>
             </div>
           </div>
@@ -919,14 +905,73 @@
           <div class="calendar-day-cards">
             <div class="calendar-post" data-post-title="Build in public: configurando o ICP do OStrack no Garimpo">
               <div class="calendar-post-title">Build in public: configurando o ICP do OStrack no Garimpo</div>
-              <div class="calendar-post-meta">
-                <span class="format-pill reels">Reels</span>
-                <span class="status-conteudo rascunho">Rascunho</span>
-              </div>
+              <div class="calendar-post-meta"><span class="format-pill reels">Reels</span><span class="status-conteudo rascunho">Rascunho</span></div>
               <div class="calendar-post-stat">Bastidor real de configuracao de ICP</div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Performance de Conteudo</div>
+  <div class="table-wrap" style="margin-bottom:28px">
+    <div style="display:flex;justify-content:flex-end;padding:0 0 12px">
+      <span class="card-badge" id="contentDataStatus">Aguardando API</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Post</th><th>Formato</th><th>Alcance</th><th>Engajamento</th><th>Interacoes</th><th>Salvamentos</th><th>Data</th></tr>
+      </thead>
+      <tbody id="contentPerformanceBody">
+        <tr><td colspan="7">Carregando dados reais do Instagram...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Conteudo x Funil</div>
+  <div class="section-subtitle">Quais conteudos estao gerando impacto em cada etapa da jornada</div>
+  <div class="funnel-link-section" style="margin-bottom:28px">
+    <div class="funnel-link-card">
+      <div class="funnel-link-stage" style="color:var(--color-signal-blue)">Topo de Funil - Atracao</div>
+      <div id="contentFunnelTop">
+        <div class="funnel-link-attr">Carregando classificacao...</div>
+      </div>
+    </div>
+    <div class="funnel-link-card">
+      <div class="funnel-link-stage" style="color:var(--color-brand-violet)">Meio de Funil - Consideracao</div>
+      <div id="contentFunnelMiddle">
+        <div class="funnel-link-attr">Carregando classificacao...</div>
+      </div>
+    </div>
+    <div class="funnel-link-card">
+      <div class="funnel-link-stage" style="color:var(--color-success)">Fundo de Funil - Decisao</div>
+      <div id="contentFunnelBottom">
+        <div class="funnel-link-attr">Carregando classificacao...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Insights e Recomendacoes</div>
+  <div class="grid-2col" style="margin-bottom:0">
+    <div class="insight-card top">
+      <div class="insight-label">Top performance</div>
+      <div id="contentTopInsights">
+        <div class="insight-item"><span class="insight-item-name">Carregando...</span><span class="insight-item-value">--</span></div>
+      </div>
+      <div id="contentTopInsightNote" style="margin-top:10px;font-size:12px;font-family:var(--font-inter);color:var(--color-success);"></div>
+    </div>
+    <div class="insight-card worst">
+      <div class="insight-label">Menor performance</div>
+      <div id="contentWorstInsights">
+        <div class="insight-item"><span class="insight-item-name">Carregando...</span><span class="insight-item-value">--</span></div>
+      </div>
+      <div id="contentWorstInsightNote" style="margin-top:10px;font-size:12px;font-family:var(--font-inter);color:var(--color-danger);"></div>
+    </div>
+    <div class="insight-card recommend" style="grid-column:1/-1">
+      <div class="insight-label">Recomendacoes</div>
+      <div id="contentRecommendations">
+        <div class="recommend-item" style="border-bottom:none"><span>Carregando recomendacoes...</span></div>
       </div>
     </div>
   </div>
@@ -966,12 +1011,12 @@ document.addEventListener('click', function (e) {
   var contentByTitle = {
     'As 6 telas que todo sistema de prospeccao B2B precisa ter': '03 jul - Carrossel\n\nGancho:\nSe a tua prospeccao depende de planilha, WhatsApp solto e memoria do time, ela ja nasceu travada.\n\nSlides:\n1. ICP claro para nao falar com qualquer empresa.\n2. Extracao para gerar lead sem lista comprada.\n3. Scoring para separar quente de curioso.\n4. Mensagem inicial personalizada.\n5. Quebra de objecao para nao morrer no primeiro nao.\n6. Kanban com follow-up sem perder lead.\n\nCTA:\nComenta MAQUINA para pedir o diagnostico.',
     '5 erros que matam sua taxa de conversao': '04 jul - Reels\n\nHook:\nSe voce fala com lead todo dia e mesmo assim nao fecha, provavelmente esta cometendo um desses 5 erros.\n\nPontos:\n1. Falar com qualquer empresa.\n2. Abrir com pitch generico.\n3. Nao fazer follow-up com cadencia.\n4. Tentar vender antes de diagnosticar.\n5. Rodar tudo no manual.\n\nCTA:\nSalva esse video antes da proxima reuniao comercial.',
-    'O Garimpo puxando 200 leads em 5 min': '05 jul - Reels\n\nAbrir com screen-record do Garimpo rodando.\n\nNarracao:\nEnquanto muita empresa ainda esta cacando lead no dedo, eu prefiro montar uma maquina que extrai, qualifica e prepara o primeiro toque sem travar a operacao.\n\nFecho:\nIsso aqui nao e sobre volume vazio. E sobre chegar mais rapido nos ICPs certos.\n\nCTA:\nManda MAQUINA no direct que eu te mostro o fluxo.',
-    'Checklist do outbound inteligente: 5 sinais de ICP quente': '06 jul - Estatico\n\nTopicos:\n- A empresa tem operacao complexa.\n- O processo comercial ainda depende de humano demais.\n- A presenca digital e fraca, mas o negocio e real.\n- Existe gargalo claro entre lead e follow-up.\n- O decisor sente o custo do improviso.\n\nFecho:\nSe marcou 3 ou mais, provavelmente tem ouro comercial ai.\n\nCTA:\nComenta ICP que eu te mando a versao completa.',
+    'O Garimpo puxando 200 leads em 5 min': '05 jul - Reels\n\nAbrir com screen-record do Garimpo rodando.\n\nNarracao:\nEnquanto muita empresa ainda esta cacando lead no dedo, eu prefiro montar uma maquina que extrai, qualifica e prepara o primeiro toque sem travar a operacao.\n\nCTA:\nManda MAQUINA no direct que eu te mostro o fluxo.',
+    'Checklist do outbound inteligente: 5 sinais de ICP quente': '06 jul - Estatico\n\nTopicos:\n- A empresa tem operacao complexa.\n- O processo comercial ainda depende de humano demais.\n- A presenca digital e fraca, mas o negocio e real.\n- Existe gargalo claro entre lead e follow-up.\n- O decisor sente o custo do improviso.\n\nCTA:\nComenta ICP que eu te mando a versao completa.',
     'Antes e depois: manual 20 leads/dia vs maquina 300/dia': '06 jul - Carrossel\n\nEstrutura:\n1. Antes: lista fria, copia e cola e follow-up quebrado.\n2. Depois: lead extraido, qualificado e organizado em fluxo.\n3. Antes: 20 leads por dia com desgaste total.\n4. Depois: ate 300 leads por dia com criterio.\n5. Moral: nao e trabalhar mais. E tirar o humano de onde ele nao deveria estar.\n\nCTA:\nComenta MAQUINA e eu te mando o diagnostico do gargalo.',
-    'CEO colando lead no Excel as 23h vs minha maquina rodando': '07 jul - Reels\n\nTrend de contraste.\n\nCena 1:\nEmpresario colando lead, esquecendo follow-up e chamando isso de operacao.\n\nCena 2:\nDashboard rodando, lead priorizado e proximo passo definido.\n\nPunchline:\nO problema nao e falta de esforco. E insistir em operar 2026 com ferramenta de 2012.\n\nCTA:\nEnvia para o amigo que ainda chama gambiarra de processo.',
+    'CEO colando lead no Excel as 23h vs minha maquina rodando': '07 jul - Reels\n\nTrend de contraste.\n\nCena 1:\nEmpresario colando lead, esquecendo follow-up e chamando isso de operacao.\n\nCena 2:\nDashboard rodando, lead priorizado e proximo passo definido.\n\nCTA:\nEnvia para o amigo que ainda chama gambiarra de processo.',
     'Carrossel salvavel: comenta MAQUINA e eu mando o diagnostico': '08 jul - Carrossel\n\nCopy:\nSe a tua prospeccao depende de memoria, planilha e boa vontade do time, voce nao tem previsibilidade.\n\nEu montei um diagnostico simples para mostrar onde a tua maquina comercial esta travando hoje.\n\nCTA:\nComenta MAQUINA que eu te mando no direct.',
-    'Build in public: configurando o ICP do OStrack no Garimpo': '09 jul - Reels\n\nAbrir a tela real do sistema.\n\nNarracao:\nToda automacao boa comeca antes da automacao. Comeca na clareza de quem vale abordar.\n\nHoje eu estou travando o ICP do OStrack no Garimpo para o sistema parar de falar com curioso e focar em operacao com dor real.\n\nFecho:\nAutomacao sem criterio so acelera lixo.\n\nCTA:\nSalva para usar quando for travar o teu ICP.'
+    'Build in public: configurando o ICP do OStrack no Garimpo': '09 jul - Reels\n\nAbrir a tela real do sistema.\n\nNarracao:\nToda automacao boa comeca antes da automacao. Comeca na clareza de quem vale abordar.\n\nHoje eu estou travando o ICP do OStrack no Garimpo para o sistema parar de falar com curioso e focar em operacao com dor real.\n\nCTA:\nSalva para usar quando for travar o teu ICP.'
   };
   var overlay = document.getElementById('contentModalOverlay');
   var title = document.getElementById('contentModalTitle');
@@ -984,9 +1029,7 @@ document.addEventListener('click', function (e) {
     if (!toast) return;
     toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function() {
-      toast.classList.remove('show');
-    }, 1400);
+    toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 1400);
   }
   function copyCurrent() {
     var value = text ? text.value : '';
@@ -1021,19 +1064,12 @@ document.addEventListener('click', function (e) {
   });
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
   if (copyBtn) copyBtn.addEventListener('click', copyCurrent);
-  if (overlay) {
-    overlay.addEventListener('click', function(event) {
-      if (event.target === overlay) closeModal();
-    });
-  }
-  document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape' && overlay && overlay.classList.contains('open')) {
-      closeModal();
-    }
-  });
+  if (overlay) overlay.addEventListener('click', function(event) { if (event.target === overlay) closeModal(); });
+  document.addEventListener('keydown', function(event) { if (event.key === 'Escape' && overlay && overlay.classList.contains('open')) closeModal(); });
 })();
 </script>
-
+<script src="../js/config.js?v=20260704"></script>
+<script src="../js/conteudo-live.js?v=20260704"></script>
 <!-- Palette overlay -->
 <div class="palette-overlay" id="paletteOverlay" onclick="closePaletteOutside(event)">
   <div class="palette" id="paletteModal">
@@ -1168,5 +1204,6 @@ document.addEventListener('click', function (e) {
 </script>
 </body>
 </html>
+
 
 

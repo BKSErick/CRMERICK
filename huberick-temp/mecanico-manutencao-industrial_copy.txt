@@ -1,1 +1,11 @@
-Oi! Dei uma olhada na Mecânico manutenção industrial e vi que voces ja tem site (https://br.indeed.com/q-mec%C3%A2nico-manuten%C3%A7%C3%A3o-industrial-l-belo-horizonte,-mg-vagas.html). Para manutenção industrial, o ponto nao e so ter site: e fazer o comprador bater o olho e confiar antes de pedir orcamento. Montei uma analise rapida com os ajustes que eu faria para transformar o site em prova comercial: [COLE_O_LINK_DA_PAGINA]
+Erick aqui. Passei pelo site da Mecânico manutenção industrial e anotei alguns pontos.
+
+Os pontos que estao custando contrato pra voces:
+1. Site existe, mas precisa provar capacidade em segundos
+2. Contato precisa virar caminho de orcamento
+3. Falta transformar reputacao em prova comercial
+
+Montei um relatorio visual com o que eu faria pra transformar isso:
+https://crmerick.vercel.app/huberick-temp/mecanico-manutencao-industrial.html
+
+Se quiser resolver, falo em 15 minutos o que muda.

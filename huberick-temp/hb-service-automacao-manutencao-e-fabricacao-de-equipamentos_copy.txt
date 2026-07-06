@@ -1,1 +1,11 @@
-Oi! Dei uma olhada na HB Service Automação - Manutenção e Fabricação de Equipamentos Hidráulicos e Pneumáticos e vi que voces ja tem site (http://hbservices.com.br/). Para manutenção industrial, o ponto nao e so ter site: e fazer o comprador bater o olho e confiar antes de pedir orcamento. Montei uma analise rapida com os ajustes que eu faria para transformar o site em prova comercial: [COLE_O_LINK_DA_PAGINA]
+Erick aqui — dei uma olhada no site da HB Service Automação - Manutenção e Fabricação de Equipamentos Hidráulicos e Pneumáticos.
+
+Os pontos que estao custando contrato pra voces:
+1. Site existe, mas precisa provar capacidade em segundos
+2. Contato precisa virar caminho de orcamento
+3. Falta transformar reputacao em prova comercial
+
+Montei um relatorio visual com o que eu faria pra transformar isso:
+https://crmerick.vercel.app/huberick-temp/hb-service-automacao-manutencao-e-fabricacao-de-equipamentos.html
+
+Se quiser resolver, falo em 15 minutos o que muda.

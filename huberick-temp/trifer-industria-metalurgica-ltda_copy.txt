@@ -1,1 +1,12 @@
-Oi! Dei uma olhada na Trifer Indústria Metalúrgica Ltda e vi que voces ja tem site (http://www.trifer.com.br/). Para metalurgica, o ponto nao e so ter site: e fazer o comprador bater o olho e confiar antes de pedir orcamento. Montei uma analise rapida com os ajustes que eu faria para transformar o site em prova comercial: [COLE_O_LINK_DA_PAGINA]
+Erick aqui — dei uma olhada no site da Trifer Indústria Metalúrgica Ltda.
+
+Os pontos que estao custando contrato pra voces:
+1. Site existe, mas precisa provar capacidade em segundos
+2. Contato precisa virar caminho de orcamento
+3. Falta transformar reputacao em prova comercial
+
+O site zerou no indice de conversao — significa que o comprador sai sem confiar.
+Montei um relatorio visual com o que eu faria pra transformar isso:
+https://crmerick.vercel.app/huberick-temp/trifer-industria-metalurgica-ltda.html
+
+Se quiser resolver, falo em 15 minutos o que muda.

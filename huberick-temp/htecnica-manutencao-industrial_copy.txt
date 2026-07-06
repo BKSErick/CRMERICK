@@ -1,1 +1,11 @@
-Oi! Dei uma olhada na Htécnica Manutenção Industrial e vi que voces ja tem site (https://htecnica.ind.br/). Para Manutenção Industrial, o ponto nao e so ter site: e fazer o comprador bater o olho e confiar antes de pedir orcamento. Montei uma analise rapida com os ajustes que eu faria para transformar o site em prova comercial: [COLE_O_LINK_DA_PAGINA]
+Erick aqui — dei uma olhada no site da Htécnica Manutenção Industrial.
+
+Os pontos que estao custando contrato pra voces:
+1. Site existe, mas precisa provar capacidade em segundos
+2. Contato precisa virar caminho de orcamento
+3. Falta transformar reputacao em prova comercial
+
+Montei um relatorio visual com o que eu faria pra transformar isso:
+https://crmerick.vercel.app/huberick-temp/htecnica-manutencao-industrial.html
+
+Se quiser resolver, falo em 15 minutos o que muda.
