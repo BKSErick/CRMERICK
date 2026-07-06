@@ -23,7 +23,6 @@ type PixelState = {
 };
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
-const fallbackReach = 942;
 
 const stageLabels: Record<DealStage, string> = {
   prospect: "Prospect",
@@ -155,15 +154,17 @@ export default function FunilPage() {
     const proposals = count(["proposal", "negotiation", "won"]);
     const conversations = count(["qualified", "proposal", "negotiation", "won"]);
     const leads = deals.length;
-    const instagramReach = instagram.reach ?? Math.max(fallbackReach, leads * 80);
-    const instagramClicks = Math.max(Math.round(leads * 2.5), leads);
     const pixelViews = pixel.metrics.views;
     const pixelClicks = pixel.metrics.ctaClicks + pixel.metrics.reportClicks;
+    // Sinais REAIS apenas: alcance do Instagram (Graph API) e cliques do Pixel/CAPI.
+    // Removida a fabricacao antiga (fallbackReach 942, leads*80, leads*2.5).
+    const instagramReach = instagram.reach ?? 0;
+    const instagramClicks = pixelClicks;
 
     const sourceMetrics = {
       consolidado: {
-        reach: Math.max(instagramReach, pixelViews, leads),
-        clicks: Math.max(instagramClicks, pixelClicks, leads),
+        reach: Math.max(instagramReach, pixelViews),
+        clicks: pixelClicks,
         leads,
         conversations,
         proposals,

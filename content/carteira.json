@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-07-06T23:13:22.840Z",
+  "source": "curado (Erick) + vault Clientes/*",
+  "count": 4,
+  "items": [
+    {
+      "name": "Metalthec",
+      "type": "Serviço",
+      "description": "Ficha do cliente METALTHEC — fabricação e manutenção industrial (João Monlevade-MG). Dados conferidos no portfólio oficial. Origem do SaaS OStrack.",
+      "status": "Ativo"
+    },
+    {
+      "name": "Jotta Manutenções",
+      "type": "Serviço",
+      "description": "Ficha completa do cliente Jotta Manutenções — manutenção industrial, página (book), contatos, KPIs e briefing.",
+      "status": "Ativo"
+    },
+    {
+      "name": "OStrack",
+      "type": "SaaS próprio",
+      "description": "SaaS de gestão de ordens de serviço para recuperadora industrial (ativo do Erick).",
+      "status": "Ativo"
+    },
+    {
+      "name": "Ideia Hub",
+      "type": "Agência (prestador)",
+      "description": "Agência de marketing onde Erick atua como prestador de serviços (arquitetura/sistemas).",
+      "status": "Ativo"
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+{
+  "generatedAt": "2026-07-06T23:13:22.812Z",
+  "source": "vault: SaaS/CRM ERICK/Erick Sena/copies_instagram.md",
+  "counts": {
+    "total": 27,
+    "posts": 18,
+    "stories": 9
+  },
+  "items": [
+    {
+      "n": 1,
+      "type": "Post",
+      "title": "O Manifesto (A Máquina dos Bastidores)",
+      "hook": "Eu passei anos nos bastidores. Por escolha. É lá que o motor real é construído.",
+      "excerpt": "Enquanto a maioria dos donos de negócios focava no palco e em aparecer, eu estava focado em desenhar processos, criar automações e fazer a engrenagem de grandes plataformas B2B rod",
+      "status": "Planejado"
+    },
+    {
+      "n": 2,
+      "type": "Post",
+      "title": "O Sarcasmo do Hacker (Planilhas são uma Piada)",
+      "hook": "Engraçado você se chamar de CEO e passar 4 horas do dia colando dados em Excel.",
+      "excerpt": "Muitos donos de negócios adoram a pose de \"produtividade\". Lotam a agenda de reuniões, compram ferramentas caras e mantêm funcionários caros copiando leads manualmente de um lado p",
+      "status": "Planejado"
+    },
+    {
+      "n": 3,
+      "type": "Post",
+      "title": "A Definição de Ativo (Por que criei o OsTrack)",
+      "hook": "O negócio que depende de você para funcionar não é um ativo. É um emprego.",
+      "excerpt": "Eu crio sistemas e automações para os outros, mas a maior regra de negócios que aprendi é: o Criador precisa ter seus próprios ativos.",
+      "status": "Planejado"
+    },
+    {
+      "n": 4,
+      "type": "Post",
+      "title": "O Custo da Inércia Operacional (Escalar sem Contratar)",
+      "hook": "Escalar não significa contratar mais funcionários. Significa construir sistemas melhores.",
+      "excerpt": "A mentalidade tradicional de negócios diz que para crescer você precisa de mais pessoas. Mais gerentes, mais suporte, mais braços digitando dados.",
+      "status": "Planejado"
+    },
+    {
+      "n": 5,
+      "type": "Post",
+      "title": "A Ilusão da Prospecção (Antiprospecção e Autoridade)",
+      "hook": "Se você precisa implorar por clientes, o seu posicionamento já nasceu quebrado.",
+      "excerpt": "Eu vejo o desespero de empresários e agências entupindo o direct de estranhos com prospecção ativa fria e mensagens genéricas que ninguém lê.",
+      "status": "Planejado"
+    },
+    {
+      "n": 6,
+      "type": "Post",
+      "title": "A Soberania do Criador (Produtos vs. Serviço)",
+      "hook": "Quem vende horas trabalha para o relógio. Quem cria sistemas faz o relógio trabalhar para si.",
+      "excerpt": "A maioria dos prestadores de serviço comuns está presa na gaiola de ouro: trocam tempo por dinheiro. Se não estão trabalhando no teclado, o faturamento é zero.",
+      "status": "Planejado"
+    },
+    {
+      "n": 7,
+      "type": "Post",
+      "title": "O Dono Refém do ClickUp (A Falsa Liderança)",
+      "hook": "Líderes de verdade gerenciam números, não tarefas manuais.",
+      "excerpt": "Muitos empresários acreditam que \"gerenciar\" é passar o dia cobrando funcionários no ClickUp ou conferindo se a tarefa foi feita.",
+      "status": "Planejado"
+    },
+    {
+      "n": 8,
+      "type": "Post",
+      "title": "O Estilo de Vida de quem tem Ativos (Liberdade de Nuvem)",
+      "hook": "A verdadeira liberdade é quando a sua infraestrutura lucra mais que o seu esforço.",
+      "excerpt": "A maioria dos prestadores de serviço comuns está cansada porque a sua receita é proporcional às horas de digitação. Se eles param por uma semana, a receita cai para zero.",
+      "status": "Planejado"
+    },
+    {
+      "n": 9,
+      "type": "Post",
+      "title": "O Fim da Página Institucional (Máquinas de Atração)",
+      "hook": "Seu site institucional de R$ 1.000 é um túmulo digital. Ele não vende.",
+      "excerpt": "A maioria das empresas tradicionais gasta fortunas com agências para fazer sites bonitinhos com a página \"Quem Somos\" e um formulário que ninguém preenche.",
+      "status": "Planejado"
+    },
+    {
+      "n": 10,
+      "type": "Post",
+      "title": "O Mito do Suporte 100% Humano (Escala Inteligente)",
+      "hook": "Seu suporte é lento porque você insiste em depender da digitação manual humana.",
+      "excerpt": "Empresários dizem que fazem questão de ter suporte \"humanizado\" para justificar o atraso de 4 horas para responder uma dúvida simples de um cliente.",
+      "status": "Planejado"
+    },
+    {
+      "n": 11,
+      "type": "Post",
+      "title": "Faturamento vs. Margem de Lucro (A Piada dos Milhões)",
+      "hook": "Faturamento é vaidade. Lucro é sanidade. Fluxo de caixa é realidade.",
+      "excerpt": "O mercado digital adora ostentar prints de faturamentos brutos gigantescos de 7 dígitos.",
+      "status": "Planejado"
+    },
+    {
+      "n": 12,
+      "type": "Post",
+      "title": "A Lei da Seleção Natural nos Negócios (Complacência Tecnológica)",
+      "hook": "Sua empresa tradicional não vai falir por falta de mercado. Vai falir por complacência operacional.",
+      "excerpt": "Muitas empresas consolidadas acreditam que estão seguras porque têm 10 anos de mercado e clientes fiéis.",
+      "status": "Planejado"
+    },
+    {
+      "n": 13,
+      "type": "Post",
+      "title": "O Arquiteto vs. O Programador de Código (Diferença de Valor)",
+      "hook": "O programador escreve código. O Arquiteto desenha o futuro do seu negócio.",
+      "excerpt": "Se você contrata um programador para fazer um site ou sistema sem uma visão estratégica de processos, você está jogando dinheiro no lixo.",
+      "status": "Planejado"
+    },
+    {
+      "n": 14,
+      "type": "Post",
+      "title": "A Ilusão da \"Falsa Escala\" em Vendas",
+      "hook": "Colocar tráfego em um funil ineficiente é o jeito mais rápido de queimar caixa.",
+      "excerpt": "Empresários acreditam que para vender mais basta colocar R$ 20k a mais em anúncios de tráfego pago.",
+      "status": "Planejado"
+    },
+    {
+      "n": 15,
+      "type": "Post",
+      "title": "Por que eu Licencio e não Alugo meu Tempo (A Escada de Ativos)",
+      "hook": "Alugar tempo gera receita. Licenciar sistemas gera equity.",
+      "excerpt": "Se eu ficasse preso a consultorias por hora, eu estaria limitando meu próprio crescimento ao relógio.",
+      "status": "Planejado"
+    },
+    {
+      "n": 16,
+      "type": "Post",
+      "title": "O Manifesto Final (A Escolha da Soberania)",
+      "hook": "A complacência operacional é a decisão consciente de encolher.",
+      "excerpt": "Passamos os últimos dois meses falando sobre escala, sistemas operacionais inteligentes e a ineficiência de planilhas e processos manuais.",
+      "status": "Planejado"
+    },
+    {
+      "n": 17,
+      "type": "Post",
+      "title": "O Fim do \"Empresário Torcedor\"",
+      "hook": "POR QUE VOCÊ GERENCIA SUA EMPRESA COMO UM TORCEDOR NA ARQUIBANCADA?",
+      "excerpt": "Futebol é sobre sentar na arquibancada, cruzar os dedos e rezar para o resultado vir. O problema é que 90% dos empresários gerenciam suas empresas exatamente com a mesma mentalidad",
+      "status": "Planejado"
+    },
+    {
+      "n": 18,
+      "type": "Post",
+      "title": "O Roubo Passivo de Leads",
+      "hook": "MÊS DE COPA É O MÊS MAIS FÁCIL PARA DEVORAR OS CLIENTES DO SEU CONCORRENTE.",
+      "excerpt": "Sabe o que acontece quando um cliente manda mensagem para a sua empresa bem no meio do jogo do Brasil?",
+      "status": "Planejado"
+    },
+    {
+      "n": 1,
+      "type": "Story",
+      "title": "O Gancho (A Provocação Irônica)",
+      "hook": "",
+      "excerpt": "\"Tem empresário que confunde trabalhar muito com ter um negócio inteligente.\"",
+      "status": "Planejado"
+    },
+    {
+      "n": 1,
+      "type": "Story",
+      "title": "O Gancho (A Planilha Mediocre)",
+      "hook": "",
+      "excerpt": "\"O concorrente (SmartQuestion) cobra caro para te cuspir isso aqui:",
+      "status": "Planejado"
+    },
+    {
+      "n": 2,
+      "type": "Story",
+      "title": "Expondo a Ilusão (O Truth-Teller)",
+      "hook": "",
+      "excerpt": "\"Sua planilha de Excel de 2024 não é um sinal de controle. É um atestado de que você é o funcionário mais caro da sua própria empresa.\"",
+      "status": "Planejado"
+    },
+    {
+      "n": 2,
+      "type": "Story",
+      "title": "O Duelo de Interface (A Experiência do OsTrack)",
+      "hook": "",
+      "excerpt": "\"Isso aqui é o OsTrack.",
+      "status": "Planejado"
+    },
+    {
+      "n": 3,
+      "type": "Story",
+      "title": "O Mecanismo Único (A Solução do Arquiteto)",
+      "hook": "",
+      "excerpt": "\"Enquanto você passa raiva gerenciando pessoas para fazer trabalho braçal...",
+      "status": "Planejado"
+    },
+    {
+      "n": 3,
+      "type": "Story",
+      "title": "O Truth-Teller (Ironizando o Ego)",
+      "hook": "",
+      "excerpt": "\"A maioria dos desenvolvedores e agências comuns ama a complexidade porque ela justifica a hora cobrada.",
+      "status": "Planejado"
+    },
+    {
+      "n": 4,
+      "type": "Story",
+      "title": "A Prova de Ativo (Autoridade do Criador)",
+      "hook": "",
+      "excerpt": "\"Eu não vendo teoria. Eu crio meus próprios ativos.",
+      "status": "Planejado"
+    },
+    {
+      "n": 4,
+      "type": "Story",
+      "title": "A CTA do Diagnóstico (O Filtro Final)",
+      "hook": "",
+      "excerpt": "\"Quer que eu analise a sua operação e te mostre onde você está perdendo margem por excesso de planilhas manuais?",
+      "status": "Planejado"
+    },
+    {
+      "n": 5,
+      "type": "Story",
+      "title": "A Chamada Soberana (Tensão Competitiva / CTA)",
+      "hook": "",
+      "excerpt": "\"Eu tenho espaço para estruturar a arquitetura de apenas 2 operações este mês.",
+      "status": "Planejado"
+    }
+  ]
+}
