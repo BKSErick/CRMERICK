@@ -11,6 +11,10 @@ type InstagramMedia = {
   timestamp?: string;
   like_count?: number;
   comments_count?: number;
+  reach?: number;
+  saved?: number;
+  shares?: number;
+  total_interactions?: number;
 };
 
 type InstagramPayload = {
@@ -24,7 +28,7 @@ type InstagramPayload = {
     mediaCount?: number;
     profilePictureUrl?: string;
   };
-  metrics?: { reach30?: number };
+  metrics?: { reach30?: number; views30?: number; interactions30?: number };
   media?: InstagramMedia[];
   error?: string;
 };
@@ -67,12 +71,12 @@ export default function InstagramPage() {
   }, []);
 
   const media = useMemo(() => payload?.media ?? [], [payload?.media]);
-  const totalInteractions = media.reduce((sum, item) => sum + (item.like_count ?? 0) + (item.comments_count ?? 0), 0);
   const reach = payload?.metrics?.reach30 ?? 0;
+  const totalInteractions = payload?.metrics?.interactions30 ?? media.reduce((sum, item) => sum + (item.like_count ?? 0) + (item.comments_count ?? 0), 0);
   const engagement = reach > 0 ? (totalInteractions / reach) * 100 : 0;
 
   const rankedMedia = useMemo(
-    () => [...media].sort((a, b) => (b.like_count ?? 0) + (b.comments_count ?? 0) - ((a.like_count ?? 0) + (a.comments_count ?? 0))),
+    () => [...media].sort((a, b) => (b.reach ?? 0) - (a.reach ?? 0)),
     [media],
   );
 
@@ -139,6 +143,7 @@ export default function InstagramPage() {
             <tr>
               <th>Post</th>
               <th>Tipo</th>
+              <th>Alcance</th>
               <th>Likes</th>
               <th>Comentarios</th>
               <th>Data</th>
@@ -150,6 +155,7 @@ export default function InstagramPage() {
                 <tr key={item.id}>
                   <td>{firstLine(item.caption)}</td>
                   <td>{item.media_product_type ?? item.media_type ?? "MEDIA"}</td>
+                  <td>{numberFormatter.format(item.reach ?? 0)}</td>
                   <td>{numberFormatter.format(item.like_count ?? 0)}</td>
                   <td>{numberFormatter.format(item.comments_count ?? 0)}</td>
                   <td>{item.timestamp ? new Date(item.timestamp).toLocaleDateString("pt-BR") : "--"}</td>
@@ -157,7 +163,7 @@ export default function InstagramPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={5}>Sem midias reais carregadas. Configure as credenciais em Configuracoes.</td>
+                <td colSpan={6}>Sem midias reais carregadas. Configure as credenciais em Configuracoes.</td>
               </tr>
             )}
           </tbody>
