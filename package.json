@@ -3,17 +3,36 @@
   "version": "1.0.0",
   "description": "CRM + Lead ops scripts",
   "scripts": {
-    "build": "node scripts/build.js",
+    "dev": "node scripts/build.js && next dev",
+    "build": "node scripts/build.js && next build",
+    "start": "next start",
+    "lint": "eslint",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",
     "copy:all": "npm run copy:regen && npm run copy:sync",
+    "disparo:audit": "node scripts/audit-disparo-readiness.js",
+    "disparo:audit:csv": "node scripts/audit-disparo-readiness.js --csv",
     "db:schema": "echo 'Run scripts/supabase-schema.sql no SQL Editor do Supabase'",
     "db:seed": "node scripts/seed-supabase.js",
     "leads:import": "node js/import-huberick-leads.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
-    "pg": "^8.22.0"
+    "next": "16.2.10",
+    "pg": "^8.22.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

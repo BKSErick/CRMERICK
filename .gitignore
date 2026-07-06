@@ -3,14 +3,21 @@ js/config.js
 js/supabase-client.js
 .env
 .env.*
+!.env.example
 
 # Dados de leads (telefones reais do banco Garimpo) — não commitar
 js/garimpo-leads.json
 js/disparo-data.json
+public/huberick-temp/
 
 # Node
 node_modules/
 package-lock.json
+.next/
+tsconfig.tsbuildinfo
+
+# Scaffold Next.js temporário (lixo de migração)
+tmp-next-app/
 
 # OS
 Thumbs.db

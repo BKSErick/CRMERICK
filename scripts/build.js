@@ -93,8 +93,8 @@ window.sbDeleteContact = async function(id) {
 fs.writeFileSync(path.join(__dirname, '../js/supabase-client.js'), supabaseClientContent);
 console.log('[Build] js/supabase-client.js gerado com sucesso.');
 
-// 2. Gerar js/config.js
-const igToken = process.env.IG_ACCESS_TOKEN || 'EAALhSGnHbLEBR6gAHLIrdzQe6mBWETxcC4KnWE1iApzTBZAWQOCufTJVaW63ZCd2vzsr9IXSZANszEw5ZCSJqnB6ZA4tOSuLOv87ZBzhKXHjF987rv234byeCykKeiLm2oJybw2M5rAdh43ioFZADT8J1z39Ah2OCfdl3Esu3ZAESCinlK8JDwlTtQYXe0vyr3QmjZCLC278ZD';
+// 2. Gerar js/config.js para o legado sem embutir token real no bundle publico.
+const igToken = process.env.IG_ACCESS_TOKEN || '';
 const igAccountId = process.env.IG_BUSINESS_ACCOUNT_ID || '17841444737911156';
 
 const configContent = `/* =============================================================================
@@ -110,3 +110,36 @@ window.IG_CONFIG = {
 
 fs.writeFileSync(path.join(__dirname, '../js/config.js'), configContent);
 console.log('[Build] js/config.js gerado com sucesso.');
+
+// 3. Copiar paginas de diagnostico para public/ e injetar tracking de Pixel/CAPI.
+const diagnosticsSourceDir = path.join(__dirname, '../huberick-temp');
+const diagnosticsTargetDir = path.join(__dirname, '../public/huberick-temp');
+const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || process.env.FACEBOOK_PIXEL_ID || process.env.META_DATASET_ID || '1175331711422463';
+const metaPixelSnippet = metaPixelId
+  ? `<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${metaPixelId}');fbq('track','PageView');</script>`
+  : '';
+const trackingSnippet = `${metaPixelSnippet}<script src="/diagnostico-pixel.js" defer></script>`;
+
+function copyDiagnosticsWithTracking() {
+  if (!fs.existsSync(diagnosticsSourceDir)) return;
+  fs.mkdirSync(diagnosticsTargetDir, { recursive: true });
+  const files = fs.readdirSync(diagnosticsSourceDir).filter((file) => file.endsWith('.html'));
+
+  for (const file of files) {
+    const source = path.join(diagnosticsSourceDir, file);
+    const target = path.join(diagnosticsTargetDir, file);
+    let html = fs.readFileSync(source, 'utf8');
+
+    if (!html.includes('/diagnostico-pixel.js')) {
+      html = html.includes('</head>')
+        ? html.replace('</head>', `${trackingSnippet}</head>`)
+        : `${trackingSnippet}\n${html}`;
+    }
+
+    fs.writeFileSync(target, html, 'utf8');
+  }
+
+  console.log(`[Build] ${files.length} paginas de diagnostico copiadas para public/huberick-temp com tracking.`);
+}
+
+copyDiagnosticsWithTracking();
