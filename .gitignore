@@ -1,13 +1,12 @@
 # Segredos / credenciais — NUNCA commitar
-js/config.js
-js/supabase-client.js
 .env
 .env.*
 !.env.example
 
+# Stack legado aposentado (Story 009) — não envia para produção
+legacy/
+
 # Dados de leads (telefones reais do banco Garimpo) — não commitar
-js/garimpo-leads.json
-js/disparo-data.json
 huberick-temp/
 public/huberick-temp/
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "../../hub.css";
+import "@/styles/hub.css";
 import "./globals.css";
 import "@/styles/legacy-pipeline.css";
 import { Sidebar } from "@/components/Sidebar";
