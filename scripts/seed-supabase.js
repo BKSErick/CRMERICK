@@ -12,9 +12,9 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const MOCK_DB_PATH = path.join(ROOT, 'js', 'mock-db.js');
-const GARIMPO_PATH = path.join(ROOT, 'js', 'garimpo-leads.json');
-const DISPARO_PATH = path.join(ROOT, 'js', 'disparo-data.json');
+const MOCK_DB_PATH = path.join(ROOT, 'legacy', 'js', 'mock-db.js');
+const GARIMPO_PATH = path.join(ROOT, 'legacy', 'js', 'garimpo-leads.json');
+const DISPARO_PATH = path.join(ROOT, 'legacy', 'js', 'disparo-data.json');
 const BATCH_SIZE = 50;
 const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');

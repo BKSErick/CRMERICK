@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { navItems } from "@/lib/navigation";
 import { useCRMStore } from "@/store/useCRMStore";
@@ -15,6 +16,36 @@ const numberFormatter = new Intl.NumberFormat("pt-BR");
 export default function Home() {
   const deals = useCRMStore((state) => state.deals);
   const contacts = useCRMStore((state) => state.contacts);
+  const setDeals = useCRMStore((state) => state.setDeals);
+  const setContacts = useCRMStore((state) => state.setContacts);
+  const lastError = useCRMStore((state) => state.lastError);
+  const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">(
+    deals.length > 0 || contacts.length > 0 ? "ready" : "loading"
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCrmData() {
+      try {
+        const response = await fetch("/api/crm-data");
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar dados do CRM");
+        if (!cancelled) {
+          setDeals(body.deals);
+          setContacts(body.contacts);
+          setDataStatus("ready");
+        }
+      } catch {
+        if (!cancelled) setDataStatus("error");
+      }
+    }
+
+    loadCrmData();
+    return () => {
+      cancelled = true;
+    };
+  }, [setContacts, setDeals]);
 
   const wonDeals = deals.filter((deal) => deal.stage === "won");
   const openDeals = deals.filter((deal) => deal.stage !== "won" && deal.stage !== "lost");
@@ -29,7 +60,7 @@ export default function Home() {
         <div className="page-header-left">
           <h1>Inicio</h1>
           <div className="subtitle">
-            Visao de entrada do sistema migrada para Next.js. Dados iniciais saem da store reativa e serao conectados ao Supabase nas proximas stories.
+            Visao de entrada do sistema conectada ao Supabase real via rotas server-side.
           </div>
         </div>
         <div className="page-header-right">
@@ -37,6 +68,11 @@ export default function Home() {
           <div className="value">Fase 1</div>
         </div>
       </div>
+
+      {lastError ? <div className="portfolio-status warning" style={{ marginBottom: "18px" }}>{lastError}</div> : null}
+      {dataStatus === "error" ? (
+        <div className="portfolio-status warning" style={{ marginBottom: "18px" }}>Nao foi possivel carregar os dados reais do Supabase.</div>
+      ) : null}
 
       <div className="filterbar">
         <div className="filter-group">Hoje</div>
@@ -48,23 +84,55 @@ export default function Home() {
       <div className="kpi-row">
         <article className="kpi-card">
           <div className="kpi-label">MRR ativo</div>
-          <div className="kpi-value">{currencyFormatter.format(mrr)}</div>
-          <div className="kpi-trend up">{numberFormatter.format(wonDeals.length)} deals ganhos</div>
+          <div className="kpi-value">
+            {dataStatus === "loading" ? (
+              <span style={{ opacity: 0.5 }}>...</span>
+            ) : (
+              currencyFormatter.format(mrr)
+            )}
+          </div>
+          <div className="kpi-trend up">
+            {dataStatus === "loading" ? "Carregando" : `${numberFormatter.format(wonDeals.length)} deals ganhos`}
+          </div>
         </article>
         <article className="kpi-card">
           <div className="kpi-label">Pipeline aberto</div>
-          <div className="kpi-value">{currencyFormatter.format(pipelineValue)}</div>
-          <div className="kpi-trend">{numberFormatter.format(openDeals.length)} deals ativos</div>
+          <div className="kpi-value">
+            {dataStatus === "loading" ? (
+              <span style={{ opacity: 0.5 }}>...</span>
+            ) : (
+              currencyFormatter.format(pipelineValue)
+            )}
+          </div>
+          <div className="kpi-trend">
+            {dataStatus === "loading" ? "Carregando" : `${numberFormatter.format(openDeals.length)} deals ativos`}
+          </div>
         </article>
         <article className="kpi-card">
           <div className="kpi-label">Conversao geral</div>
-          <div className="kpi-value">{conversion.toFixed(1).replace(".", ",")}%</div>
-          <div className="kpi-trend">{numberFormatter.format(deals.length)} leads mapeados</div>
+          <div className="kpi-value">
+            {dataStatus === "loading" ? (
+              <span style={{ opacity: 0.5 }}>...</span>
+            ) : (
+              `${conversion.toFixed(1).replace(".", ",")}%`
+            )}
+          </div>
+          <div className="kpi-trend">
+            {dataStatus === "loading" ? "Carregando" : `${numberFormatter.format(deals.length)} leads mapeados`}
+          </div>
         </article>
         <article className="kpi-card">
           <div className="kpi-label">Contatos</div>
-          <div className="kpi-value">{numberFormatter.format(contacts.length)}</div>
-          <div className="kpi-trend up">Store reativa pronta</div>
+          <div className="kpi-value">
+            {dataStatus === "loading" ? (
+              <span style={{ opacity: 0.5 }}>...</span>
+            ) : (
+              numberFormatter.format(contacts.length)
+            )}
+          </div>
+          <div className="kpi-trend up">
+            {dataStatus === "loading" ? "Carregando" : "Conectado ao Supabase"}
+          </div>
         </article>
       </div>
 
@@ -76,11 +144,15 @@ export default function Home() {
           </div>
           <p className="focus-title">Desbloquear propostas em negociacao</p>
           <p className="muted-copy">
-            {proposals.length > 0
-              ? `${proposals.length} deals estao entre proposta e negociacao. O maior valor aberto e ${currencyFormatter.format(
-                  Math.max(...proposals.map((deal) => deal.value)),
-                )}.`
-              : "Nenhuma proposta pendente na store inicial."}
+            {dataStatus === "loading" ? (
+              "Buscando oportunidades pendentes..."
+            ) : proposals.length > 0 ? (
+              `${proposals.length} deals estao entre proposta e negociacao. O maior valor aberto e ${currencyFormatter.format(
+                Math.max(...proposals.map((deal) => deal.value)),
+              )}.`
+            ) : (
+              "Nenhuma proposta pendente no momento."
+            )}
           </p>
         </article>
 
