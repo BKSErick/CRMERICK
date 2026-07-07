@@ -343,6 +343,51 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
     { initials: "AL", user: "Ana L.", action: "anexou um arquivo", time: "terca, 10:45" },
   ];
 
+  const updateDeal = useCRMStore((state) => state.updateDeal);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  async function handleGenerateCopy() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-copy", dealId: deal.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar a mensagem.");
+      await updateDeal(deal.id, { copyText: data.copyText });
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function handleGenerateSummary() {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-summary", dealId: deal.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar o resumo.");
+      setSummaryText(data.summary);
+    } catch (e) {
+      setSummaryError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSummaryLoading(false);
+    }
+  }
+
   return (
     <div className="deal-overlay open" onClick={onClose}>
       <div className="deal-modal" onClick={(event) => event.stopPropagation()}>
@@ -415,9 +460,59 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
             <p>Valor Mensal: {deal.value ? currencyFormatter.format(deal.value) : ""}</p>
           </div>
 
+          <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Resumo Analítico da IA</strong>
+              <button
+                className="badge-action-btn"
+                onClick={handleGenerateSummary}
+                disabled={summaryLoading}
+                type="button"
+                style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
+              >
+                {summaryLoading ? "Analisando..." : summaryText ? "Recalcular" : "Gerar com IA"}
+              </button>
+            </div>
+            {summaryError && (
+              <div style={{ color: "var(--color-danger)", fontSize: "11px", marginBottom: "8px" }}>
+                {summaryError}
+              </div>
+            )}
+            {summaryText ? (
+              <div className="markdown-summary" style={{ fontSize: "13px", lineHeight: "1.5", color: "var(--color-charcoal)", background: "var(--color-paper)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-cloud)" }}>
+                {summaryText.split("\n").map((line, idx) => {
+                  let content = line;
+                  const isBullet = content.trim().startsWith("-") || content.trim().startsWith("*");
+                  if (isBullet) {
+                    content = content.replace(/^[-*]\s+/, "");
+                  }
+                  
+                  const boldParts = content.split("**");
+                  const renderedContent = boldParts.map((part, i) => 
+                    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                  );
+
+                  return isBullet ? (
+                    <li key={idx} style={{ marginLeft: "14px", marginBottom: "4px" }}>
+                      {renderedContent}
+                    </li>
+                  ) : (
+                    <p key={idx} style={{ marginBottom: "6px" }}>
+                      {renderedContent}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="muted-copy" style={{ margin: 0 }}>
+                Nenhum resumo gerado ainda. Clique para analisar com a inteligência do OpenRouter.
+              </p>
+            )}
+          </div>
+
           <div className="huberick-lead-block">
             <div className="huberick-head">
-              <span>△ Prospeccao Outbound — Huberick</span>
+              <span><span>△</span> Prospeccao Outbound — Huberick</span>
               <strong>Score: {score}</strong>
             </div>
             <p>
@@ -445,21 +540,43 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                 </a>
               ) : null}
             </div>
-            {deal.copyText ? (
-              <div className="huberick-copy">
-                <div className="copy-label">
-                  <span>Mensagem de abordagem</span>
+            
+            <div className="huberick-copy" style={{ marginTop: "12px" }}>
+              <div className="copy-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Mensagem de abordagem (Webson IA)</span>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {deal.copyText && (
+                    <button
+                      className="badge-action-btn"
+                      onClick={() => navigator.clipboard?.writeText(deal.copyText ?? "")}
+                      type="button"
+                    >
+                      Copiar
+                    </button>
+                  )}
                   <button
                     className="badge-action-btn"
-                    onClick={() => navigator.clipboard?.writeText(deal.copyText ?? "")}
+                    onClick={handleGenerateCopy}
+                    disabled={aiLoading}
                     type="button"
+                    style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
                   >
-                    Copiar Mensagem
+                    {aiLoading ? "Gerando..." : deal.copyText ? "Regenerar IA" : "Gerar com IA"}
                   </button>
                 </div>
-                <textarea readOnly value={deal.copyText} />
               </div>
-            ) : null}
+              {aiError && (
+                <div style={{ color: "var(--color-danger)", fontSize: "11px", marginTop: "4px" }}>
+                  {aiError}
+                </div>
+              )}
+              <textarea
+                readOnly
+                value={deal.copyText || ""}
+                placeholder="Nenhuma mensagem gerada ainda. Clique em 'Gerar com IA' para redigir a abordagem consultiva..."
+                style={{ minHeight: "120px", marginTop: "8px", width: "100%" }}
+              />
+            </div>
           </div>
 
           <div className="section-header">

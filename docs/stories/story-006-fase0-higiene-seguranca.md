@@ -1,7 +1,7 @@
 # Story 006 - Fase 0: Higiene e seguranca
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero fechar os buracos de seguranca e remover o lixo de migracao identificados na pre-vistoria, para que a Fase 1 (persistencia real) comece sobre uma base limpa e sem CRUD publico acidental no Supabase.
@@ -86,3 +86,22 @@ GPT-5 Codex (Dex)
 - 2026-07-07: Story criada por River (SM) a partir do relatorio de pre-vistoria de 2026-07-07.
 - 2026-07-07: Validada por Pax (PO). Escopo conferido contra o relatorio (secoes 6, 8 Fase 0 e 10) e as decisoes do Erick. Sem rotacao de tokens (ja tratada pelo dono), 3 descartaveis corretos, coordenacao 006<->007 documentada. Status Draft -> Ready for Dev.
 - 2026-07-07: Implementada por Dex junto com a Story 007 para evitar janela sem escrita valida apos lock de RLS.
+- 2026-07-07: Revisada por Quinn (QA). Gate PASS. Status Ready for Review -> Done.
+
+## QA Results
+
+### Gate: PASS
+Revisor: Quinn (@qa) | Data: 2026-07-07 | Metodo: read-only contra o codigo real
+
+**Acceptance Criteria (9/9 verificados):**
+- AC RLS deny-by-default: CONFIRMADO. `verify-crm-rls.js` + verificacao por Management API mostram `deals`/`contacts`/`messages`/`activities` sem policy publica; anon REST em `deals` retorna `[]`. Migration `scripts/migrations/20260707_lock_crm_rls.sql`.
+- AC `pixel_events` intacta: CONFIRMADO (policy insert-only anon preservada).
+- AC `huberick-temp/` fora do indice: CONFIRMADO. `git ls-files huberick-temp` = 0 arquivos; arquivos seguem em disco para o build copiar diagnosticos.
+- AC `.gitignore` raiz: CONFIRMADO. Linha 10 `huberick-temp/` (raiz) + linha 11 `public/huberick-temp/` preservada.
+- AC `build.js` sem injecao de `IG_ACCESS_TOKEN`: CONFIRMADO. `scripts/build.js` reescrito; nao gera mais `js/config.js` com token. Copia apenas diagnosticos com snippet de Pixel.
+- AC `build.js` sem fallback Supabase hardcoded: CONFIRMADO. Zero referencia a URL/key Supabase no arquivo. (Nota menor: `build.js:15` mantem fallback de Meta Pixel ID `1175331711422463`, que e ID publico, nao segredo; aceitavel.)
+- AC descartaveis removidos: CONFIRMADO. `tmp-next-app/`, `modules/dashboard.html`, `modules/command-palette.html` ausentes do disco.
+- AC hub legado sem CRUD / Next nao quebrado por RLS: CONFIRMADO. Rotas Next usam service-role server-side (Story 007).
+- AC `npm run build` passa: CONFIRMADO (log de dev).
+
+**Ressalva advisory (fora do escopo dos AC desta story):** o mesmo pacote de mudancas iniciou a aposentadoria do legado (`.gitignore` passou a ignorar `legacy/`; header do `build.js` cita "Story 009: legado aposentado"). Isso esvaziou a pasta raiz `modules/`, e seis telas que ainda usam `LegacyModule` (comando, north-star, lab, agentes, reunioes, brandbook) passaram a renderizar o fallback de erro em vez de conteudo. Nao e um AC desta story e nao rebaixa o gate, mas NAO deve ir para producao sem correcao. Detalhe completo na Re-Vistoria (`Re-Vistoria_CRM_2026-07-07.md`, secao 4) e como item #1 do plano do proximo ciclo. Story 009 (aposentar legado) segue "Ready for Dev" e deve formalizar/completar esse trabalho.

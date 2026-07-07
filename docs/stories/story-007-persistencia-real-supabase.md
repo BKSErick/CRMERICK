@@ -1,7 +1,7 @@
 # Story 007 - Fase 1: Persistencia real no Next.js
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero que o CRM canonico (Next.js/Vercel) grave e leia deals e contacts direto do Supabase, para que o unico CRM que uso pare de perder edicoes a cada refresh.
@@ -87,3 +87,28 @@ GPT-5 Codex (Dex)
 - 2026-07-07: Story criada por River (SM) a partir do relatorio de pre-vistoria de 2026-07-07.
 - 2026-07-07: Validada por Pax (PO). Escopo conferido contra o relatorio (secoes 2, 4, 5, 8 Fase 1 e 10). Prioridade maxima de valor, seed one-time (sem snapshot offline), coordenacao de deploy com o lock de RLS da 006 documentada. Status Draft -> Ready for Dev.
 - 2026-07-07: Implementada por Dex junto com a Story 006 para publicar rotas server-side no mesmo pacote do lock de RLS.
+- 2026-07-07: Revisada por Quinn (QA). Gate PASS. Status Ready for Review -> Done.
+
+## QA Results
+
+### Gate: PASS
+Revisor: Quinn (@qa) | Data: 2026-07-07 | Metodo: read-only contra o codigo real
+
+**Acceptance Criteria (todos verificados):**
+- `/api/deals` GET/POST/PATCH/DELETE service-role: CONFIRMADO. `src/app/api/deals/route.ts` usa `getCrmSupabaseAdmin()` de `src/lib/crmSupabase.ts`, que le `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` so de `process.env` e lanca erro se ausentes. Key nunca vai ao cliente.
+- `/api/contacts` GET/POST/PATCH/DELETE: CONFIRMADO, mesmo padrao.
+- Store com writeback optimistic + rollback: CONFIRMADO. `src/store/useCRMStore.ts` faz optimistic update e `set({ deals: previousDeals })` no catch nas 7 mutacoes (createDeal, updateDeal, updateDealStage, deleteDeal, createContact, updateContact, deleteContact).
+- `/api/crm-data` le Supabase (nao `vm.runInNewContext`): CONFIRMADO. `crm-data/route.ts` faz `Promise.all` de `deals`/`contacts` do Supabase. Grep por `runInNewContext` em `src/` = 0.
+- `mock-db.js`/`garimpo-leads.json`/`disparo-data.json` fora do runtime: CONFIRMADO. Grep em `src/` = 0; arquivos movidos para `legacy/` (gitignored).
+- `scripts/seed-supabase.js` existe: CONFIRMADO (nao rodado em prod porque as tabelas ja tem 942 deals/contacts; idempotencia nao re-testada a fundo aqui).
+- Dados fake `initialDeals`/`initialContacts` removidos + skeleton/loading: CONFIRMADO. Store nasce `deals:[]`/`contacts:[]`; `page.tsx`/`pipeline`/`disparo` tem `dataStatus` loading/error visivel.
+- Erro de rede visivel, sem fake silencioso: CONFIRMADO (banner "Nao foi possivel carregar os dados reais do Supabase" + `lastError`).
+- Pipeline/Contatos com dados reais persistidos: CONFIRMADO por leitura (`pipeline/page.tsx` drag-drop chama `updateDealStage` -> PATCH; create/delete idem).
+- `npm run lint` / `npm run build`: passam (log de dev).
+
+**Ressalvas advisory (nao sao AC desta story; registradas para o proximo ciclo):**
+1. `src/app/pipeline/page.tsx:338-344` (arquivo desta story) mantem um feed de atividade FABRICADO no `DealDetailOverlay` ("Erick Sena / Joao M. / Carla S. / Pedro A. / Ana L."), exibido em toda abertura de deal. E mock residual do port legado. Recomendo remover ou ligar a dado real.
+2. Os botoes de IA do mesmo modal ("Gerar com IA" / "Recalcular" / "Regenerar IA") fazem `POST /api/ai`, rota que NAO existe (Story 010, Draft) -> 404 ao clicar. Ligar quando a Story 010 criar `/api/ai`.
+3. Acoes mortas no modal: "Compartilhar", "Mostrar 8 campos vazios", "Rastrear tempo: Start", links da brain-bar e compositor "@Brain" sem handler.
+
+Detalhe completo na Re-Vistoria (`Re-Vistoria_CRM_2026-07-07.md`, secoes 3 e 4).

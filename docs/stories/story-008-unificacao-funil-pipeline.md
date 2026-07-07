@@ -82,3 +82,26 @@ GPT-5 Codex
 - 2026-07-07: Implementada base tecnica no CRM e aplicada migration no Supabase unificado.
 - 2026-07-07: Localizado linkbio em `D:\tmp\Linkbiopageerick`; `quiz.html` atualizado para enviar leads ao CRM unificado e rota CRM ajustada com CORS.
 - 2026-07-07: Erick confirmou que nao ha leads antigos relevantes no Supabase antigo; story marcada como Ready for Review para novos leads no banco certo.
+- 2026-07-07: Revisada por Quinn (QA). Gate CONCERNS. Mantida em Ready for Review ate a publicacao do linkbio externo.
+
+## QA Results
+
+### Gate: CONCERNS
+Revisor: Quinn (@qa) | Data: 2026-07-07 | Metodo: read-only contra o codigo real
+
+**Lado CRM entregue e verificado:**
+- `quiz_leads` no Supabase do CRM: CONFIRMADO. `scripts/migrations/20260707_quiz_leads_unified.sql` cria a tabela + indices.
+- RLS insert-only anon, sem SELECT publico: CONFIRMADO. Migration cria apenas a policy `quiz_leads_anon_insert` (INSERT, role anon); nenhuma policy de SELECT para anon (deny-by-default). Padrao coerente com `pixel_events`.
+- Materializacao em deal `prospect`: CONFIRMADO. Trigger `materialize_quiz_lead_deal` (SECURITY DEFINER) cria deal `stage='prospect'` no insert.
+- Score/gargalo preservados: CONFIRMADO. Score vai para `prob`/`points`/`progress`; gargalo para `segment` e `copy_text`.
+- Deduplicacao: CONFIRMADO em dois niveis. Rota `/api/quiz-leads` (`findExistingLead`) checa phone/email/external_id; trigger reusa deal existente por telefone/whatsapp/email antes de criar novo.
+- Rota server-side sem expor service-role + CORS/OPTIONS: CONFIRMADO em `src/app/api/quiz-leads/route.ts`.
+- Smoke test `smoke-quiz-leads.js`: passou (lead temporario materializou deal e foi limpo).
+
+**Motivos do CONCERNS (impedem PASS):**
+1. AC2/AC7 dependem de PUBLICAR o linkbio externo. `D:\tmp\Linkbiopageerick\quiz.html` foi apontado localmente para `https://crmerick.vercel.app/api/quiz-leads`, mas o repo externo NAO foi publicado. Enquanto isso, o loop captura->pipeline nao esta vivo em producao e o Supabase antigo (`sceidcbjxnaakeqpltun`) nao foi efetivamente cortado.
+2. `quiz.html` vive FORA deste repo (`D:\tmp\...`), logo nao e versionado nem verificavel nesta vistoria; a mudanca do linkbio e afirmada, nao comprovavel aqui.
+
+**Ressalva menor:** o trigger casa deal existente por email via `lower(copy_text) like '%email%'` (fuzzy); baixo risco de match falso, monitorar apos o primeiro volume real.
+
+**Para fechar (PASS):** publicar o linkbio, rodar um lead de teste real, confirmar o deal no Kanban com score/gargalo, cortar o Supabase antigo e trazer `quiz.html` para um repo versionado. Detalhe na Re-Vistoria (`Re-Vistoria_CRM_2026-07-07.md`, secoes 2 e 5, item 2).
