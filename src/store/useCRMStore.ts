@@ -21,6 +21,15 @@ type CRMState = {
   deleteContact: (contactId: number) => Promise<void>;
 };
 
+const STAGE_LABELS: Record<DealStage, string> = {
+  prospect: "Prospect",
+  qualified: "Qualified",
+  proposal: "Proposal",
+  negotiation: "Negotiation",
+  won: "Won",
+  lost: "Lost",
+};
+
 async function readApi<T>(response: Response, fallbackMessage: string): Promise<T> {
   const body = await response.json().catch(() => null);
   if (!response.ok || !body?.ok) {
@@ -109,6 +118,21 @@ export const useCRMStore = create<CRMState>((set, get) => ({
   },
   updateDealStage: async (dealId, stage) => {
     await get().updateDeal(dealId, { stage });
+    // Registra atividade real (server-side) da mudanca de etapa. Best-effort: se a mudanca
+    // ja persistiu, uma falha ao logar a atividade nao deve reverter nem quebrar o move.
+    try {
+      await fetch("/api/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dealId,
+          type: "stage_change",
+          description: `Movido para ${STAGE_LABELS[stage] ?? stage}`,
+        }),
+      });
+    } catch {
+      // atividade e complementar ao move; ignore falha de log aqui.
+    }
   },
   createContact: async (contact) => {
     const tempContact = { ...contact, id: -Date.now() };

@@ -37,6 +37,36 @@ const ownerClass: Record<string, string> = {
   MR: "av-mira",
 };
 
+type DealActivity = {
+  id: number;
+  type: string | null;
+  description: string | null;
+  created_at: string | null;
+};
+
+const activityTypeLabels: Record<string, string> = {
+  stage_change: "Mudanca de etapa",
+  note: "Nota",
+  call: "Ligacao",
+  email: "E-mail",
+  meeting: "Reuniao",
+};
+
+function activityLabel(type: string | null): string {
+  return activityTypeLabels[type ?? "note"] ?? "Atividade";
+}
+
+function activityInitials(type: string | null): string {
+  return activityLabel(type).slice(0, 2).toUpperCase();
+}
+
+function formatActivityTime(iso: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
 export default function PipelinePage() {
   const deals = useCRMStore((state) => state.deals);
   const setDeals = useCRMStore((state) => state.setDeals);
@@ -335,58 +365,31 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
       )}`
     : "";
   const score = Math.max(0, Math.min(10, deal.points ?? 0));
-  const activity = [
-    { initials: "ES", user: "Erick Sena", action: "criou esta tarefa", time: "hoje as 14:50" },
-    { initials: deal.assignee ?? "JM", user: deal.ownerName ?? "Joao M.", action: "moveu para o estagio atual", time: "hoje as 11:20" },
-    { initials: "CS", user: "Carla S.", action: "atualizou o valor do deal", time: "ontem as 16:30" },
-    { initials: "PA", user: "Pedro A.", action: "adicionou uma descricao", time: "ontem as 09:15" },
-    { initials: "AL", user: "Ana L.", action: "anexou um arquivo", time: "terca, 10:45" },
-  ];
 
-  const updateDeal = useCRMStore((state) => state.updateDeal);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryText, setSummaryText] = useState<string | null>(null);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [activities, setActivities] = useState<DealActivity[]>([]);
+  const [activitiesStatus, setActivitiesStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  async function handleGenerateCopy() {
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generate-copy", dealId: deal.id }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar a mensagem.");
-      await updateDeal(deal.id, { copyText: data.copyText });
-    } catch (e) {
-      setAiError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setAiLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadActivities() {
+      setActivitiesStatus("loading");
+      try {
+        const response = await fetch(`/api/activities?dealId=${encodeURIComponent(deal.id)}`);
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar atividades");
+        if (!cancelled) {
+          setActivities((body.activities ?? []) as DealActivity[]);
+          setActivitiesStatus("ready");
+        }
+      } catch {
+        if (!cancelled) setActivitiesStatus("error");
+      }
     }
-  }
-
-  async function handleGenerateSummary() {
-    setSummaryLoading(true);
-    setSummaryError(null);
-    try {
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generate-summary", dealId: deal.id }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar o resumo.");
-      setSummaryText(data.summary);
-    } catch (e) {
-      setSummaryError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSummaryLoading(false);
-    }
-  }
+    loadActivities();
+    return () => {
+      cancelled = true;
+    };
+  }, [deal.id]);
 
   return (
     <div className="deal-overlay open" onClick={onClose}>
@@ -403,17 +406,10 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               <button className="deal-header-btn danger" onClick={() => onDelete(deal.id)} type="button">
                 Excluir
               </button>
-              <button className="deal-header-btn" type="button">
-                Compartilhar
-              </button>
               <button className="deal-header-btn" onClick={onClose} type="button">
                 Fechar
               </button>
             </div>
-          </div>
-
-          <div className="brain-bar">
-            Peca ao Brain uma <a>apresentacao</a>, <a>documento</a> ou <a>prototipo</a>
           </div>
 
           <div className="meta-grid">
@@ -440,10 +436,6 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               <span className="meta-value empty">—</span>
             </div>
             <div className="meta-row">
-              <span className="meta-label">Rastrear tempo</span>
-              <span className="meta-value text-violet">Start</span>
-            </div>
-            <div className="meta-row">
               <span className="meta-label">Valor</span>
               <span className="meta-value font-mono">{currencyFormatter.format(deal.value)}</span>
             </div>
@@ -462,52 +454,19 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
 
           <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-              <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Resumo Analítico da IA</strong>
+              <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Resumo Analitico da IA</strong>
               <button
                 className="badge-action-btn"
-                onClick={handleGenerateSummary}
-                disabled={summaryLoading}
+                disabled
                 type="button"
-                style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
+                title="Disponivel quando a integracao de IA (Story 010) for concluida"
               >
-                {summaryLoading ? "Analisando..." : summaryText ? "Recalcular" : "Gerar com IA"}
+                Em breve
               </button>
             </div>
-            {summaryError && (
-              <div style={{ color: "var(--color-danger)", fontSize: "11px", marginBottom: "8px" }}>
-                {summaryError}
-              </div>
-            )}
-            {summaryText ? (
-              <div className="markdown-summary" style={{ fontSize: "13px", lineHeight: "1.5", color: "var(--color-charcoal)", background: "var(--color-paper)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-cloud)" }}>
-                {summaryText.split("\n").map((line, idx) => {
-                  let content = line;
-                  const isBullet = content.trim().startsWith("-") || content.trim().startsWith("*");
-                  if (isBullet) {
-                    content = content.replace(/^[-*]\s+/, "");
-                  }
-                  
-                  const boldParts = content.split("**");
-                  const renderedContent = boldParts.map((part, i) => 
-                    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                  );
-
-                  return isBullet ? (
-                    <li key={idx} style={{ marginLeft: "14px", marginBottom: "4px" }}>
-                      {renderedContent}
-                    </li>
-                  ) : (
-                    <p key={idx} style={{ marginBottom: "6px" }}>
-                      {renderedContent}
-                    </p>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="muted-copy" style={{ margin: 0 }}>
-                Nenhum resumo gerado ainda. Clique para analisar com a inteligência do OpenRouter.
-              </p>
-            )}
+            <p className="muted-copy" style={{ margin: 0 }}>
+              A geracao de resumo por IA sera habilitada quando a integracao (Story 010) for concluida.
+            </p>
           </div>
 
           <div className="huberick-lead-block">
@@ -556,64 +515,49 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                   )}
                   <button
                     className="badge-action-btn"
-                    onClick={handleGenerateCopy}
-                    disabled={aiLoading}
+                    disabled
                     type="button"
-                    style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
+                    title="Disponivel quando a integracao de IA (Story 010) for concluida"
                   >
-                    {aiLoading ? "Gerando..." : deal.copyText ? "Regenerar IA" : "Gerar com IA"}
+                    Em breve
                   </button>
                 </div>
               </div>
-              {aiError && (
-                <div style={{ color: "var(--color-danger)", fontSize: "11px", marginTop: "4px" }}>
-                  {aiError}
-                </div>
-              )}
               <textarea
                 readOnly
                 value={deal.copyText || ""}
-                placeholder="Nenhuma mensagem gerada ainda. Clique em 'Gerar com IA' para redigir a abordagem consultiva..."
+                placeholder="Nenhuma mensagem cadastrada ainda."
                 style={{ minHeight: "120px", marginTop: "8px", width: "100%" }}
               />
             </div>
           </div>
 
-          <div className="section-header">
-            <span className="header-title">Campos</span>
-            <span className="header-actions">⌕ ↗ +</span>
-          </div>
-          <button className="toggle-empty-fields-btn" type="button">
-            Mostrar 8 campos vazios
-          </button>
         </div>
 
         <aside className="modal-activity">
           <div className="activity-header">
             <span className="activity-title">Atividade</span>
-            <span className="activity-actions">⌕ ♧ ⚿</span>
           </div>
           <div className="activity-feed">
-            {activity.map((item) => (
-              <div className="activity-item" key={`${item.user}-${item.time}`}>
-                <div className="activity-avatar">{item.initials.slice(0, 2)}</div>
-                <div className="activity-content">
-                  <div className="activity-text">
-                    <strong>{item.user}</strong> {item.action}
+            {activitiesStatus === "loading" ? (
+              <p className="muted-copy">Carregando atividades...</p>
+            ) : activitiesStatus === "error" ? (
+              <p className="muted-copy">Nao foi possivel carregar as atividades.</p>
+            ) : activities.length === 0 ? (
+              <p className="muted-copy">Nenhuma atividade registrada ainda.</p>
+            ) : (
+              activities.map((item) => (
+                <div className="activity-item" key={item.id}>
+                  <div className="activity-avatar">{activityInitials(item.type)}</div>
+                  <div className="activity-content">
+                    <div className="activity-text">
+                      <strong>{activityLabel(item.type)}</strong> {item.description}
+                    </div>
+                    <span className="activity-time">{formatActivityTime(item.created_at)}</span>
                   </div>
-                  <span className="activity-time">{item.time}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-          <div className="comment-composer">
-            <div className="composer-toolbar">
-              <select defaultValue="comentario">
-                <option value="comentario">Comentario</option>
-              </select>
-              <span>☺ @ ▧ 🔗</span>
-            </div>
-            <textarea className="comment-input" placeholder="Mencione @Brain para criar, encontrar ou perguntar qualquer coisa" />
+              ))
+            )}
           </div>
         </aside>
       </div>
