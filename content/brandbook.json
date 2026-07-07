@@ -1,0 +1,225 @@
+{
+  "generatedAt": "",
+  "source": "conteudo real portado do brandbook v2.0 (legacy/modules/brandbook.html) - fonte de verdade da marca",
+  "version": "2.0",
+  "updatedLabel": "Atualizado em Junho/2026",
+  "hero": {
+    "name": "Erick Sena",
+    "role": "AI Architect / Builder",
+    "tagline": "Arquiteto de sistemas autonomos. Crio operacoes que escalam sem depender de mais gente, mais planilhas ou mais ferramentas desconectadas.",
+    "arquetipo": "Criador-Hacker",
+    "tese": "O futuro da operacao nao e mais gente - e sistema.",
+    "icp": "Founders, COOs, Heads de Growth",
+    "diferencial": "Sistemas reais, nao consultoria vazia de IA"
+  },
+  "sections": [
+    {
+      "id": "essencia",
+      "title": "Essencia da Marca",
+      "layout": "cards",
+      "cards": [
+        { "title": "Arquetipo", "badge": "Criador-Hacker", "body": "Um criador tecnico que enxerga o sistema onde outros veem caos. Constroi ativos, nao dependencias. Hackeia o crescimento com engenharia operacional, nao com volume de post." },
+        { "title": "Persona", "badge": "Arquiteto de Sistemas Autonomos", "body": "A persona da marca nao e 'influencer de IA' nem 'consultor de crescimento'. E o arquiteto que projeta e constroi a operacao que roda sem ele. A figura que torna possivel escalar sem multiplicar o caos." },
+        { "title": "Tom de Voz", "badge": "Direto, Soberano, Ironia Elegante", "body": "Fala como quem ja resolveu o problema centenas de vezes. Nao humilha: expoe a ineficiencia do sistema antigo com precisao. Ironico sem ser cinico. Estrategico sem ser chato." },
+        { "title": "Promessa", "badge": "Escala sem quebrar", "body": "Transformar operacoes travadas em sistemas que escalam. Da captura ao fechamento, do conteudo ao compliance. A promessa nao e 'crescer': e crescer sem quebrar os proprios processos." },
+        { "title": "Tensao Central", "badge": "Presente vs. Passado", "body": "O mercado opera como se ainda estivesse no passado. Planilhas, processos manuais, ferramentas que nao conversam, decisoes baseadas em feeling. A tensao esta entre o que e possivel com sistemas modernos e o que as empresas ainda aceitam como normal." },
+        { "title": "Inimigo Comum", "badge": "Caos operacional", "body": "Planilhas, processos burros, operacao manual, sistemas desconectados. O inimigo nao e o concorrente: e o caos operacional normalizado. A planilha que trava. O processo que depende de WhatsApp. A ferramenta que nao integra." }
+      ]
+    },
+    {
+      "id": "icp",
+      "title": "Para quem e / Para quem nao e",
+      "layout": "columns",
+      "columns": [
+        {
+          "title": "ICP Ideal",
+          "items": [
+            "Founders que ja validaram produto e precisam de estrutura para escalar",
+            "COOs que herdam processos manuais e precisam transformar a operacao",
+            "Heads de Growth que querem crescer sem multiplicar o caos",
+            "Negocios com gargalo operacional visivel (funil quebrado, pipeline manual, conteudo sem sistema)",
+            "Empresas que ja faturam e precisam de arquitetura, nao de mais ferramenta",
+            "Lideres que valorizam ativos proprios e avaliam retorno sobre sistema"
+          ]
+        },
+        {
+          "title": "Anti-ICP / Nao e para",
+          "items": [
+            "Quem quer so um 'site bonito' ou landing page simples",
+            "Quem busca firula visual sem operacao por tras",
+            "Quem nao valoriza sistema e prefere 'fazer na raca'",
+            "Quem busca fornecedor barato e tatico (freela, agencia generica)",
+            "Quem quer hype de IA sem aplicacao real no negocio",
+            "Quem nao esta disposto a repensar processos para escalar de verdade"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tom-de-voz",
+      "title": "Tom de Voz",
+      "layout": "columns",
+      "columns": [
+        {
+          "title": "Como soa",
+          "items": ["Direto", "Soberano", "Engenhoso", "Ironico com elegancia", "Estrategico", "Seguro", "Preciso", "Sem pressa"]
+        },
+        {
+          "title": "Como nao soa",
+          "items": ["Professor generico", "Coach quantico", "Vendedor carente", "Dev tecnico demais", "Agencia corporativa fria", "Influencer de IA", "Hater disfarcado"]
+        }
+      ]
+    },
+    {
+      "id": "frases",
+      "title": "Frases",
+      "layout": "columns",
+      "columns": [
+        {
+          "title": "Frases aprovadas",
+          "items": [
+            "O futuro da operacao nao e mais gente - e sistema.",
+            "Voce nao precisa de mais ferramenta. Voce precisa de arquitetura.",
+            "Enquanto voce resolve no grito, eu resolvo no codigo.",
+            "Crescer sem quebrar os proprios processos e a verdadeira escala.",
+            "O caos normalizado e o maior inimigo do crescimento silencioso."
+          ]
+        },
+        {
+          "title": "Frases desalinhadas",
+          "items": [
+            "Vou transformar seu negocio com inteligencia artificial",
+            "Se voce nao esta fazendo X, voce esta perdendo dinheiro",
+            "Sou especialista em crescimento exponencial",
+            "Contrate minha consultoria e veja resultados em 7 dias",
+            "A IA vai substituir todo mundo que nao se adaptar"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "palavras",
+      "title": "Palavras",
+      "layout": "columns",
+      "columns": [
+        {
+          "title": "Palavras-chave",
+          "items": ["Sistema", "Arquitetura", "Ativo", "Operacao", "Autonomia", "Escala", "Estrutura", "Engenharia", "Soberania", "Proprietario"]
+        },
+        {
+          "title": "Palavras a evitar",
+          "items": ["Hackear o crescimento", "Disruptivo", "Revolucionario", "Metodo secreto", "Formula magica", "Resultado exponencial", "Game changer", "Nova economia"]
+        }
+      ]
+    },
+    {
+      "id": "narrativa",
+      "title": "Narrativa da Marca",
+      "layout": "cards",
+      "cards": [
+        { "title": "01 - O Bastidor Invisivel", "badge": "O que ninguem ve sustenta o que todos celebram", "body": "Antes do funil, antes do conteudo, antes do marketing, existe uma camada que ninguem mostra: a operacao. E nela que a maioria dos negocios trava. A narrativa comeca revelando o que esta oculto - o caos estrutural que impede o crescimento real, mesmo quando o marketing esta funcionando." },
+        { "title": "02 - A Virada", "badge": "De operador a arquiteto de sistemas", "body": "O momento em que o gestor percebe que nao precisa de mais gente - precisa de um sistema. A virada de chave: sair do modo 'apagar incendio' e entrar no modo 'projetar a operacao que roda sozinha'. Nao e sobre trabalhar mais. E sobre construir o que trabalha por voce." },
+        { "title": "03 - A Soberania", "badge": "Ativos proprios, nao dependencias", "body": "Terceirizar a operacao e terceirizar o controle. A soberania vem de construir sistemas proprietarios - ativos que voce possui, controla e escala. Plataformas alheias mudam. Algoritmos mudam. Seu sistema nao. O ativo mais valioso nao e seguidor, nao e trafego - e a arquitetura." },
+        { "title": "04 - Os Ativos Proprios", "badge": "Ecossistema de sistemas que geram valor recorrente", "body": "Captura automatizada, funis inteligentes, agentes de IA, dashboards de comando, pipelines autogerenciaveis. Cada ativo e uma peca de um ecossistema que gera resultado mesmo quando o fundador dorme. O valor nao esta no ativo isolado - esta na integracao entre eles." },
+        { "title": "05 - A Arquitetura como Tese de Negocio", "badge": "O maior diferencial competitivo e um sistema que ninguem copia", "body": "Nao e tecnologia por tecnologia. E engenharia operacional aplicada a negocios reais. A tese central do Hub Operacional e: o futuro da operacao nao e mais gente - e sistema. Enquanto o mercado vende ferramentas, a marca vende arquitetura. Enquanto o mercado cobra por hora, a marca cobra por sistema. Enquanto o mercado entrega relatorio, a marca entrega autonomia." }
+      ]
+    },
+    {
+      "id": "funil",
+      "title": "Conteudo e Funil",
+      "layout": "cards",
+      "cards": [
+        { "title": "Topo de Funil", "badge": "Consciencia do problema", "body": "Conteudo que expoe a ineficiencia do sistema antigo. O caos operacional normalizado. O custo invisivel de processos manuais. Nao vender solucao - vender o diagnostico. O lead precisa sentir: 'isso e exatamente o que acontece aqui'." },
+        { "title": "Meio de Funil", "badge": "Arquitetura da solucao", "body": "Conteudo que mostra o sistema funcionando. Estudos de caso, bastidores de construcao, prints de dashboards, comparacao antes/depois da operacao. Mostrar a arquitetura, nao o resultado. O lead precisa entender como o sistema resolve o problema." },
+        { "title": "Fundo de Funil", "badge": "Decisao de arquitetura", "body": "Conteudo que valida a decisao. Chamadas diretas para diagnostico, proposta de sistema, construcao de ativo. Nao e 'compre agora' - e 'vamos arquitetar juntos'. A venda e sobre sistema, nao sobre preco." },
+        { "title": "Canal Principal", "badge": "Instagram Organico", "body": "Instagram e o motor de distribuicao. Conteudo em Reels (topo), Carrosseis (meio) e Stories/DM (fundo). YouTube e canal secundario para aprofundamento. Blog e e-mail sao ativos proprios de conversao." },
+        { "title": "Linhas Editoriais", "badge": "4 pilares de conteudo", "body": "1. Diagnostico - expor o caos operacional que ninguem ve. 2. Arquitetura - mostrar como sistemas resolvem problemas reais. 3. Engenharia - bastidores de construcao, ativos, automacoes. 4. Soberania - visao de longo prazo: ativos, sistemas, independencia." }
+      ]
+    },
+    {
+      "id": "governanca",
+      "title": "Governanca de Marca",
+      "layout": "columns",
+      "columns": [
+        {
+          "title": "Claims que exigem prova",
+          "items": [
+            "'Isso substitui time de marketing' - precisa mostrar caso real",
+            "'Aumenta conversao em X%' - precisa vir de dado do funil",
+            "'Sistema autonomo' - precisa mostrar funcionamento real",
+            "'IA aplicada' - precisa demonstrar o agente funcionando"
+          ]
+        },
+        {
+          "title": "Riscos de exagero",
+          "items": [
+            "Afirmar que sistema substitui completamente time humano",
+            "Prometer resultados sem prazo definido",
+            "Comparacao agressiva com concorrentes indiretos",
+            "Hype de IA sem lastro operacional"
+          ]
+        },
+        {
+          "title": "Contradicoes estrategicas",
+          "items": [
+            "Pregar sistema proprio vs. depender de plataforma de terceiros",
+            "Pregar soberania vs. usar ferramenta generica sem personalizacao",
+            "Falar de escala sem mostrar estrutura que escala",
+            "Defender ativos proprios vs. vender servico recorrente sem entrega de ativo"
+          ]
+        },
+        {
+          "title": "Checkpoints antes de publicar",
+          "items": [
+            "O conteudo ataca o sistema antigo ou humilha o prospect? (se for contra o prospect, nao publique)",
+            "A frase tem prova ou e hype vazio? (toda afirmacao forte exige evidencia)",
+            "O tom e de arquiteto seguro ou de vendedor ansioso? (soberano vs. carente)",
+            "A oferta esta alinhada com o posicionamento? (sistema, nao servico generico)",
+            "O conteudo cabe neste estagio do funil? (nao pular etapas)",
+            "A copy usa palavra ou frase da lista de proibidas? (cacar termos de hype)",
+            "Existe chamada clara para o proximo passo? (nao deixar lead sem direcao)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ativos",
+      "title": "Ativos e Ofertas",
+      "layout": "cards",
+      "cards": [
+        { "title": "Hub Operacional", "badge": "Ativo", "body": "Sistema proprietario de gestao operacional. Central de comando, funis, pipeline, conteudo, agentes, sinais, brandbook. O sistema que integra e automatiza a operacao." },
+        { "title": "Automacao de Captura e Funil", "badge": "Sistema", "body": "Da prospeccao ao nurturing. Fluxos automatizados de captura, qualificacao, distribuicao e follow-up. Reduz intervencao manual na operacao." },
+        { "title": "Agentes de IA Proprietarios", "badge": "SaaS / Ativo", "body": "Copy, Funil, Conteudo, Trafego, Vendas, Analise. Agentes treinados na operacao real, nao chatbots genericos. Executam tarefas operacionais com supervisao estrategica." },
+        { "title": "Estruturas de Captura e Paginas", "badge": "Ativo", "body": "Landing pages integradas ao sistema. Formularios inteligentes com roteamento automatico. Paginas de contrato, checkout e onboarding conectadas ao pipeline." },
+        { "title": "Oferta Principal", "badge": "Arquitetura de Sistema Operacional", "body": "Diagnostico, desenho, construcao e implantacao do sistema proprietario. Nao e servico recorrente - e construcao de ativo. Entrega: Hub Operacional configurado para o negocio do cliente." },
+        { "title": "Mecanismo", "badge": "Diagnostico de Caos Operacional", "body": "Analise estruturada do funil, pipeline, conteudo e operacao do lead. Entrega: relatorio com gargalos, oportunidades e roadmap de arquitetura. Mecanismo de entrada para a oferta principal." }
+      ]
+    },
+    {
+      "id": "objecoes",
+      "title": "Objecoes e Respostas",
+      "layout": "list",
+      "list": [
+        { "title": "'Isso nao e caro?'", "body": "A pergunta certa nao e 'quanto custa' - e 'quanto custa continuar operando no caos'. Um sistema proprietario substitui posicoes operacionais. O retorno nao esta no preco. Esta no custo de nao ter o sistema." },
+        { "title": "'Ja tenho ferramentas, por que preciso de um sistema?'", "body": "Toda ferramenta isolada e uma ilha. O que falta nao e mais ferramenta - e a arquitetura que integra o que ja existe. O sistema nao substitui suas ferramentas. Ele conecta, automatiza e orquestra o que voce ja tem." },
+        { "title": "'Nao tenho tempo para implementar um sistema agora'", "body": "O sistema foi feito exatamente para quem nao tem tempo. Ele nao e mais trabalho - e a substituicao de trabalho manual por arquitetura autonoma. Quanto mais tempo voce nao tem, mais precisa de sistema." },
+        { "title": "'Ja tentei automatizar e nao funcionou'", "body": "Automacao sem arquitetura e maquiagem de caos. O que provavelmente aconteceu: ferramenta nova sobre processo quebrado. O sistema primeiro reorganiza a operacao, depois automatiza. Automatizar caos so produz caos mais rapido." },
+        { "title": "'Minha operacao e muito especifica para um sistema padronizado'", "body": "Bom - porque o sistema nao e padronizado. A arquitetura e desenhada para o seu negocio. O que e padronizado e o metodo de construcao, nao o sistema entregue. Cada operacao tem seu desenho, seus fluxos, seus agentes." },
+        { "title": "'E se eu crescer e o sistema nao acompanhar?'", "body": "O sistema foi projetado para escalar com voce. Crescer nao significa reconstruir - significa adicionar camadas. A base arquitetural e a mesma do MVP ao enterprise. O que muda e o numero de agentes, fluxos e integracoes." }
+      ]
+    },
+    {
+      "id": "templates",
+      "title": "Templates de Uso",
+      "layout": "cards",
+      "cards": [
+        { "title": "Bio do Instagram", "badge": "Template", "body": "Arquiteto de Sistemas Autonomos. Hub Operacional. Link no perfil - sistema." },
+        { "title": "CTA Padrao", "badge": "Template", "body": "'Quer entender como aplicar isso na sua operacao? Me manda um diagnostico que eu mostro o sistema.'" },
+        { "title": "Mini Manifesto", "badge": "Template", "body": "O futuro da operacao nao e mais gente - e sistema. Enquanto voce apaga incendio, eu construo o extintor. Arquitetura vence volume." },
+        { "title": "Estrutura de Post (Topo)", "badge": "Conteudo", "body": "Hook: diagnostico do caos. Problema: a planilha que todo mundo usa e ninguem confia. Solucao: o sistema que substitui a planilha. CTA: 'Ja passou por isso? Me conta nos comentarios.'" },
+        { "title": "Estrutura de Post (Meio)", "badge": "Conteudo", "body": "Hook: bastidor de construcao. Problema: como a operacao estava antes. Solucao: prints e explicacao do sistema. CTA: 'Quer ver como isso se aplica ao seu negocio?'" },
+        { "title": "Estrutura de Post (Fundo)", "badge": "Conteudo", "body": "Hook: resultado do sistema. Problema: o gargalo que o sistema resolveu. Solucao: print do dashboard + analise. CTA: 'Vamos diagnosticar sua operacao?'" }
+      ]
+    }
+  ]
+}

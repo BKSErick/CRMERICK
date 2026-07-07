@@ -24,17 +24,17 @@ export function ModulePlaceholder({ item }: ModulePlaceholderProps) {
       <div className="grid-2col">
         <article className="card">
           <div className="card-header">
-            <div className="card-title">Origem legada</div>
-            <span className="card-badge">HTML</span>
+            <div className="card-title">Rota reservada</div>
+            <span className="card-badge">Next.js</span>
           </div>
-          <p className="muted-copy">O modulo original continua disponivel na pasta `modules/` para comparacao visual e migracao incremental.</p>
+          <p className="muted-copy">A rota ja existe no App Router. A tela nativa deste modulo sera construida em uma story dedicada.</p>
         </article>
         <article className="card">
           <div className="card-header">
             <div className="card-title">Proximo corte</div>
             <span className="card-badge">React</span>
           </div>
-          <p className="muted-copy">Converter estrutura visual, remover dependencia de `window.parent` e ligar dados via store/API server-side.</p>
+          <p className="muted-copy">Construir a tela em React nativo com dados via store/API server-side, no padrao das demais telas do Hub.</p>
         </article>
       </div>
 

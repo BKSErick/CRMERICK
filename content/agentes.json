@@ -1,0 +1,44 @@
+{
+  "generatedAt": "",
+  "source": "catalogo conceitual (Brandbook: Agentes de IA Proprietarios) - sem metricas fabricadas",
+  "note": "Catalogo dos copilotos especialistas do Hub Operacional. Metricas de execucao ao vivo aparecem aqui quando os agentes estiverem operando de fato.",
+  "count": 6,
+  "items": [
+    {
+      "code": "C",
+      "name": "Agente de Copy",
+      "area": "Copy",
+      "description": "Redige e otimiza textos publicitarios, legendas, CTAs e scripts com base em dados de conversao e no tom de voz da marca."
+    },
+    {
+      "code": "F",
+      "name": "Agente de Funil",
+      "area": "Funil",
+      "description": "Mapeia jornadas, calcula taxas de conversao entre estagios e sugere acoes para destravar gargalos no funil."
+    },
+    {
+      "code": "M",
+      "name": "Agente de Conteudo",
+      "area": "Conteudo",
+      "description": "Planeja calendario editorial, gera briefings e sugere topicos com base em tendencias e desempenho organico."
+    },
+    {
+      "code": "T",
+      "name": "Agente de Trafego",
+      "area": "Trafego",
+      "description": "Monitora campanhas pagas e sugere otimizacoes de lances, segmentacao e criativos com base em ROAS e CPA."
+    },
+    {
+      "code": "V",
+      "name": "Agente de Vendas",
+      "area": "Vendas",
+      "description": "Qualifica leads, sugere abordagens e dispara sequencias de follow-up automatizadas com base no perfil do contato."
+    },
+    {
+      "code": "A",
+      "name": "Agente de Analise",
+      "area": "Analise",
+      "description": "Compila dados de multiplas fontes, gera relatorios executivos e cruza metricas para identificar padroes e oportunidades."
+    }
+  ]
+}
