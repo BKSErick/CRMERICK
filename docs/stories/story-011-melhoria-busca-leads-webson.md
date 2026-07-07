@@ -1,7 +1,7 @@
 # Story 011 - Melhoria de busca de leads e scripts Webson
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero melhorar os criterios de busca, priorizacao e abordagem dos leads do Garimpo, para separar leads sem consciencia de compra dos leads com dor comercial clara e aumentar a taxa de resposta nas abordagens de paginas/sites.
