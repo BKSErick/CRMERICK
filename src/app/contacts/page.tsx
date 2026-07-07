@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useCRMStore, type Contact } from "@/store/useCRMStore";
 
 type ContactStatus = NonNullable<Contact["status"]>;
@@ -23,10 +23,13 @@ function initials(name: string) {
 
 export default function ContactsPage() {
   const contacts = useCRMStore((state) => state.contacts);
+  const setContacts = useCRMStore((state) => state.setContacts);
   const createContact = useCRMStore((state) => state.createContact);
   const deleteContact = useCRMStore((state) => state.deleteContact);
+  const lastError = useCRMStore((state) => state.lastError);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ContactStatus | "all">("all");
+  const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
   const [newContact, setNewContact] = useState({
     name: "",
     company: "",
@@ -49,19 +52,46 @@ export default function ContactsPage() {
     });
   }, [contacts, query, status]);
 
-  function handleCreateContact(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadContacts() {
+      try {
+        const response = await fetch("/api/contacts");
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar contatos");
+        if (!cancelled) {
+          setContacts(body.contacts);
+          setDataStatus("ready");
+        }
+      } catch {
+        if (!cancelled) setDataStatus("error");
+      }
+    }
+
+    loadContacts();
+    return () => {
+      cancelled = true;
+    };
+  }, [setContacts]);
+
+  async function handleCreateContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!newContact.name.trim()) return;
 
-    createContact({
-      name: newContact.name.trim(),
-      company: newContact.company.trim(),
-      email: newContact.email.trim(),
-      phone: newContact.phone.trim(),
-      status: newContact.status,
-    });
+    try {
+      await createContact({
+        name: newContact.name.trim(),
+        company: newContact.company.trim(),
+        email: newContact.email.trim(),
+        phone: newContact.phone.trim(),
+        status: newContact.status,
+      });
 
-    setNewContact({ name: "", company: "", email: "", phone: "", status: "lead" });
+      setNewContact({ name: "", company: "", email: "", phone: "", status: "lead" });
+    } catch {
+      // lastError ja e atualizado pelo store para exibir feedback visivel.
+    }
   }
 
   return (
@@ -75,9 +105,14 @@ export default function ContactsPage() {
         </div>
         <div className="page-header-right">
           <div className="label">Base ativa</div>
-          <div className="value">{contacts.length}</div>
+          <div className="value">{dataStatus === "loading" ? "..." : contacts.length}</div>
         </div>
       </div>
+
+      {lastError ? <div className="portfolio-status warning">{lastError}</div> : null}
+      {dataStatus === "error" ? (
+        <div className="portfolio-status warning">Nao foi possivel carregar contatos do Supabase.</div>
+      ) : null}
 
       <div className="filterbar">
         <input
@@ -171,7 +206,7 @@ export default function ContactsPage() {
                   <span className={`status-pill ${contact.status ?? "lead"}`}>{contact.status ?? "lead"}</span>
                 </td>
                 <td>
-                  <button className="icon-text danger" onClick={() => deleteContact(contact.id)} type="button">
+                  <button className="icon-text danger" onClick={() => void deleteContact(contact.id)} type="button">
                     Excluir
                   </button>
                 </td>

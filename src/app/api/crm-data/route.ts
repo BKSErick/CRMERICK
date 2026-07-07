@@ -1,38 +1,42 @@
-import fs from "node:fs";
-import path from "node:path";
-import vm from "node:vm";
 import { NextResponse } from "next/server";
+import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
+import { mapContactFromRow, mapDealFromRow } from "@/lib/crmRecords";
 
 export const runtime = "nodejs";
 
-type MockWindow = {
-  deals?: unknown[];
-  contacts?: unknown[];
-  stages?: unknown[];
-  ownerMeta?: Record<string, unknown>;
-};
+const stages = [
+  { id: "prospect", label: "Prospect" },
+  { id: "qualified", label: "Qualified" },
+  { id: "proposal", label: "Proposal" },
+  { id: "negotiation", label: "Negotiation" },
+  { id: "won", label: "Won" },
+  { id: "lost", label: "Lost" },
+];
 
 export async function GET() {
-  const mockDbPath = path.join(process.cwd(), "js", "mock-db.js");
-
   try {
-    const raw = fs.readFileSync(mockDbPath, "utf8");
-    const sandbox: { window: MockWindow } = { window: {} };
-    vm.runInNewContext(raw, sandbox, { timeout: 5000 });
+    const supabase = getCrmSupabaseAdmin();
+    const [dealsResult, contactsResult] = await Promise.all([
+      supabase.from("deals").select("*").order("created_at", { ascending: false }),
+      supabase.from("contacts").select("*").order("name", { ascending: true }),
+    ]);
+
+    if (dealsResult.error) throw dealsResult.error;
+    if (contactsResult.error) throw contactsResult.error;
 
     return NextResponse.json({
       ok: true,
-      deals: sandbox.window.deals ?? [],
-      contacts: sandbox.window.contacts ?? [],
-      stages: sandbox.window.stages ?? [],
-      ownerMeta: sandbox.window.ownerMeta ?? {},
-      source: "js/mock-db.js",
+      deals: (dealsResult.data ?? []).map(mapDealFromRow),
+      contacts: (contactsResult.data ?? []).map(mapContactFromRow),
+      stages,
+      ownerMeta: {},
+      source: "supabase",
     });
   } catch (error) {
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Falha ao carregar mock-db.js",
+        error: error instanceof Error ? error.message : "Falha ao carregar dados do Supabase",
       },
       { status: 500 },
     );

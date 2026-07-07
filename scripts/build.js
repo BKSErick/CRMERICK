@@ -2,8 +2,13 @@ const fs = require('fs');
 const path = require('path');
 
 // 1. Gerar js/supabase-client.js
-const supabaseUrl = process.env.SUPABASE_URL || 'https://rezgkabwxxltpprpvdua.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_xGIK0X5KEuzmIBftq4DJJA_gfxJmgik';
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+const hasSupabasePublicEnv = Boolean(supabaseUrl && supabaseKey);
+
+if (!hasSupabasePublicEnv) {
+  console.warn('[Build] SUPABASE_URL/SUPABASE_KEY ausentes; cliente legado sera gerado desativado.');
+}
 
 const supabaseClientContent = `/* =============================================================================
    supabase-client.js  —  Gerado dinamicamente no Build.
@@ -11,12 +16,19 @@ const supabaseClientContent = `/* ==============================================
 
 window.SUPABASE_URL = '${supabaseUrl}';
 window.SUPABASE_KEY = '${supabaseKey}';
+window.SUPABASE_LEGACY_ENABLED = ${hasSupabasePublicEnv ? 'true' : 'false'};
 
 // Inicializa o client global
-window.sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+window.sb = window.SUPABASE_LEGACY_ENABLED ? supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY) : null;
+
+function legacyDisabled(operation) {
+  console.warn('[sb] cliente legado desativado; use o CRM Next.js server-side para ' + operation + '.');
+  return false;
+}
 
 // Helpers
 window.sbGetDeals = async function(stage = null) {
+  if (!window.sb) return [];
   let query = window.sb.from('deals').select('*').order('created_at', { ascending: false });
   if (stage) query = query.eq('stage', stage);
   const { data, error } = await query;
@@ -25,12 +37,14 @@ window.sbGetDeals = async function(stage = null) {
 };
 
 window.sbUpdateDealStage = async function(id, stage) {
+  if (!window.sb) return legacyDisabled('atualizar deal');
   const { error } = await window.sb.from('deals').update({ stage }).eq('id', id);
   if (error) console.error('[sb] update stage error:', error.message);
   return !error;
 };
 
 window.sbGetContacts = async function(status = null) {
+  if (!window.sb) return [];
   let query = window.sb.from('contacts').select('*').order('name');
   if (status) query = query.eq('status', status);
   const { data, error } = await query;
@@ -39,6 +53,7 @@ window.sbGetContacts = async function(status = null) {
 };
 
 window.sbLogMessage = async function(msg) {
+  if (!window.sb) return null;
   const { data, error } = await window.sb.from('messages').insert({
     ...msg,
     sent_at: msg.status === 'sent' ? new Date().toISOString() : null,
@@ -48,42 +63,49 @@ window.sbLogMessage = async function(msg) {
 };
 
 window.sbGetCopyText = async function(dealId) {
+  if (!window.sb) return null;
   const { data, error } = await window.sb.from('deals').select('copy_text, analysis_url, company').eq('id', dealId).single();
   if (error) return null;
   return data;
 };
 
 window.sbCreateDeal = async function(deal) {
+  if (!window.sb) return null;
   const { data, error } = await window.sb.from('deals').insert(deal).select().single();
   if (error) { console.error('[sb] create deal error:', error.message); return null; }
   return data;
 };
 
 window.sbDeleteDeal = async function(id) {
+  if (!window.sb) return legacyDisabled('excluir deal');
   const { error } = await window.sb.from('deals').delete().eq('id', id);
   if (error) console.error('[sb] delete deal error:', error.message);
   return !error;
 };
 
 window.sbUpdateDeal = async function(id, updates) {
+  if (!window.sb) return legacyDisabled('atualizar deal');
   const { error } = await window.sb.from('deals').update(updates).eq('id', id);
   if (error) console.error('[sb] update deal error:', error.message);
   return !error;
 };
 
 window.sbCreateContact = async function(contact) {
+  if (!window.sb) return null;
   const { data, error } = await window.sb.from('contacts').insert(contact).select().single();
   if (error) { console.error('[sb] create contact error:', error.message); return null; }
   return data;
 };
 
 window.sbUpdateContact = async function(id, updates) {
+  if (!window.sb) return legacyDisabled('atualizar contato');
   const { error } = await window.sb.from('contacts').update(updates).eq('id', id);
   if (error) console.error('[sb] update contact error:', error.message);
   return !error;
 };
 
 window.sbDeleteContact = async function(id) {
+  if (!window.sb) return legacyDisabled('excluir contato');
   const { error } = await window.sb.from('contacts').delete().eq('id', id);
   if (error) console.error('[sb] delete contact error:', error.message);
   return !error;
@@ -94,17 +116,17 @@ fs.writeFileSync(path.join(__dirname, '../js/supabase-client.js'), supabaseClien
 console.log('[Build] js/supabase-client.js gerado com sucesso.');
 
 // 2. Gerar js/config.js para o legado sem embutir token real no bundle publico.
-const igToken = process.env.IG_ACCESS_TOKEN || '';
 const igAccountId = process.env.IG_BUSINESS_ACCOUNT_ID || '17841444737911156';
 
 const configContent = `/* =============================================================================
    config.js  —  Gerado dinamicamente no Build.
    ============================================================================= */
 window.IG_CONFIG = {
-  ACCESS_TOKEN: '${igToken}',
+  ACCESS_TOKEN: '',
   IG_BUSINESS_ACCOUNT_ID: '${igAccountId}',
   API_VERSION: 'v21.0',
   REFRESH_INTERVAL_MS: 600000,
+  SERVER_SIDE_ONLY: true,
 };
 `;
 

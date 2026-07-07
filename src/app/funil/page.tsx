@@ -57,7 +57,7 @@ export default function FunilPage() {
       try {
         const response = await fetch("/api/crm-data");
         const body = await response.json();
-        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar mock-db.js");
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar dados do CRM");
         if (!cancelled) {
           setDeals(body.deals);
           setCrmSource("ready");
@@ -271,7 +271,7 @@ export default function FunilPage() {
 
   const bottleneck =
     funnel.leads === 0
-      ? "Sem deals na store para calcular gargalo comercial."
+      ? "Sem deals reais para calcular gargalo comercial."
       : funnel.proposalRate < 35
         ? "Gargalo principal: conversas virando proposta."
         : funnel.closingRate < 30
@@ -389,8 +389,8 @@ export default function FunilPage() {
               {crmSource === "ready"
                 ? `${numberFormatter.format(deals.length)} deals carregados`
                 : crmSource === "loading"
-                  ? "Carregando mock-db.js"
-                  : "Fallback da store local"}
+                  ? "Carregando Supabase"
+                  : "Supabase indisponivel"}
             </strong>
             <p>Dados comerciais saem da mesma base usada no Pipeline.</p>
           </article>

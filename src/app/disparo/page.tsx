@@ -23,11 +23,11 @@ export default function DisparoPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadLegacyData() {
+    async function loadCrmData() {
       try {
         const response = await fetch("/api/crm-data");
         const body = await response.json();
-        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar mock-db.js");
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar dados do CRM");
         if (!cancelled) {
           setDeals(body.deals);
           setContacts(body.contacts);
@@ -38,7 +38,7 @@ export default function DisparoPage() {
       }
     }
 
-    loadLegacyData();
+    loadCrmData();
     return () => {
       cancelled = true;
     };
@@ -106,7 +106,7 @@ export default function DisparoPage() {
         </div>
         <div className="filterbar-spacer" />
         <span className={`pipeline-status-pill ${dataStatus}`}>
-          {dataStatus === "ready" ? `${deals.length} leads` : dataStatus === "loading" ? "Carregando" : "Fallback"}
+          {dataStatus === "ready" ? `${deals.length} leads` : dataStatus === "loading" ? "Carregando" : "Erro"}
         </span>
       </div>
 

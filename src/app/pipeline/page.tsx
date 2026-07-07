@@ -42,6 +42,8 @@ export default function PipelinePage() {
   const setDeals = useCRMStore((state) => state.setDeals);
   const setContacts = useCRMStore((state) => state.setContacts);
   const createDeal = useCRMStore((state) => state.createDeal);
+  const deleteDeal = useCRMStore((state) => state.deleteDeal);
+  const lastError = useCRMStore((state) => state.lastError);
   const updateDealStage = useCRMStore((state) => state.updateDealStage);
   const [query, setQuery] = useState("");
   const [stageFilter, setStageFilter] = useState<DealStage | "all">("all");
@@ -62,11 +64,11 @@ export default function PipelinePage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadLegacyData() {
+    async function loadCrmData() {
       try {
         const response = await fetch("/api/crm-data");
         const body = await response.json();
-        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar mock-db.js");
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar dados do CRM");
         if (!cancelled) {
           setDeals(body.deals);
           setContacts(body.contacts);
@@ -77,7 +79,7 @@ export default function PipelinePage() {
       }
     }
 
-    loadLegacyData();
+    loadCrmData();
     return () => {
       cancelled = true;
     };
@@ -101,32 +103,36 @@ export default function PipelinePage() {
 
   const selectedDeal = deals.find((deal) => deal.id === selectedDealId) ?? null;
 
-  function handleCreateDeal(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateDeal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = Number(newDeal.value) || 0;
 
     if (!newDeal.company.trim()) return;
 
-    createDeal({
-      company: newDeal.company.trim(),
-      title: newDeal.title.trim() || "Novo deal",
-      name: newDeal.title.trim() || newDeal.company.trim(),
-      value,
-      phone: newDeal.phone.trim(),
-      stage: "prospect",
-      probability: 20,
-      prob: 20,
-      owner: "Erick",
-      ownerName: "Erick",
-      tag: "Outbound",
-      tagType: "research",
-      ticketId: `LEAD-${Date.now()}`,
-      points: 3,
-      progress: 0,
-      assignee: "JM",
-    });
-    setNewDeal({ company: "", title: "", value: "", phone: "" });
-    setIsCreateOpen(false);
+    try {
+      await createDeal({
+        company: newDeal.company.trim(),
+        title: newDeal.title.trim() || "Novo deal",
+        name: newDeal.title.trim() || newDeal.company.trim(),
+        value,
+        phone: newDeal.phone.trim(),
+        stage: "prospect",
+        probability: 20,
+        prob: 20,
+        owner: "Erick",
+        ownerName: "Erick",
+        tag: "Outbound",
+        tagType: "research",
+        ticketId: `LEAD-${Date.now()}`,
+        points: 3,
+        progress: 0,
+        assignee: "JM",
+      });
+      setNewDeal({ company: "", title: "", value: "", phone: "" });
+      setIsCreateOpen(false);
+    } catch {
+      // lastError ja e atualizado pelo store para exibir feedback visivel.
+    }
   }
 
   return (
@@ -198,6 +204,11 @@ export default function PipelinePage() {
         </form>
       ) : null}
 
+      {lastError ? <div className="portfolio-status warning">{lastError}</div> : null}
+      {dataStatus === "error" ? (
+        <div className="portfolio-status warning">Nao foi possivel carregar os dados reais do Supabase.</div>
+      ) : null}
+
       <div className="kanban-board">
         {stages.map((stage) => {
           const columnDeals = filteredDeals.filter((deal) => deal.stage === stage.id);
@@ -257,6 +268,11 @@ export default function PipelinePage() {
       {selectedDeal ? (
         <DealDetailOverlay
           deal={selectedDeal}
+          onDelete={(dealId) => {
+            void deleteDeal(dealId)
+              .then(() => setSelectedDealId(null))
+              .catch(() => undefined);
+          }}
           onClose={() => setSelectedDealId(null)}
         />
       ) : null}
@@ -305,10 +321,11 @@ function DealCard({ deal, onDragEnd, onDragStart, onOpen }: DealCardProps) {
 
 type DealDetailOverlayProps = {
   deal: Deal;
+  onDelete: (dealId: number) => void;
   onClose: () => void;
 };
 
-function DealDetailOverlay({ deal, onClose }: DealDetailOverlayProps) {
+function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) {
   const stage = stages.find((item) => item.id === deal.stage) ?? stages[0];
   const reportHref = deal.analysisUrl ? `/${deal.analysisUrl}` : "";
   const cleanPhone = (deal.phone || deal.whatsapp || "").replace(/\D/g, "");
@@ -338,7 +355,7 @@ function DealDetailOverlay({ deal, onClose }: DealDetailOverlayProps) {
               <input className="deal-title" readOnly value={deal.name ?? deal.title ?? deal.company} />
             </div>
             <div className="deal-header-actions">
-              <button className="deal-header-btn danger" type="button">
+              <button className="deal-header-btn danger" onClick={() => onDelete(deal.id)} type="button">
                 Excluir
               </button>
               <button className="deal-header-btn" type="button">

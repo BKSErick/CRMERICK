@@ -8,6 +8,7 @@ js/supabase-client.js
 # Dados de leads (telefones reais do banco Garimpo) — não commitar
 js/garimpo-leads.json
 js/disparo-data.json
+huberick-temp/
 public/huberick-temp/
 
 # Node
