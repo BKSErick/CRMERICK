@@ -24,6 +24,8 @@ export type Deal = {
   analysisUrl?: string;
   siteUrl?: string;
   segment?: string;
+  recurring?: boolean;
+  closedAt?: string;
   updated_at?: string;
 };
 
@@ -91,6 +93,8 @@ export function mapDealFromRow(row: DealRow): Deal {
     analysisUrl: asString(row.analysis_url ?? row.analysisUrl),
     siteUrl: asString(row.site_url ?? row.siteUrl),
     segment: asString(row.segment),
+    recurring: typeof row.recurring === "boolean" ? row.recurring : Boolean(row.recurring),
+    closedAt: asString(row.closed_at ?? row.closedAt),
     updated_at: asString(row.updated_at),
   };
 }
@@ -134,6 +138,8 @@ export function mapDealToRow(deal: Partial<Deal>) {
     site_url: deal.siteUrl,
     phone: deal.phone,
     whatsapp: deal.whatsapp,
+    recurring: deal.recurring,
+    closed_at: deal.closedAt,
   });
 }
 

@@ -62,6 +62,11 @@ export async function PATCH(request: NextRequest) {
     const updates = { ...body };
     delete updates.id;
     const payload = mapDealToRow(updates);
+    // Story 014: ao mover para "won", carimba o fechamento (se ainda nao informado) para
+    // que a receita do deal seja atribuida ao mes correto no painel North Star.
+    if (payload.stage === "won" && payload.closed_at === undefined) {
+      payload.closed_at = new Date().toISOString();
+    }
     const { data, error } = await supabase.from("deals").update(payload).eq("id", id).select("*").single();
     if (error) throw error;
 

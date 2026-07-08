@@ -1,0 +1,33 @@
+{
+  "generatedAt": "",
+  "source": "vault: SaaS/CRM ERICK/Posicionamento/Plano_Metas_15k_2026-07-07.md",
+  "defaultTarget": 15000,
+  "growthAfter": 0.1,
+  "monthlyTargets": {
+    "2026-08": 9000,
+    "2026-09": 13000,
+    "2026-10": 7500,
+    "2026-11": 15000
+  },
+  "mrrFloor": { "month": "2026-10", "value": 4000 },
+  "dailyInputs": {
+    "disparos": 30,
+    "disparosLP": 20,
+    "disparosDFY": 10,
+    "followUps": 10,
+    "callsPerWeek": 4,
+    "postsPerWeek": 3
+  },
+  "assumptions": {
+    "responseRate": 0.15,
+    "callToClose": 0.2,
+    "ticketLP": 3000,
+    "ticketDFY": 10000,
+    "retainerMin": 500,
+    "retainerMax": 800
+  },
+  "rules": {
+    "sevenDayDisparos": 210,
+    "day20Threshold": 0.4
+  }
+}

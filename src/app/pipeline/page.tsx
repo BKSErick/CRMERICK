@@ -368,6 +368,21 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
 
   const [activities, setActivities] = useState<DealActivity[]>([]);
   const [activitiesStatus, setActivitiesStatus] = useState<"loading" | "ready" | "error">("loading");
+  const updateDeal = useCRMStore((state) => state.updateDeal);
+  const [valueInput, setValueInput] = useState(String(deal.value ?? 0));
+  const [recurring, setRecurring] = useState(Boolean(deal.recurring));
+  const [savingValue, setSavingValue] = useState(false);
+
+  async function handleSaveValue() {
+    setSavingValue(true);
+    try {
+      await updateDeal(deal.id, { value: Number(valueInput) || 0, recurring });
+    } catch {
+      // erro visivel via store.lastError na tela do pipeline
+    } finally {
+      setSavingValue(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -443,6 +458,29 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               <span className="meta-label">Probabilidade</span>
               <span className="meta-value">{deal.prob ?? deal.probability ?? 0}%</span>
             </div>
+          </div>
+
+          <div
+            className="deal-value-editor"
+            style={{ display: "flex", gap: "14px", alignItems: "flex-end", flexWrap: "wrap", margin: "14px 0", padding: "12px", border: "1px solid var(--color-linen, #e9ebf0)", borderRadius: "8px" }}
+          >
+            <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px" }}>
+              <span className="meta-label">Valor do deal (R$)</span>
+              <input
+                className="settings-input"
+                inputMode="numeric"
+                value={valueInput}
+                onChange={(event) => setValueInput(event.target.value)}
+                style={{ maxWidth: "160px" }}
+              />
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
+              <input type="checkbox" checked={recurring} onChange={(event) => setRecurring(event.target.checked)} />
+              Recorrente (MRR)
+            </label>
+            <button className="topbar-btn primary" type="button" onClick={handleSaveValue} disabled={savingValue}>
+              {savingValue ? "Salvando..." : "Salvar valor"}
+            </button>
           </div>
 
           <div className="description-area">
