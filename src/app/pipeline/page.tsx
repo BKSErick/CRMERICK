@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useCRMStore, type Deal, type DealStage } from "@/store/useCRMStore";
+import { logWhatsappSent } from "@/lib/activityClient";
 
 const stages: Array<{ id: DealStage; label: string; hint: string; color: string }> = [
   { id: "prospect", label: "Prospect", hint: "Entrada", color: "#0091ff" },
@@ -532,7 +533,13 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                 </a>
               ) : null}
               {whatsappHref ? (
-                <a className="deal-header-btn whatsapp" href={whatsappHref} rel="noreferrer" target="_blank">
+                <a
+                  className="deal-header-btn whatsapp"
+                  href={whatsappHref}
+                  rel="noreferrer"
+                  target="_blank"
+                  onClick={() => logWhatsappSent(deal.id)}
+                >
                   WhatsApp
                 </a>
               ) : null}

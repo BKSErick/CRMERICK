@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useCRMStore } from "@/store/useCRMStore";
+import { logWhatsappSent } from "@/lib/activityClient";
 
 function cleanPhone(value?: string) {
   return value?.replace(/\D/g, "") ?? "";
@@ -157,7 +158,13 @@ export default function DisparoPage() {
                 <td>{row.message}</td>
                 <td>
                   {row.phone ? (
-                    <a className="topbar-btn primary" href={whatsappLink(row.phone, row.message)} rel="noreferrer" target="_blank">
+                    <a
+                      className="topbar-btn primary"
+                      href={whatsappLink(row.phone, row.message)}
+                      rel="noreferrer"
+                      target="_blank"
+                      onClick={() => logWhatsappSent(row.id)}
+                    >
                       WhatsApp
                     </a>
                   ) : (
