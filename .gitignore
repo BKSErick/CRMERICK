@@ -16,6 +16,9 @@ package-lock.json
 .next/
 tsconfig.tsbuildinfo
 
+# Cache local do enriquecimento de leads (Story 017) — HTML coletado, não commitar
+.cache/
+
 # Scaffold Next.js temporário (lixo de migração)
 tmp-next-app/
 

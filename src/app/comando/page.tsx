@@ -7,7 +7,25 @@ import { logWhatsappSent } from "@/lib/activityClient";
 // movidos), fila priorizada e alertas das regras (7 dias, dia 20), tudo da rota server-side
 // /api/comando (activities + deals reais). Zero fabricado: contadores em zero real + vazio.
 
-type QueueItem = { id: number; company: string; phone: string; points: number; stage: string; message: string };
+type QueueItem = {
+  id: number;
+  company: string;
+  phone: string;
+  points: number;
+  stage: string;
+  message: string;
+  recommended_approach: string;
+  channel: string;
+  opportunity: string;
+};
+
+const APPROACH_LABELS: Record<string, string> = {
+  sem_site_ativo: "Sem site (ativo)",
+  builder_fraco: "Builder fraco",
+  site_concorrente: "Site de concorrente",
+  site_auditar: "Auditar site",
+  industrial_email: "Industrial (email)",
+};
 type Placar = {
   disparos: { done: number; target: number; splitLP: number; splitDFY: number };
   followUps: { done: number; target: number };
@@ -172,6 +190,7 @@ export default function ComandoPage() {
                     <th>Empresa</th>
                     <th>Etapa</th>
                     <th>Score</th>
+                    <th>Abordagem</th>
                     <th>Telefone</th>
                     <th>Acao</th>
                   </tr>
@@ -182,6 +201,10 @@ export default function ComandoPage() {
                       <td>{item.company}</td>
                       <td><span className={`status-pill ${item.stage}`}>{item.stage}</span></td>
                       <td>{item.points}</td>
+                      <td>
+                        <span className="status-pill">{APPROACH_LABELS[item.recommended_approach] ?? item.recommended_approach}</span>
+                        <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>{item.channel}</span>
+                      </td>
                       <td className="font-mono">+{item.phone}</td>
                       <td>
                         <a

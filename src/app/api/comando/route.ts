@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
+import { diagnoseLead } from "@/lib/leadScoring";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
 // (disparos/follow-ups/calls/deals movidos), a fila priorizada do dia e os alertas das regras
@@ -94,24 +95,58 @@ export async function GET() {
     // Fila do dia: deals ativos com telefone, priorizados pelo score (points) ja persistido.
     const { data: dealRows, error: dealErr } = await supabase
       .from("deals")
-      .select("id, company, phone, whatsapp, points, stage, copy_text, title")
+      .select("id, company, phone, whatsapp, points, stage, copy_text, name, site_url")
       .in("stage", ["prospect", "qualified"])
       .order("points", { ascending: false })
       .limit(goals.dailyInputs.disparos * 3);
     if (dealErr) throw dealErr;
 
+    // Telefones vivem em contacts (import Garimpo, story-007); deals nao tem telefone proprio.
+    // Join por company/name (mesmo import, 1:1). O campo whatsapp do contact e um link wa.me completo.
+    const { data: contactRows, error: contactErr } = await supabase
+      .from("contacts")
+      .select("name, company, phone, whatsapp");
+    if (contactErr) throw contactErr;
+
+    const keyOf = (v?: string | null) => (v ?? "").trim().toLowerCase();
+    const phoneByKey = new Map<string, string>();
+    for (const c of contactRows ?? []) {
+      const fromWa =
+        typeof c.whatsapp === "string" ? (c.whatsapp.match(/wa\.me\/(\d+)/) || [])[1] : undefined;
+      let digits = fromWa || cleanPhone(c.phone as string);
+      if (!digits) continue;
+      if (!fromWa && (digits.length === 10 || digits.length === 11)) digits = `55${digits}`;
+      for (const k of [keyOf(c.company as string), keyOf(c.name as string)]) {
+        if (k && !phoneByKey.has(k)) phoneByKey.set(k, digits);
+      }
+    }
+
     const queue = (dealRows ?? [])
       .map((d) => {
-        const phone = cleanPhone((d.phone as string) || (d.whatsapp as string));
+        const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
+        const phone =
+          own ||
+          phoneByKey.get(keyOf(d.company as string)) ||
+          phoneByKey.get(keyOf(d.name as string)) ||
+          "";
+        // Story 017: mesma logica de scoring v2 do CLI - define abordagem/canal por lead.
+        const diag = diagnoseLead({
+          name: String(d.company ?? ""),
+          website: (d.site_url as string) || "",
+          phone,
+        });
         return {
           id: Number(d.id),
           company: String(d.company ?? "Sem empresa"),
           phone,
           points: Number(d.points ?? 0),
           stage: String(d.stage ?? "prospect"),
+          recommended_approach: diag.recommended_approach,
+          channel: diag.channel,
+          opportunity: diag.opportunity,
           message:
             (d.copy_text as string) ||
-            `Oi! Falo sobre ${(d.title as string) || "a oportunidade"} da ${d.company}. Posso te mandar uma analise rapida?`,
+            `Oi! Falo sobre ${(d.name as string) || "a oportunidade"} da ${d.company}. Posso te mandar uma analise rapida?`,
         };
       })
       .filter((d) => d.phone)
