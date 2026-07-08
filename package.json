@@ -12,6 +12,7 @@
     "copy:sync": "node scripts/sync-mock-db-copies.js",
     "copy:all": "npm run copy:regen && npm run copy:sync",
     "leads:search-playbook": "node scripts/lead-search-playbook.js",
+    "verify:ostrack-cta": "node scripts/verify-ostrack-cta.js",
     "disparo:audit": "node scripts/audit-disparo-readiness.js",
     "disparo:audit:csv": "node scripts/audit-disparo-readiness.js --csv",
     "db:schema": "echo 'Run scripts/supabase-schema.sql no SQL Editor do Supabase'",

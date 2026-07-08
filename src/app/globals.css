@@ -167,6 +167,44 @@
   box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.1);
 }
 
+.settings-select,
+.settings-date-input {
+  width: 100%;
+  max-width: 220px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-pure-white);
+  color: var(--color-midnight-ink);
+  font: 500 13px/1.4 var(--font-inter);
+  outline: none;
+  padding: 6px 10px;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.settings-select:focus,
+.settings-date-input:focus {
+  border-color: var(--color-brand-violet);
+  box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.1);
+}
+
+.settings-textarea {
+  width: 100%;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-pure-white);
+  color: var(--color-midnight-ink);
+  font: 500 13px/1.5 var(--font-inter);
+  outline: none;
+  padding: 10px 12px;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+  resize: vertical;
+}
+
+.settings-textarea:focus {
+  border-color: var(--color-brand-violet);
+  box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.1);
+}
+
 .connection-status {
   border-radius: var(--radius-sm);
   color: var(--color-slate);

@@ -50,8 +50,40 @@ async function main() {
   let row;
   try {
     await queryProject(`
-      insert into public.quiz_leads (external_id, source, name, email, phone, whatsapp, score, gargalo, raw_payload)
-      values ('${marker}', 'smoke', 'Lead Smoke Quiz', '${email}', '${phone}', '${phone}', 87, 'Follow-up lento', '{"smoke":true}'::jsonb);
+      insert into public.quiz_leads (
+        external_id,
+        source,
+        name,
+        email,
+        phone,
+        whatsapp,
+        score,
+        gargalo,
+        segment,
+        gargalo_primario,
+        intencao,
+        dor_score,
+        equipe_porte,
+        faturamento,
+        raw_payload
+      )
+      values (
+        '${marker}',
+        'smoke',
+        'Lead Smoke Quiz',
+        '${email}',
+        '${phone}',
+        '${phone}',
+        87,
+        'os_management',
+        'industrial_b2b',
+        'os_management',
+        'controle_os',
+        2,
+        'media',
+        'above150k',
+        '{"smoke":true}'::jsonb
+      );
     `);
 
     const result = await queryProject(`
@@ -60,6 +92,9 @@ async function main() {
         q.materialized_deal_id,
         q.score,
         q.gargalo,
+        q.segment as quiz_segment,
+        q.gargalo_primario,
+        q.intencao,
         d.stage,
         d.points,
         d.prob,
@@ -73,7 +108,15 @@ async function main() {
     `);
 
     row = result[0];
-    if (!row || row.stage !== "prospect" || Number(row.points) < 8 || row.segment !== "Follow-up lento") {
+    if (
+      !row ||
+      row.stage !== "prospect" ||
+      Number(row.points) < 8 ||
+      row.segment !== "os_management" ||
+      row.quiz_segment !== "industrial_b2b" ||
+      row.gargalo_primario !== "os_management" ||
+      row.intencao !== "controle_os"
+    ) {
       throw new Error(`Smoke quiz_leads falhou: ${JSON.stringify(row)}`);
     }
   } finally {

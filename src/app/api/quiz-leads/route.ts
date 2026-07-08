@@ -66,7 +66,13 @@ function normalizeQuizLead(payload: QuizLeadPayload) {
   const phone = firstPhone(payload, ["phone", "telefone", "whatsapp", "lead_phone", "leadPhone"]);
   const whatsapp = firstPhone(payload, ["whatsapp", "phone", "telefone"]);
   const score = asNumber(payload.score ?? payload.points ?? payload.pontuacao);
-  const gargalo = firstString(payload, ["gargalo", "bottleneck", "diagnostic", "diagnostico", "segment"]);
+  const segment = firstString(payload, ["segment", "segmento"]);
+  const gargaloPrimario = firstString(payload, ["gargalo_primario", "gargaloPrimario", "primary_bottleneck"]);
+  const intencao = firstString(payload, ["intencao", "intention", "intent"]);
+  const dorScore = asNumber(payload.dor_score ?? payload.dorScore);
+  const equipePorte = firstString(payload, ["equipe_porte", "equipePorte", "team_size"]);
+  const faturamento = firstString(payload, ["faturamento", "revenue"]);
+  const gargalo = firstString(payload, ["gargalo", "bottleneck", "diagnostic", "diagnostico"]) || gargaloPrimario || segment;
   const externalId = firstString(payload, ["external_id", "externalId", "quiz_lead_id", "quizLeadId", "id"]);
   const quizId = firstString(payload, ["quiz_id", "quizId", "quiz", "form_id", "formId"]);
   const source = firstString(payload, ["source", "utm_source", "origem"]) || "quiz";
@@ -79,6 +85,12 @@ function normalizeQuizLead(payload: QuizLeadPayload) {
     whatsapp,
     score,
     gargalo,
+    segment,
+    gargalo_primario: gargaloPrimario,
+    intencao,
+    dor_score: dorScore,
+    equipe_porte: equipePorte,
+    faturamento,
     external_id: externalId,
     quiz_id: quizId,
     source,

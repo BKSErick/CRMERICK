@@ -1,4 +1,6 @@
 (function () {
+  var DIAGNOSTICO_OSTRACK_EVENT = "DiagnosticoOStrackClick";
+
   function text(selector) {
     var el = document.querySelector(selector);
     return el ? (el.textContent || "").trim() : "";
@@ -49,7 +51,11 @@
       link.addEventListener("click", function () {
         var href = link.getAttribute("href") || "";
         var label = (link.textContent || "").trim() || href;
-        track(href.indexOf("wa.me") !== -1 ? "DiagnosticoWhatsAppClick" : "DiagnosticoLinkClick", {
+        var explicitEvent = link.getAttribute("data-diagnostico-event");
+        var eventName = explicitEvent === DIAGNOSTICO_OSTRACK_EVENT
+          ? DIAGNOSTICO_OSTRACK_EVENT
+          : explicitEvent || (href.indexOf("wa.me") !== -1 ? "DiagnosticoWhatsAppClick" : "DiagnosticoLinkClick");
+        track(eventName, {
           buttonName: label.slice(0, 80),
         });
       });

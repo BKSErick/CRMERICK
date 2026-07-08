@@ -492,7 +492,6 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                   await updateDealStage(deal.id, e.target.value as DealStage);
                 }}
                 className="settings-select"
-                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
               >
                 {stages.map((st) => (
                   <option key={st.id} value={st.id}>{st.label}</option>
@@ -508,7 +507,6 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                   await updateDeal(deal.id, { assignee: val, owner: val, ownerName: val });
                 }}
                 className="settings-select"
-                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
               >
                 <option value="" disabled>Selecionar</option>
                 <option value="Erick">Erick</option>
@@ -527,7 +525,7 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                 onChange={async (e) => {
                   await updateDeal(deal.id, { close: e.target.value });
                 }}
-                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
+                className="settings-date-input"
               />
             </div>
             <div className="meta-row">
@@ -538,7 +536,6 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                   await updateDeal(deal.id, { priority: e.target.value });
                 }}
                 className="settings-select"
-                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
               >
                 <option value="" disabled>Selecionar</option>
                 <option value="Baixa">Baixa</option>
@@ -582,18 +579,7 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               }}
               placeholder="Digite aqui as informações sobre o cliente, contrato, tipo de serviço e observações..."
               className="settings-textarea"
-              style={{
-                width: "100%",
-                minHeight: "120px",
-                padding: "10px",
-                fontSize: "13px",
-                lineHeight: "1.5",
-                borderRadius: "8px",
-                border: "1px solid var(--color-linen, #e9ebf0)",
-                background: "var(--color-paper, #ffffff)",
-                color: "var(--color-charcoal, #333333)",
-                resize: "vertical"
-              }}
+              style={{ minHeight: "120px" }}
             />
           </div>
 

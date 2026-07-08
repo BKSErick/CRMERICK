@@ -33,6 +33,7 @@ as $$
     'views',        count(*) filter (where event_name = 'DiagnosticoView'),
     'ctaClicks',    count(*) filter (where event_name = 'DiagnosticoWhatsAppClick'),
     'reportClicks', count(*) filter (where event_name = 'DiagnosticoLinkClick'),
+    'ostrackClicks', count(*) filter (where event_name = 'DiagnosticoOStrackClick'),
     'leads',        count(*) filter (where event_name = 'DiagnosticoWhatsAppClick'),
     'sales',        count(*) filter (where event_name = 'DiagnosticoSale'),
     'total',        count(*)

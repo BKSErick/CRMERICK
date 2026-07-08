@@ -32,11 +32,12 @@ type Metrics = {
   views: number;
   ctaClicks: number;
   reportClicks: number;
+  ostrackClicks: number;
   leads: number;
   sales: number;
 };
 
-const EMPTY_METRICS: Metrics = { views: 0, ctaClicks: 0, reportClicks: 0, leads: 0, sales: 0 };
+const EMPTY_METRICS: Metrics = { views: 0, ctaClicks: 0, reportClicks: 0, ostrackClicks: 0, leads: 0, sales: 0 };
 
 function hash(value?: string) {
   if (!value) return undefined;
@@ -96,6 +97,7 @@ async function fetchSummary(): Promise<Metrics | null> {
       views: Number(j?.views) || 0,
       ctaClicks: Number(j?.ctaClicks) || 0,
       reportClicks: Number(j?.reportClicks) || 0,
+      ostrackClicks: Number(j?.ostrackClicks) || 0,
       leads: Number(j?.leads) || 0,
       sales: Number(j?.sales) || 0,
     };
@@ -120,7 +122,7 @@ export async function GET() {
     });
   }
 
-  const total = summary.views + summary.ctaClicks + summary.reportClicks + summary.leads + summary.sales;
+  const total = summary.views + summary.ctaClicks + summary.reportClicks + summary.ostrackClicks + summary.leads + summary.sales;
   return NextResponse.json({
     status: "ready",
     configured,

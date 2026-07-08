@@ -17,6 +17,7 @@ type PixelState = {
     views: number;
     ctaClicks: number;
     reportClicks: number;
+    ostrackClicks: number;
     leads: number;
     sales: number;
   };
@@ -46,7 +47,7 @@ export default function FunilPage() {
     status: "loading",
     configured: false,
     message: "Buscando Facebook Pixel...",
-    metrics: { views: 0, ctaClicks: 0, reportClicks: 0, leads: 0, sales: 0 },
+    metrics: { views: 0, ctaClicks: 0, reportClicks: 0, ostrackClicks: 0, leads: 0, sales: 0 },
   });
   const [crmSource, setCrmSource] = useState<"loading" | "ready" | "fallback">("loading");
 
@@ -126,6 +127,7 @@ export default function FunilPage() {
               views: Number(body.metrics?.views) || 0,
               ctaClicks: Number(body.metrics?.ctaClicks) || 0,
               reportClicks: Number(body.metrics?.reportClicks) || 0,
+              ostrackClicks: Number(body.metrics?.ostrackClicks) || 0,
               leads: Number(body.metrics?.leads) || 0,
               sales: Number(body.metrics?.sales) || 0,
             },
@@ -155,7 +157,7 @@ export default function FunilPage() {
     const conversations = count(["qualified", "proposal", "negotiation", "won"]);
     const leads = deals.length;
     const pixelViews = pixel.metrics.views;
-    const pixelClicks = pixel.metrics.ctaClicks + pixel.metrics.reportClicks;
+    const pixelClicks = pixel.metrics.ctaClicks + pixel.metrics.reportClicks + pixel.metrics.ostrackClicks;
     // Sinais REAIS apenas: alcance do Instagram (Graph API) e cliques do Pixel/CAPI.
     // Removida a fabricacao antiga (fallbackReach 942, leads*80, leads*2.5).
     const instagramReach = instagram.reach ?? 0;

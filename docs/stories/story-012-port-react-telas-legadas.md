@@ -1,7 +1,7 @@
 # Story 012 - Port React das 6 telas legadas mortas
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero as telas Comando, North Star, Lab, Agentes, Reunioes e Brandbook portadas para React nativo, para que voltem a funcionar (hoje renderizam fallback de erro) e deixem de depender de HTML legado injetado.
@@ -82,3 +82,27 @@ Removidos:
 ## Change Log
 - 2026-07-07: Story criada por Orion (aios-master) a partir da Re-Vistoria de 2026-07-07 (item #1 do plano) e da decisao do Erick: "portar pra react".
 - 2026-07-07: Dex (@dev) implementou o port das 6 telas para React nativo, removeu LegacyModule, criou content/brandbook.json + content/agentes.json + ModuleScaffold, ajustou ModulePlaceholder. Lint + build PASS, smoke via HTML prerenderizado OK. Status -> Ready for Review.
+- 2026-07-07: Quinn (@qa) revisou a story. Gate PASS. Verificacao de codigo read-only + build/lint empiricos (ambos exit 0). Status -> Done.
+
+## QA Results
+
+**Reviewer:** Quinn (Guardian) - Test Architect
+**Data:** 2026-07-07
+**Gate: PASS** (APPROVED)
+
+### Evidencia por Acceptance Criteria
+- AC1 (6 rotas nativas, sem LegacyModule, tokens hub.css): PASS. comando/north-star/lab/reunioes usam `ModuleScaffold`; agentes/brandbook usam renderers proprios lendo `content/*.json`. Todos usam classes do design system (`page-header`, `card`, `grid-2col`, `kpi-card`, `connection-status`). Nenhuma tela consome `LegacyModule`.
+- AC2 (zero dado fabricado): PASS. Grep por "Carla S./Pedro A./Ana L./Dr. Cardoso/TechNova" no `src/` retorna apenas COMENTARIOS explicando o que foi removido (comando/north-star), nunca conteudo renderizado. Scaffolds mostram estado vazio honesto ("sem dados ainda").
+- AC3 (brandbook porta conteudo real): PASS. `content/brandbook.json` = brand copy real do Erick Sena (arquetipo Criador-Hacker, ICP, funil, ofertas, objecoes). Sem metricas inventadas.
+- AC4 (navigation.ts veridico): PASS. As 6 telas marcadas `migrated` (agora genuinamente nativas); Calendar permanece `placeholder`.
+- AC5 (LegacyModule.tsx removido, sem refs orfas): PASS. Arquivo inexistente (Glob `src/components/Legacy*` = 0). Grep `LegacyModule` no repo aparece so em docs de story, nunca em codigo.
+- AC6 (ModulePlaceholder sem texto obsoleto citando `modules/`): PASS. Texto atual nao cita a pasta `modules/`; componente usado so pelo Calendar (unico placeholder).
+- AC7 (build + lint passam): PASS - VERIFICADO EMPIRICAMENTE. `npm run build` exit 0 ("Compiled successfully"), 6 rotas alvo prerenderizadas estatico (o); `npm run lint` exit 0.
+- AC8 (smoke localhost sem fallback/erro): PASS com ressalva advisory. Dev validou via HTML prerenderizado (curl/HTTP bloqueado no ambiente) + build confirma zero markers de fallback. NAO foi possivel abrir DevTools em localhost vivo neste ambiente - console runtime nao inspecionado ao vivo (risco baixo dado prerender OK e ausencia de fetch client-side quebrado nas telas de scaffold).
+
+### Observacoes
+- Qualidade de codigo solida: scaffolds honestos, JSON como fonte editavel, fallback elegante quando o JSON falta.
+- ModuleScaffold e um bom padrao reutilizavel para telas sem fonte de dado real ainda.
+
+### Debito tecnico / Follow-up (nao bloqueante)
+- Advisory: fazer um smoke real em localhost com DevTools aberto antes de deploy prod (unico ponto nao coberto ao vivo pelo ambiente de review).
