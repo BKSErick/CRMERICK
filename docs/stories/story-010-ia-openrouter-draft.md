@@ -1,7 +1,7 @@
 # Story 010 - IA no CRM via OpenRouter (draft)
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero gerar e regenerar copy de disparo por lead e resumos de deal usando IA real dentro do CRM, para parar de depender de template/regex fixo e ter texto mais relevante por contato.
@@ -59,3 +59,18 @@ Modificados:
 - 2026-07-07: Story criada por River (SM) em nivel de draft, a partir do relatorio de pre-vistoria de 2026-07-07. Aguardando priorizacao do Erick antes de detalhar mais.
 - 2026-07-07: Revisada por Pax (PO). Escopo coerente com a decisao do Erick (IA "entra em breve", ClickUp fora), dep em 007 correta. Mantida como Draft aguardando priorizacao por decisao do dono; AC devem ser refinados antes de virar Ready for Dev.
 - 2026-07-07: [QA - Quinn] Evidencia colhida durante a review das stories 012/013: a rota `src/app/api/ai/route.ts` JA EXISTE e esta funcional. Cross-check contra os AC deste draft: AC1 (rota server-side, key so de process.env) OK; AC2 (fallback OpenRouter 3 modelos free -> Groq 2 modelos, com erro tratado quando todos falham -> HTTP 502) OK; AC3 (generate-copy com writeback de copy_text no deal usando dados reais do Supabase) OK; AC4 (generate-summary de deal) OK; AC6 (nenhuma key exposta no cliente - runtime nodejs, process.env) OK. Falta apenas o AC5 (ponto de entrada na UI com loading/erro): os botoes existem no Pipeline mas foram DESABILITADOS ("Em breve") pela story-013 e os handlers `handleGenerateCopy`/`handleGenerateSummary` estao no historico do git. Conclusao: story materialmente implementada (5/6 AC). STATUS NAO ALTERADO por decisao do fluxo (segue Draft). Recomendacao ao Erick/coordenador: formalizar o fechamento e reabilitar o ponto de entrada na UI (reintroduzir os handlers do git) para cumprir o AC5. Nota advisory de QA; nenhuma outra secao desta story foi modificada.
+- 2026-07-08: [QA - Quinn] Fechamento do ciclo: AC5 (ponto de entrada na UI) cumprido, botoes de IA religados sem regredir 014/016. Gate PASS. Status -> Done.
+
+## QA Results
+
+### Gate: PASS (2026-07-08, Quinn/Guardian)
+
+**Verificacoes:**
+- `/api/ai` (runtime nodejs): keys lidas SO de `process.env` (OPENROUTER_API_KEY / GROQ_API_KEY). Nenhuma chave client-side. Cadeia de fallback OpenRouter (3 free) -> Groq (2), pulando 401/403/429/5xx; todos falham -> HTTP 502 com detalhe. AC1/AC2/AC6 OK.
+- generate-copy: gera copy real do deal/contact do Supabase e faz writeback de `copy_text`. generate-summary: resumo markdown. AC3/AC4 OK.
+- AC5 (o que faltava): no modal do Pipeline, `handleGenerateCopy` e `handleGenerateSummary` reabilitados, chamando /api/ai com loading ("Gerando..."/"Analisando...") e erro visivel. Botao "Copiar" e textarea preservados.
+- Sem regressao: o editor de valor/recorrente (014) e o `logWhatsappSent` no wa.me (016) continuam intactos no mesmo modal - handlers independentes.
+
+**Empirico:** `npm run lint` PASS; `npm run build` PASS (/api/ai dinamica, pipeline recompila com os handlers).
+
+**Notas (nao bloqueiam):** generate-copy grava copy_text na rota E o cliente refaz updateDeal com copyText (2a escrita) para sincronizar o store Zustand - redundante mas inofensivo. O lookup de contact no /api/ai usa match exato de company (nao o join normalizado do comando); no pior caso o nome do contato sai vazio no prompt (fallback), cosmetico.

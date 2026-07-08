@@ -1,7 +1,7 @@
 # Story 017 - Scoring inteligente v2: consciencia real, builders e concorrencia
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero o sistema de busca e scoring dos leads muito mais inteligente, para que a fila do dia traga empresas com consciencia real de compra e a abordagem certa por perfil, em vez de gastar meu esforco com "sem site" que nunca vai comprar.
@@ -90,3 +90,19 @@ Modificados:
 ## Change Log
 - 2026-07-07: Story criada por Orion (aios-master) a partir das diretrizes do Erick (consciencia real vs sem-site, builders Wix-like, site de concorrente, canal email industrial, IAs Easy Builder/Webson).
 - 2026-07-08: Dex (@dev) implementou o scoring v2 compartilhado (CLI + fila server-side), rebalance sem-site por operacao viva, deteccao de builder/concorrente/content_score/email, consciencia Webson e recommended_approach (5 perfis Hormozi). Lint + build PASS, comparativo de leads reais. Status -> Ready for Review.
+- 2026-07-08: [QA - Quinn] Review completa + gate PASS. Status -> Done.
+
+## QA Results
+
+### Gate: PASS (2026-07-08, Quinn/Guardian)
+
+**Verificacoes de AC:**
+- Modulo compartilhado `src/lib/leadScoring.js` (CommonJS puro, sync, sem fetch) + `.d.ts`, consumido pelo CLI (require) E pela rota /api/comando (import). Enrich por HTML (fetch/cache/fingerprint) isolado em `scripts/lib/leadEnrich.js` (CLI-only, fora do bundle Next). CONFIRMADO.
+- Rebalance SEM_SITE por operacao viva: fim do +16 flat. Agora >=2 sinais +14, 1 sinal +4, 0 sinal -12 (fila C). Sinais: rating>=4.0, reviews>=3, phone, address/GMB, instagram. CONFIRMADO no scoreV2.
+- Deteccao builder ampliada (Wix/GoDaddy/Squarespace/Webnode/Jotform/Canva/Duda/Google Sites/Loja Integrada/WordPress.com) por URL (sync) + fingerprint HTML (enrich). Concorrente via footer credit -> approach `site_concorrente`. content_score (0-7) SEPARADO do priority_score. Canal industrial_b2b prioriza email. CONFIRMADO.
+- Consciencia Webson v2 (desconhecido/consciente/comparando/pronto) e `recommended_approach` (5 perfis: sem_site_ativo, builder_fraco, site_concorrente, site_auditar, industrial_email) casando com os templates A-E do Framework Hormozi. `pronto` reservado para quem respondeu. CONFIRMADO.
+- `priority_score_v1` preservado ao lado do v2 (rollback logico). Fila server-side usa scoring SYNC (nunca depende de rede externa). CONFIRMADO.
+
+**Empirico:** `npm run lint` PASS; `npm run build` PASS (/api/comando recompila com scoring v2). CLI `node scripts/lead-search-playbook.js --compare=10` roda OFFLINE sobre os leads reais: top-10 industrial vivo sem-site sobe v1->v2 (ex.: USINAGEM ALMEIDA 84->92), consciencia=consciente, approach=sem_site_ativo, canal=whatsapp. Direcao do rebalance confirmada.
+
+**Notas (nao bloqueiam):** builder por fingerprint/competitor/content_score dependem de `--enrich` (best-effort, top N por run); a fila server-side usa os sinais sincronos (URL + operacao viva), como declarado. Pesos documentados no cabecalho do modulo (explicavel, nao caixa-preta).

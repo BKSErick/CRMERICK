@@ -1,7 +1,7 @@
 # Story 016 - Comando: cockpit de cobranca diaria de inputs
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero abrir a aba Comando e ser COBRADO pelo sistema: os inputs do dia (disparos, follow-ups, calls), quanto ja fiz, quanto falta, e a fila priorizada de quem abordar agora, para que o CRM funcione como gestor que nao me deixa fugir da meta.
@@ -72,3 +72,26 @@ Modificados:
 ## Change Log
 - 2026-07-07: Story criada por Orion (aios-master) a partir do pedido do Erick (sistema cobrando inputs diarios) e do Parecer Tallis (30 disparos/dia, regra dos 7 dias, regra do dia 20).
 - 2026-07-08: Dex (@dev) implementou o cockpit de cobranca diaria: registro de whatsapp_sent no clique (disparo + pipeline), rota /api/comando (placar/fila/alertas) e tela do Comando reconstruida. Lint + build PASS. Status -> Ready for Review.
+- 2026-07-08: HOTFIX por Orion (bug reportado pelo Erick em localhost: "Nao foi possivel carregar o cockpit"): a query da fila selecionava coluna `title` inexistente em `deals` (42703) - corrigida para `name` (select + mensagem fallback) em `src/app/api/comando/route.ts`. Query re-testada direto no Supabase: HTTP 200. QA deve revalidar este arquivo no gate.
+- 2026-07-08: HOTFIX 2 por Orion (fila vazia: "Nenhum lead com telefone"): os telefones NAO estao em `deals` (zero com telefone) e sim em `contacts` (868 reais, phone + link wa.me completo). A rota agora faz join por company/name normalizado (deal -> contact), extraindo o numero do link wa.me (fallback: digitos do phone com prefixo 55). Simulacao: 29/30 do top-30 resolvem telefone. QA deve revalidar.
+- 2026-07-08: [QA - Quinn] Review completa (rota inteira revalidada, incl. os 2 hotfixes) + gate PASS. Status -> Done.
+
+## QA Results
+
+### Gate: PASS (2026-07-08, Quinn/Guardian)
+
+**Revalidacao de `src/app/api/comando/route.ts` (foco do gate):**
+- HOTFIX 1 (title -> name): o select da fila usa `id, company, phone, whatsapp, points, stage, copy_text, name, site_url`. TODAS as colunas existem em `deals` (schema: whatsapp/site_url; migration 20260707_lock_crm_rls: phone; name/company/points/copy_text base). Sem risco de 42703. CONFIRMADO.
+- HOTFIX 2 (telefone via contacts): a rota busca `contacts` (name, company, phone, whatsapp) e monta `phoneByKey`. Extracao do numero: `c.whatsapp.match(/wa\.me\/(\d+)/)` pega os digitos do link wa.me; fallback `cleanPhone(c.phone)` (strip \D) e prefixo `55` so quando NAO veio do wa.me e o len e 10/11 (numero local). Join deal->contact por company e por name normalizados (trim+lowercase, first-wins). Deal sem match sai da fila (filter phone) - honesto, sem telefone fabricado. CONFIRMADO.
+- Sem N+1: 2 queries totais (deals limit 90 + contacts). A fila carrega `recommended_approach` + `channel` via `diagnoseLead` (scoring v2 sync, sem fetch). CONFIRMADO.
+- Placar do dia (disparos/follow-ups/calls/deals movidos), regra 7 dias (>=210 disparos sem call) e regra dia 20 (dia>=20 e pct<40% via computeNorthStar): todos derivados de activities+deals reais. Metas de goals.json (30/20/10, 10, 4).
+
+**Registro de disparo:** `logWhatsappSent` ligado no onClick dos botoes wa.me do Disparo (row.id) e do modal do Pipeline (deal.id), best-effort (link abre mesmo se o log falhar). /api/activities aceita `whatsapp_sent`. CONFIRMADO.
+
+**Seguranca:** tudo server-side service-role (runtime nodejs); nada client-side com credencial. OK.
+
+**Empirico:** `npm run lint` PASS; `npm run build` PASS (/api/comando dinamica).
+
+**Notas (nao bloqueiam, avisos ao Erick):**
+1. `/api/comando` carrega a tabela `contacts` inteira a cada abertura do cockpit para montar o mapa de telefones. Com ~868 contacts esta OK; se `contacts` crescer para milhares, considerar filtrar ou indexar o join.
+2. Join company/name e heuristico (first-wins). Deal cuja empresa/nome nao casa com nenhum contact fica fora da fila (sem telefone) - comportamento honesto e declarado, mas pode ocultar deals ativos da cobranca ate o telefone ser vinculado.

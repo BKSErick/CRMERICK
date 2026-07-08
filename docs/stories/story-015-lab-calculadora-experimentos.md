@@ -1,7 +1,7 @@
 # Story 015 - Lab: calculadora reversa da meta + experimentos de prospeccao
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero a aba Lab transformada em laboratorio da meta de R$15k/mes: uma calculadora reversa que traduz o gap da meta em atividade de prospeccao necessaria, e um registro de experimentos de abordagem com resultado, para eu saber O QUE fazer hoje e QUAL abordagem esta funcionando.
@@ -62,3 +62,20 @@ Modificados:
 ## Change Log
 - 2026-07-07: Story criada por Orion (aios-master) a partir das decisoes do Erick (calculadora reversa + experimentos, Kanban como fonte) e do Playbook Webson.
 - 2026-07-08: Dex (@dev) implementou a calculadora reversa (reuso de /api/north-star) e o CRUD de experimentos (tabela experiments + /api/experiments). Migration aditiva aplicada. Lint + build PASS. Status -> Ready for Review.
+- 2026-07-08: [QA - Quinn] Review completa + gate PASS. Status -> Done.
+
+## QA Results
+
+### Gate: PASS (2026-07-08, Quinn/Guardian)
+
+**Verificacoes de AC:**
+- Migration `20260708_experiments.sql`: CREATE TABLE IF NOT EXISTS + `enable row level security` + `drop policy if exists "Allow all"` -> RLS deny-by-default (SEM policy anon). Service-role bypassa; cliente nao le nada. Postura de seguranca correta.
+- `/api/experiments`: GET (lista desc), POST (cria, exige name), PATCH (edita + carimba updated_at), DELETE. Todas server-side via getCrmSupabaseAdmin (service-role), runtime nodejs. Mapeamento snake_case <-> camelCase (script_ref <-> scriptRef) consistente.
+- Calculadora reversa reusa /api/north-star (gap + dias uteis + ticket observado + funnel). Modelo: fechamentos = ceil(gap/ticket); conversas = ceil(fechamentos/callToClose); disparos = ceil(conversas/responseRate); disparos/dia por dia util. Coerente com goals.json (15%/20%).
+- Distincao honesta de origem (observado vs estimativa) declarada na UI; vinculo experimento-deal deixado fora do v1 (comentario de evolucao).
+
+**Seguranca:** experiments sem policy anon (RLS deny-by-default intacta), acesso so por rota server-side. OK.
+
+**Empirico:** `npm run lint` PASS; `npm run build` PASS (/api/experiments dinamica, /lab shell client).
+
+**Notas (nao bloqueiam):** sem historico suficiente as taxas observadas ficam instaveis - fallback manual rotulado resolve, como previsto no risco da story.

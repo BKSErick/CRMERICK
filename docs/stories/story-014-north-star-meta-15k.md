@@ -1,7 +1,7 @@
 # Story 014 - North Star: painel da meta R$15k/mes
 
 ## Status
-Ready for Review
+Done
 
 ## Story
 Como Erick, quero a aba North Star transformada no painel da minha meta de R$15.000/mes, alimentado pelos deals reais do CRM, para que eu abra a tela e saiba em segundos quanto falta, em que ritmo estou e o que o funil do mes esta dizendo.
@@ -80,3 +80,24 @@ Modificados:
 ## Change Log
 - 2026-07-07: Story criada por Orion (aios-master) a partir das decisoes do Erick na sessao (meta 15k, valor no deal, Kanban como fonte) e do Plano Grand Slam do vault.
 - 2026-07-08: Dex (@dev) implementou o painel da meta: migration aditiva (recurring/closed_at) aplicada em producao, lib metrics + rota /api/north-star, curva em goals.json, tela reconstruida e editor de valor/recorrente no modal. Lint + build PASS. Status -> Ready for Review.
+- 2026-07-08: [QA - Quinn] Review completa + gate PASS. Status -> Done.
+
+## QA Results
+
+### Gate: PASS (2026-07-08, Quinn/Guardian)
+
+**Escopo revisado:** codigo real (nao so doc), read-only.
+
+**Verificacoes de AC:**
+- goals.json bate com o Plano_Metas: 2026-08 9000, 2026-09 13000, 2026-10 7500, 2026-11 15000; growthAfter 0.1 (+10% composto); mrrFloor 2026-10 = 4000; inputs 30/10/4. CONFERE 100%.
+- `targetForMonth` (metrics.ts): mes definido -> valor; apos o ultimo -> +10% composto via Math.pow; antes do primeiro -> defaultTarget 15000. Correto.
+- `computeNorthStar` server-only (service-role via getCrmSupabaseAdmin): realizado = won do mes com value>0; gap; pct; run-rate por dias uteis; ticket medio; MRR ativo (recorrentes ganhos); funil do mes via `activities` stage_change; visao do ano (curva + realizado/mes). Estados vazios = zeros reais, sem fabricacao.
+- Migration `20260708_north_star_deal_fields.sql` existe e e aditiva (ADD COLUMN IF NOT EXISTS recurring/closed_at). Colunas confirmadas no schema.
+- Deals PATCH carimba `closed_at` no won so quando ainda `undefined` (stripUndefined garante a deteccao). Correto.
+- Modal do Pipeline: editor "Valor do deal (R$)" + checkbox "Recorrente (MRR)" salvando via updateDeal (value + recurring). Confirmado.
+
+**Seguranca:** nenhuma key client-side; /api/north-star runtime nodejs, service-role server-side. OK.
+
+**Empirico:** `npm run lint` PASS (zero warnings); `npm run build` PASS (/api/north-star dinamica, /north-star shell client, TypeScript OK).
+
+**Notas (nao bloqueiam):** avgTicket divide so pelos ganhos com value>0 (correto). Nenhum dado fabricado nas telas.
