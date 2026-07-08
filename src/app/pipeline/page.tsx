@@ -29,13 +29,19 @@ const tagTypeMeta: Record<string, { label: string; className: string }> = {
 
 const ownerClass: Record<string, string> = {
   JM: "av-mira",
+  "Joana Mira": "av-mira",
   CS: "av-cale",
+  "Carla S.": "av-cale",
   PA: "av-pri",
+  Pri: "av-pri",
   AL: "av-al",
+  Al: "av-al",
   RT: "av-rt",
   DP: "av-dev",
+  Dev: "av-dev",
   PB: "av-pri",
   MR: "av-mira",
+  Erick: "av-cale",
 };
 
 type DealActivity = {
@@ -298,6 +304,7 @@ export default function PipelinePage() {
 
       {selectedDeal ? (
         <DealDetailOverlay
+          key={selectedDeal.id}
           deal={selectedDeal}
           onDelete={(dealId) => {
             void deleteDeal(dealId)
@@ -370,9 +377,18 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [activities, setActivities] = useState<DealActivity[]>([]);
   const [activitiesStatus, setActivitiesStatus] = useState<"loading" | "ready" | "error">("loading");
   const updateDeal = useCRMStore((state) => state.updateDeal);
+  const updateDealStage = useCRMStore((state) => state.updateDealStage);
   const [valueInput, setValueInput] = useState(String(deal.value ?? 0));
   const [recurring, setRecurring] = useState(Boolean(deal.recurring));
+  const [descriptionInput, setDescriptionInput] = useState(deal.description || "");
   const [savingValue, setSavingValue] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+
 
   async function handleSaveValue() {
     setSavingValue(true);
@@ -382,6 +398,45 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
       // erro visivel via store.lastError na tela do pipeline
     } finally {
       setSavingValue(false);
+    }
+  }
+
+  // Story 010: integracao de IA (rota /api/ai reabilitada apos QA PASS).
+  async function handleGenerateCopy() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-copy", dealId: deal.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar a mensagem.");
+      await updateDeal(deal.id, { copyText: data.copyText });
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function handleGenerateSummary() {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-summary", dealId: deal.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar o resumo.");
+      setSummaryText(data.summary);
+    } catch (e) {
+      setSummaryError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSummaryLoading(false);
     }
   }
 
@@ -431,33 +486,66 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
           <div className="meta-grid">
             <div className="meta-row">
               <span className="meta-label">Status</span>
-              <span className={`status-badge ${deal.stage}`}>{stage.label}</span>
-              <span className="status-arrow">›</span>
-              <span className="status-check">✓</span>
+              <select
+                value={deal.stage}
+                onChange={async (e) => {
+                  await updateDealStage(deal.id, e.target.value as DealStage);
+                }}
+                className="settings-select"
+                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
+              >
+                {stages.map((st) => (
+                  <option key={st.id} value={st.id}>{st.label}</option>
+                ))}
+              </select>
             </div>
             <div className="meta-row">
-              <span className="meta-label">Responsaveis</span>
-              <span className="meta-value">{deal.ownerName ?? deal.owner ?? "—"}</span>
+              <span className="meta-label">Responsáveis</span>
+              <select
+                value={deal.assignee || deal.owner || ""}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  await updateDeal(deal.id, { assignee: val, owner: val, ownerName: val });
+                }}
+                className="settings-select"
+                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
+              >
+                <option value="" disabled>Selecionar</option>
+                <option value="Erick">Erick</option>
+                <option value="Joana Mira">Joana Mira</option>
+                <option value="Carla S.">Carla S.</option>
+                <option value="Pri">Pri</option>
+                <option value="Al">Al</option>
+                <option value="Dev">Dev</option>
+              </select>
             </div>
             <div className="meta-row">
               <span className="meta-label">Datas</span>
-              <span className="meta-value empty">{deal.close ?? "—"}</span>
+              <input
+                type="date"
+                value={deal.close || ""}
+                onChange={async (e) => {
+                  await updateDeal(deal.id, { close: e.target.value });
+                }}
+                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
+              />
             </div>
             <div className="meta-row">
               <span className="meta-label">Prioridade</span>
-              <span className="meta-value empty">—</span>
-            </div>
-            <div className="meta-row">
-              <span className="meta-label">Estimativa</span>
-              <span className="meta-value empty">—</span>
-            </div>
-            <div className="meta-row">
-              <span className="meta-label">Valor</span>
-              <span className="meta-value font-mono">{currencyFormatter.format(deal.value)}</span>
-            </div>
-            <div className="meta-row">
-              <span className="meta-label">Probabilidade</span>
-              <span className="meta-value">{deal.prob ?? deal.probability ?? 0}%</span>
+              <select
+                value={deal.priority || ""}
+                onChange={async (e) => {
+                  await updateDeal(deal.id, { priority: e.target.value });
+                }}
+                className="settings-select"
+                style={{ background: "transparent", border: "none", outline: "none", color: "inherit", cursor: "pointer", fontSize: "13px" }}
+              >
+                <option value="" disabled>Selecionar</option>
+                <option value="Baixa">Baixa</option>
+                <option value="Média">Média</option>
+                <option value="Alta">Alta</option>
+                <option value="Urgente">Urgente</option>
+              </select>
             </div>
           </div>
 
@@ -484,11 +572,29 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
             </button>
           </div>
 
-          <div className="description-area">
-            <p>Contrato — {deal.company}</p>
-            <p>Cliente: {deal.company}</p>
-            <p>Tipo de Servico: {deal.segment ?? ""}</p>
-            <p>Valor Mensal: {deal.value ? currencyFormatter.format(deal.value) : ""}</p>
+          <div className="description-area" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Descrição / Detalhes do Deal</strong>
+            <textarea
+              value={descriptionInput}
+              onChange={(e) => setDescriptionInput(e.target.value)}
+              onBlur={async () => {
+                await updateDeal(deal.id, { description: descriptionInput });
+              }}
+              placeholder="Digite aqui as informações sobre o cliente, contrato, tipo de serviço e observações..."
+              className="settings-textarea"
+              style={{
+                width: "100%",
+                minHeight: "120px",
+                padding: "10px",
+                fontSize: "13px",
+                lineHeight: "1.5",
+                borderRadius: "8px",
+                border: "1px solid var(--color-linen, #e9ebf0)",
+                background: "var(--color-paper, #ffffff)",
+                color: "var(--color-charcoal, #333333)",
+                resize: "vertical"
+              }}
+            />
           </div>
 
           <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>
@@ -496,16 +602,47 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Resumo Analitico da IA</strong>
               <button
                 className="badge-action-btn"
-                disabled
+                onClick={handleGenerateSummary}
+                disabled={summaryLoading}
                 type="button"
-                title="Disponivel quando a integracao de IA (Story 010) for concluida"
+                style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
               >
-                Em breve
+                {summaryLoading ? "Analisando..." : summaryText ? "Recalcular" : "Gerar com IA"}
               </button>
             </div>
-            <p className="muted-copy" style={{ margin: 0 }}>
-              A geracao de resumo por IA sera habilitada quando a integracao (Story 010) for concluida.
-            </p>
+            {summaryError && (
+              <div style={{ color: "var(--color-danger)", fontSize: "11px", marginBottom: "8px" }}>
+                {summaryError}
+              </div>
+            )}
+            {summaryText ? (
+              <div className="markdown-summary" style={{ fontSize: "13px", lineHeight: "1.5", color: "var(--color-charcoal)", background: "var(--color-paper)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-cloud)" }}>
+                {summaryText.split("\n").map((line, idx) => {
+                  let content = line;
+                  const isBullet = content.trim().startsWith("-") || content.trim().startsWith("*");
+                  if (isBullet) {
+                    content = content.replace(/^[-*]\s+/, "");
+                  }
+                  const boldParts = content.split("**");
+                  const renderedContent = boldParts.map((part, i) =>
+                    i % 2 === 1 ? <strong key={i}>{part}</strong> : part,
+                  );
+                  return isBullet ? (
+                    <li key={idx} style={{ marginLeft: "14px", marginBottom: "4px" }}>
+                      {renderedContent}
+                    </li>
+                  ) : (
+                    <p key={idx} style={{ marginBottom: "6px" }}>
+                      {renderedContent}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="muted-copy" style={{ margin: 0 }}>
+                Nenhum resumo gerado ainda. Clique em Gerar com IA para analisar com o OpenRouter.
+              </p>
+            )}
           </div>
 
           <div className="huberick-lead-block">
@@ -560,18 +697,24 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                   )}
                   <button
                     className="badge-action-btn"
-                    disabled
+                    onClick={handleGenerateCopy}
+                    disabled={aiLoading}
                     type="button"
-                    title="Disponivel quando a integracao de IA (Story 010) for concluida"
+                    style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
                   >
-                    Em breve
+                    {aiLoading ? "Gerando..." : deal.copyText ? "Regenerar IA" : "Gerar com IA"}
                   </button>
                 </div>
               </div>
+              {aiError && (
+                <div style={{ color: "var(--color-danger)", fontSize: "11px", marginTop: "4px" }}>
+                  {aiError}
+                </div>
+              )}
               <textarea
                 readOnly
                 value={deal.copyText || ""}
-                placeholder="Nenhuma mensagem cadastrada ainda."
+                placeholder="Nenhuma mensagem gerada ainda. Clique em Gerar com IA para redigir a abordagem consultiva."
                 style={{ minHeight: "120px", marginTop: "8px", width: "100%" }}
               />
             </div>

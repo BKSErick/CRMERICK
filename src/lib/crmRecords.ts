@@ -27,6 +27,8 @@ export type Deal = {
   recurring?: boolean;
   closedAt?: string;
   updated_at?: string;
+  priority?: string;
+  description?: string;
 };
 
 export type Contact = {
@@ -96,6 +98,8 @@ export function mapDealFromRow(row: DealRow): Deal {
     recurring: typeof row.recurring === "boolean" ? row.recurring : Boolean(row.recurring),
     closedAt: asString(row.closed_at ?? row.closedAt),
     updated_at: asString(row.updated_at),
+    priority: asString(row.priority),
+    description: asString(row.description),
   };
 }
 
@@ -140,6 +144,8 @@ export function mapDealToRow(deal: Partial<Deal>) {
     whatsapp: deal.whatsapp,
     recurring: deal.recurring,
     closed_at: deal.closedAt,
+    priority: deal.priority,
+    description: deal.description,
   });
 }
 
