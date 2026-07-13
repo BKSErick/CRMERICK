@@ -43,6 +43,53 @@ function whatsappLink(phone: string, message: string) {
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }
 
+// Mensagens genericas (nao sao por lead): gatekeeper quando quem responde nao e o
+// dono, e follow-ups de reaquecimento. Seguem o Framework_Mensagem_Abordagem_Hormozi
+// (anti-ego, encaminhavel, pergunta de baixo custo).
+const READY_MESSAGES: { title: string; text: string }[] = [
+  {
+    title: "🚪 Quem responde nao e o dono (atendente / central)",
+    text: "Perfeito, obrigado! Consegue me direcionar pra quem cuida dessa parte, ou pro dono? E bem rapido: fiz uma analise do que aparece quando um cliente procura voces no Google, e tem um ponto que pode estar custando orcamento. Queria mostrar direto pra quem decide.",
+  },
+  {
+    title: "🚪 Dar algo pronto pra pessoa encaminhar",
+    text: "Tranquilo! Se for mais facil, pode repassar pra ele: montei uma analise rapida da presenca de voces no Google e do que faz um comprador desistir antes de pedir orcamento. E um link que ele ve em 2 minutos. Consigo mandar aqui ou prefere que eu chame ele direto?",
+  },
+  {
+    title: "🚪 Abrir pedindo o responsavel (numero de central)",
+    text: "Oi! Falo com o responsavel comercial, ou com o dono? Fiz uma analise da presenca de voces no Google e queria mostrar pra quem decide sobre isso. E rapido.",
+  },
+  {
+    title: "⏱ Follow-up 1 (48h de silencio)",
+    text: "Passando so pra deixar claro: nao e sobre ter pagina bonita. E sobre o comprador que pesquisa voces antes de pedir orcamento encontrar prova solida de operacao real. Sem isso, ele segue pra quem tem. Quer que eu te mande o exemplo?",
+  },
+  {
+    title: "⏱ Follow-up 2 (dia 7, quebra de padrao)",
+    text: "Me confirma uma coisa: hoje, quando alguem pergunta \"tem site ou alguma pagina pra eu ver os servicos de voces?\", qual link voces mandam?",
+  },
+];
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="topbar-btn"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1200);
+        } catch {
+          // clipboard bloqueado: ignora
+        }
+      }}
+    >
+      {copied ? "Copiado!" : "Copiar"}
+    </button>
+  );
+}
+
 export default function ComandoPage() {
   const [data, setData] = useState<Comando | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -173,6 +220,29 @@ export default function ComandoPage() {
               )}
             </article>
           </div>
+
+          <details className="card" style={{ margin: "24px 0 0" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+              Mensagens prontas — gatekeeper + follow-up
+            </summary>
+            <p className="muted-copy" style={{ margin: "10px 0" }}>
+              Copie na hora certa: quando quem responde nao e o dono (o telefone do Maps costuma
+              cair no atendente), ou pra reaquecer quem ficou em silencio. A mensagem por lead ja
+              esta no botao WhatsApp da fila.
+            </p>
+            {READY_MESSAGES.map((m) => (
+              <div
+                key={m.title}
+                style={{ marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid rgba(127,127,127,.2)" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                  <strong style={{ fontSize: "13px" }}>{m.title}</strong>
+                  <CopyButton text={m.text} />
+                </div>
+                <p className="muted-copy" style={{ fontSize: "12px", whiteSpace: "pre-wrap", margin: 0 }}>{m.text}</p>
+              </div>
+            ))}
+          </details>
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila do dia</div>
