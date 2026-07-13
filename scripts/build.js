@@ -73,6 +73,14 @@ function copyDiagnosticsWithTracking() {
   }
 
   console.log(`[Build] ${files.length} paginas de diagnostico copiadas para public/huberick-temp com tracking.`);
+
+  // Copia assets (foto de autoridade etc.) — sem isso a foto do Erick da 404 e cai no
+  // fallback do anel gradiente. As paginas referenciam ./assets/erick.png (relativo).
+  const assetsSource = path.join(diagnosticsSourceDir, 'assets');
+  if (fs.existsSync(assetsSource)) {
+    fs.cpSync(assetsSource, path.join(diagnosticsTargetDir, 'assets'), { recursive: true });
+    console.log('[Build] pasta assets/ copiada para public/huberick-temp/assets.');
+  }
 }
 
 copyDiagnosticsWithTracking();
