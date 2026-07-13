@@ -384,6 +384,7 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [recurring, setRecurring] = useState(Boolean(deal.recurring));
   const [descriptionInput, setDescriptionInput] = useState(deal.description || "");
   const [nameInput, setNameInput] = useState(deal.name ?? deal.title ?? deal.company ?? "");
+  const [copyInput, setCopyInput] = useState(deal.copyText || "");
   const [savingValue, setSavingValue] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -392,6 +393,11 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
 
+
+  // Sincroniza a caixa editavel quando a IA regenera a mensagem (deal.copyText muda).
+  useEffect(() => {
+    setCopyInput(deal.copyText || "");
+  }, [deal.copyText]);
 
   async function handleSaveValue() {
     setSavingValue(true);
@@ -711,9 +717,14 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                 </div>
               )}
               <textarea
-                readOnly
-                value={deal.copyText || ""}
-                placeholder="Nenhuma mensagem gerada ainda. Clique em Gerar com IA para redigir a abordagem consultiva."
+                value={copyInput}
+                onChange={(e) => setCopyInput(e.target.value)}
+                onBlur={async () => {
+                  if (copyInput !== (deal.copyText || "")) {
+                    await updateDeal(deal.id, { copyText: copyInput });
+                  }
+                }}
+                placeholder="Nenhuma mensagem gerada ainda. Clique em Gerar com IA para redigir a abordagem consultiva. Voce tambem pode escrever/editar aqui."
                 style={{ minHeight: "120px", marginTop: "8px", width: "100%" }}
               />
             </div>

@@ -28,12 +28,11 @@ const APPROACH_LABELS: Record<string, string> = {
 };
 type Placar = {
   disparos: { done: number; target: number; splitLP: number; splitDFY: number };
-  followUps: { done: number; target: number };
-  calls: { done: number; target: number };
-  dealsMovedToday: number;
+  respostas: number;
+  aguardando: number;
 };
 type Alerts = {
-  sevenDayRule: { disparos7d: number; calls7d: number; threshold: number; triggered: boolean };
+  sevenDayRule: { disparos7d: number; respostas: number; threshold: number; triggered: boolean };
   day20Rule: { day: number; pct: number; threshold: number; triggered: boolean };
 };
 type Comando = { placar: Placar; alerts: Alerts; queue: QueueItem[] };
@@ -163,19 +162,14 @@ export default function ComandoPage() {
               </div>
             </article>
             <article className="kpi-card">
-              <div className="kpi-label">Follow-ups hoje</div>
-              <div className="kpi-value">{data.placar.followUps.done} / {data.placar.followUps.target}</div>
-              <div className="kpi-trend">Reenvio a quem ja contatou</div>
+              <div className="kpi-label">No ar (aguardando)</div>
+              <div className="kpi-value">{data.placar.aguardando}</div>
+              <div className="kpi-trend">Contatados em Abordado, sem resposta</div>
             </article>
             <article className="kpi-card">
-              <div className="kpi-label">Calls na semana</div>
-              <div className="kpi-value">{data.placar.calls.done} / {data.placar.calls.target}</div>
-              <div className="kpi-trend">Proxy: entrada em Qualified</div>
-            </article>
-            <article className="kpi-card">
-              <div className="kpi-label">Deals movidos hoje</div>
-              <div className="kpi-value">{data.placar.dealsMovedToday}</div>
-              <div className="kpi-trend">No Kanban</div>
+              <div className="kpi-label">Respostas</div>
+              <div className="kpi-value">{data.placar.respostas}</div>
+              <div className="kpi-trend">Avancaram alem de Abordado</div>
             </article>
           </div>
 
@@ -191,11 +185,11 @@ export default function ComandoPage() {
                 </span>
               </div>
               <p className="muted-copy">
-                {data.alerts.sevenDayRule.disparos7d} disparos nos ultimos 7 dias, {data.alerts.sevenDayRule.calls7d} calls (entrada em Qualified). Limite: {data.alerts.sevenDayRule.threshold} disparos sem call.
+                {data.alerts.sevenDayRule.disparos7d} disparos nos ultimos 7 dias, {data.alerts.sevenDayRule.respostas} respostas (avancaram alem de Abordado). Limite: {data.alerts.sevenDayRule.threshold} disparos sem resposta.
               </p>
               {data.alerts.sevenDayRule.triggered ? (
                 <div className="portfolio-status warning" style={{ marginTop: "8px" }}>
-                  Muitos disparos sem call agendada. Script pode estar morto: trocar a abordagem.
+                  Muitos disparos sem nenhuma resposta. Script pode estar morto: trocar a abordagem.
                 </div>
               ) : (
                 <div className="portfolio-status success" style={{ marginTop: "8px" }}>No ritmo.</div>
