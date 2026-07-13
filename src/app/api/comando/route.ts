@@ -98,7 +98,7 @@ export async function GET() {
       .select("id, company, phone, whatsapp, points, stage, copy_text, name, site_url")
       .in("stage", ["prospect", "qualified"])
       .order("points", { ascending: false })
-      .limit(goals.dailyInputs.disparos * 3);
+      .limit(1000);
     if (dealErr) throw dealErr;
 
     // Telefones vivem em contacts (import Garimpo, story-007); deals nao tem telefone proprio.
@@ -120,6 +120,14 @@ export async function GET() {
         if (k && !phoneByKey.has(k)) phoneByKey.set(k, digits);
       }
     }
+
+    // So celular entra na fila do WhatsApp: numero nacional de 11 digitos comecando
+    // com 9 (DDD + 9XXXXXXXX). Fixo (539 no banco) nao tem WhatsApp e so queima clique.
+    const isWhatsappMobile = (p: string) => {
+      let d = (p || "").replace(/\D/g, "");
+      if (d.startsWith("55") && d.length > 11) d = d.slice(2);
+      return d.length === 11 && d[2] === "9";
+    };
 
     const queue = (dealRows ?? [])
       .map((d) => {
@@ -149,7 +157,7 @@ export async function GET() {
             `Oi! Falo sobre ${(d.name as string) || "a oportunidade"} da ${d.company}. Posso te mandar uma analise rapida?`,
         };
       })
-      .filter((d) => d.phone)
+      .filter((d) => d.phone && isWhatsappMobile(d.phone))
       .slice(0, goals.dailyInputs.disparos);
 
     // Alerta dia 20: usa a agregacao da meta (mesma da North Star).
