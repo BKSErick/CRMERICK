@@ -391,6 +391,11 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [painsInput, setPainsInput] = useState(deal.pains || "");
+  const [leadMessagesInput, setLeadMessagesInput] = useState(deal.leadMessages || "");
+  const [insights, setInsights] = useState<Array<{ id: number; content: string; created_at: string }>>([]);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState<string | null>(null);
 
 
 
@@ -448,6 +453,42 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
       setSummaryLoading(false);
     }
   }
+
+  async function loadInsights() {
+    try {
+      const r = await fetch(`/api/insights?dealId=${encodeURIComponent(deal.id)}`);
+      const b = await r.json();
+      if (r.ok && b.ok) setInsights(b.insights ?? []);
+    } catch {
+      // silencioso: insights sao complementares
+    }
+  }
+
+  // Webson le abordagem + dores + primeiras mensagens e destila um insight, que fica
+  // guardado na tabela insights (repositorio consultavel). Sem envio automatico.
+  async function handleGenerateInsight() {
+    setInsightLoading(true);
+    setInsightError(null);
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-insight", dealId: deal.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar o insight.");
+      await loadInsights();
+    } catch (e) {
+      setInsightError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setInsightLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadInsights();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deal.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -600,6 +641,53 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               className="settings-textarea"
               style={{ minHeight: "120px" }}
             />
+          </div>
+
+          <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Dores &amp; mensagens do lead (p/ o Webson)</strong>
+            <textarea
+              value={painsInput}
+              onChange={(e) => setPainsInput(e.target.value)}
+              onBlur={async () => {
+                if (painsInput !== (deal.pains || "")) await updateDeal(deal.id, { pains: painsInput });
+              }}
+              placeholder="Dores do cliente: o que dói pra ele, o que ele quer resolver..."
+              className="settings-textarea"
+              style={{ minHeight: "70px" }}
+            />
+            <textarea
+              value={leadMessagesInput}
+              onChange={(e) => setLeadMessagesInput(e.target.value)}
+              onBlur={async () => {
+                if (leadMessagesInput !== (deal.leadMessages || "")) await updateDeal(deal.id, { leadMessages: leadMessagesInput });
+              }}
+              placeholder="Primeiras mensagens / respostas do lead (cole aqui, ou anote 'sem resposta ainda')..."
+              className="settings-textarea"
+              style={{ minHeight: "70px" }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span className="muted-copy" style={{ fontSize: "11px" }}>{insights.length} insight(s) guardado(s)</span>
+              <button
+                className="badge-action-btn"
+                onClick={handleGenerateInsight}
+                disabled={insightLoading}
+                type="button"
+                style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
+              >
+                {insightLoading ? "Analisando..." : "Webson gera insight"}
+              </button>
+            </div>
+            {insightError && (
+              <div style={{ color: "var(--color-danger)", fontSize: "11px" }}>{insightError}</div>
+            )}
+            {insights.map((ins) => (
+              <div
+                key={ins.id}
+                style={{ fontSize: "12px", lineHeight: "1.5", color: "var(--color-charcoal)", background: "var(--color-paper)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-cloud)", whiteSpace: "pre-wrap" }}
+              >
+                {ins.content}
+              </div>
+            ))}
           </div>
 
           <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>

@@ -110,9 +110,24 @@ Retorne o resumo formatado em Markdown limpo (usando negritos e listas). Mantenh
 - Gargalo Principal: ${deal.segment || "Não detalhado"}
 - Prioridade (Pontuação): ${deal.points || 0}/10
 - Última atualização: ${deal.updated_at || "Recente"}`;
+    } else if (action === "generate-insight") {
+      systemPrompt = `Você é o Webson, vendedor consultivo B2B do Erick Sena.
+Sua tarefa: ler a ABORDAGEM enviada e as PRIMEIRAS MENSAGENS/DORES do lead e destilar insights ACIONÁVEIS de vendas.
+Responda em português (PT-BR), em Markdown curto e direto, com estas seções:
+1. **Dor real**: a dor central por trás do que o lead disse (1-2 linhas).
+2. **Provável objeção**: a objeção mais provável a ser tratada.
+3. **O que responder agora**: 1 sugestão concreta de próxima mensagem (curta, consultiva, sem parecer script).
+4. **Aprendizado p/ copy**: 1 frase do que isso ensina para melhorar as abordagens futuras.
+NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.`;
+
+      userPrompt = `Analise este lead:
+- Empresa: ${deal.company}
+- Abordagem enviada: ${deal.copyText || "Não registrada"}
+- Dores anotadas: ${deal.pains || "Não informado"}
+- Primeiras mensagens do lead: ${deal.leadMessages || "Nenhuma resposta registrada ainda"}`;
     } else {
       return NextResponse.json(
-        { ok: false, error: "Ação inválida. Use 'generate-copy' ou 'generate-summary'." },
+        { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary' ou 'generate-insight'." },
         { status: 400 }
       );
     }
@@ -201,6 +216,29 @@ Retorne o resumo formatado em Markdown limpo (usando negritos e listas). Mantenh
         providerUsed,
         modelUsed,
         deal: mapDealFromRow(updatedData),
+      });
+    }
+
+    if (action === "generate-insight") {
+      const { data: insightRow, error: insErr } = await supabase
+        .from("insights")
+        .insert({ deal_id: dealId, company: deal.company, type: "geral", content: aiContent })
+        .select("*")
+        .single();
+
+      if (insErr) {
+        return NextResponse.json(
+          { ok: false, error: "Falha ao salvar o insight.", detail: insErr.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+        insight: insightRow,
+        summary: aiContent,
+        providerUsed,
+        modelUsed,
       });
     }
 

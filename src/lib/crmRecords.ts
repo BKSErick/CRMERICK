@@ -29,6 +29,8 @@ export type Deal = {
   updated_at?: string;
   priority?: string;
   description?: string;
+  pains?: string;
+  leadMessages?: string;
 };
 
 export type Contact = {
@@ -100,6 +102,8 @@ export function mapDealFromRow(row: DealRow): Deal {
     updated_at: asString(row.updated_at),
     priority: asString(row.priority),
     description: asString(row.description),
+    pains: asString(row.pains),
+    leadMessages: asString(row.lead_messages ?? row.leadMessages),
   };
 }
 
@@ -146,6 +150,8 @@ export function mapDealToRow(deal: Partial<Deal>) {
     closed_at: deal.closedAt,
     priority: deal.priority,
     description: deal.description,
+    pains: deal.pains,
+    lead_messages: deal.leadMessages,
   });
 }
 
