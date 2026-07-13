@@ -6,8 +6,10 @@
 # Stack legado aposentado (Story 009) — não envia para produção
 legacy/
 
-# Dados de leads (telefones reais do banco Garimpo) — não commitar
-huberick-temp/
+# Paginas de diagnostico: publicaveis (vao pro deploy via build.js), MAS
+# o painel index.html (agrega todos os leads) e os _copy.txt ficam fora
+huberick-temp/index.html
+huberick-temp/*_copy.txt
 public/huberick-temp/
 
 # Node
@@ -25,3 +27,4 @@ tmp-next-app/
 # OS
 Thumbs.db
 .DS_Store
+lista-de-ataque.html

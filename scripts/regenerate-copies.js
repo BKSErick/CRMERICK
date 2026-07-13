@@ -76,53 +76,57 @@ function extrairEmpresa(html) {
 }
 
 /**
- * Gera o texto de copy personalizado para a empresa.
+ * Detecta se a pagina e de auditoria de site real ("Site avaliado:")
+ * ou de presenca sem site. NAO usar sabotadores pra isso: paginas
+ * sem-site tambem tem cards de alerta.
  */
-function gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise, mapsInfo }) {
-  // Se tem sabotadores, significa que tem site (Caminho A - Site Ruim)
-  if (sabotadores.length > 0) {
-    const aberturas = [
-      `Erick aqui — dei uma olhada no site da ${empresa}.`,
-      `Fala! Analisei o site da ${empresa} essa semana.`,
-      `Erick aqui. Passei pelo site da ${empresa} e vi alguns gargalos.`,
+function extrairTemSite(html) {
+  return /Site avaliado:/i.test(html);
+}
+
+/**
+ * Extrai a cidade citada na pagina ("...procura X em Ipatinga...").
+ */
+function extrairCidade(html) {
+  const m = html.match(/(?:pesquis|busca|procur)[^<]{0,80}?em ((?:[A-ZÀ-Ú][a-zà-úçãõéíêôâ]+)(?:(?: (?:de|da|do|dos|das))? [A-ZÀ-Ú][a-zà-úçãõéíêôâ]+){0,3})/);
+  if (!m) return null;
+  const cidade = m[1].trim();
+  return cidade.length <= 30 ? cidade : null;
+}
+
+/**
+ * Gera o texto de copy personalizado para a empresa.
+ *
+ * Segue o Framework_Mensagem_Abordagem_Hormozi.md (vault, Posicionamento/):
+ * - Culpa o mercado/comprador, nunca o dono (anti-ego)
+ * - Prova antes de pitch (nome, cidade, reputacao Maps)
+ * - UM problema, nunca lista
+ * - Max ~80 palavras, SEM link na mensagem 1 (link vai apos resposta)
+ * - Fecha com pergunta de baixo custo ("posso te mandar?")
+ */
+function gerarCopy({ empresa, temSite, mapsInfo, cidade }) {
+  const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  if (!temSite) {
+    // Template A - sem_site_ativo: eixo = comportamento do comprador
+    const prova = mapsInfo
+      ? `Vi a ${empresa} no Google${cidade ? `, em ${cidade}` : ''}. ${mapsInfo} no Maps é prova de operação real.`
+      : `Vi a ${empresa} no Google${cidade ? `, em ${cidade}` : ''}, e parece uma operação de verdade.`;
+    const pontos = [
+      'O ponto é: hoje até quem chega por indicação pesquisa a empresa antes de ligar. Quando o comprador só encontra o Maps, a conversa esfria antes do primeiro contato.',
+      'O ponto é: o comprador industrial valida a empresa no Google antes de pedir orçamento. Se ele não encontra nada além do Maps, ele segue pro próximo da lista.',
     ];
-    const seed = empresa.charCodeAt(0) % aberturas.length;
-    const abertura = aberturas[seed];
-
-    const pontos = sabotadores.map((s, i) => `${i + 1}. ${s}`).join('\n');
-    const blocoSabotadores = `\nOs pontos que estao custando contrato pra voces hoje:\n${pontos}\n`;
-
-    let scoreContext = '';
-    if (score !== null && score !== undefined) {
-      if (score === 0) {
-        scoreContext = 'O site zerou no indice de conversao — significa que o comprador sai sem confiar.\n';
-      } else {
-        scoreContext = `O site marcou ${score}/10 no indice de conversao.\n`;
-      }
-    }
-
-    const cta = `Montei a analise: ${linkAnalise}\n\nFaz sentido pra voce?`;
-    const provaSocial = `\nJa trabalhei com empresas do setor. Neles eu vi o mesmo padrao.\n`;
-    return `${abertura}${provaSocial}${blocoSabotadores}\n${scoreContext}${cta}`;
-  } else {
-    // Não tem site (Caminho B - Sem Site)
-    const aberturas = [
-      `Erick aqui. Dei uma olhada na presenca digital da ${empresa}.`,
-      `Fala! Analisei a presenca online da ${empresa} esta semana.`,
-      `Erick aqui. Passei pela presenca digital da ${empresa} e anotei um ponto importante.`,
-    ];
-    const seed = empresa.charCodeAt(0) % aberturas.length;
-    const abertura = aberturas[seed];
-
-    const mapsContext = mapsInfo 
-      ? `Voces tem uma reputacao forte no Google Maps (${mapsInfo}), mas nao tem um site ativo.\n`
-      : `Voces tem uma reputacao fisica forte, mas nao tem um site ativo hoje.\n`;
-
-    const problema = `Isso significa que quando um comprador te procura no Google ou quer validar o contrato de voces, ele nao encontra nada e voces acabam perdendo a venda para concorrentes menores.\n`;
-    const cta = `Desenhei como seria o site de voces: ${linkAnalise}\n\nFaz sentido?`;
-    
-    return `${abertura}\n\n${mapsContext}${problema}\n${cta}`;
+    return `Oi, tudo bem? Erick aqui.\n\n${prova}\n\n${pontos[seed % pontos.length]}\n\nPosso te mandar um exemplo rápido de como uma página simples muda esse cenário? Sem compromisso.`;
   }
+
+  // Template D - site_auditar: valida a decisao do dono, aponta UM ponto,
+  // sempre em termos do que o comprador encontra (nunca design/plataforma)
+  const problemas = [
+    'quem abre o site precisa encontrar prova da capacidade de vocês nos primeiros segundos, e esse é o ponto que eu reforçaria',
+    'o comprador que já quer orçamento precisa de um caminho direto pra pedir, sem ter que procurar contato pela página',
+    'a reputação que vocês têm no mercado ainda não aparece ali como prova comercial pra quem nunca ouviu falar de vocês',
+  ];
+  return `Oi, tudo bem? Erick aqui.\n\nDei uma olhada no site da ${empresa}, do jeito que um comprador industrial olha antes de pedir orçamento. O site cobre o básico. O ponto de atenção é um só: ${problemas[seed % problemas.length]}.\n\nEm industrial, o comprador decide em poucos segundos se liga ou segue pro próximo resultado.\n\nPosso te mandar um diagnóstico visual rápido do que eu ajustaria? Leitura de 2 minutos.`;
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
@@ -144,13 +148,11 @@ for (const arquivo of arquivos) {
     const html      = fs.readFileSync(htmlPath, 'utf8');
 
     const empresa     = extrairEmpresa(html);
-    const siteUrl     = extrairSiteUrl(html);
-    const sabotadores = extrairSabotadores(html);
-    const score       = extrairScore(html);
+    const temSite     = extrairTemSite(html);
     const mapsInfo    = extrairMapsInfo(html);
-    const linkAnalise = `${BASE_URL}${encodeURIComponent(arquivo)}`;
+    const cidade      = extrairCidade(html);
 
-    const copy = gerarCopy({ empresa, siteUrl, sabotadores, score, linkAnalise, mapsInfo });
+    const copy = gerarCopy({ empresa, temSite, mapsInfo, cidade });
 
     if (DRY_RUN) {
       console.log(`\n── ${arquivo} ──`);
