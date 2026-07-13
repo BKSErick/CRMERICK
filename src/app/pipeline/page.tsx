@@ -6,7 +6,8 @@ import { logWhatsappSent } from "@/lib/activityClient";
 
 const stages: Array<{ id: DealStage; label: string; hint: string; color: string }> = [
   { id: "prospect", label: "Prospect", hint: "Entrada", color: "#0091ff" },
-  { id: "qualified", label: "Qualified", hint: "Diagnostico", color: "#7b68ee" },
+  { id: "abordado", label: "Abordado", hint: "Mandei msg", color: "#f59e0b" },
+  { id: "qualified", label: "Qualified", hint: "Respondeu", color: "#7b68ee" },
   { id: "proposal", label: "Proposal", hint: "Oferta enviada", color: "#ed6c02" },
   { id: "negotiation", label: "Negotiation", hint: "Follow-up", color: "#d32f2f" },
   { id: "won", label: "Won", hint: "Cliente ativo", color: "#2e7d32" },
@@ -91,6 +92,7 @@ export default function PipelinePage() {
   const [draggedDealId, setDraggedDealId] = useState<number | null>(null);
   const [visibleByStage, setVisibleByStage] = useState<Record<DealStage, number>>({
     prospect: 40,
+    abordado: 40,
     qualified: 40,
     proposal: 40,
     negotiation: 40,
@@ -329,7 +331,7 @@ function DealCard({ deal, onDragEnd, onDragStart, onOpen }: DealCardProps) {
   const tag = tagTypeMeta[deal.tagType ?? "research"] ?? tagTypeMeta.research;
   const assignee = deal.assignee ?? deal.owner ?? "JM";
   const avatarClass = ownerClass[assignee] ?? "av-mira";
-  const progress = deal.progress ?? (deal.stage === "qualified" || deal.stage === "proposal" ? 35 : 0);
+  const progress = deal.progress ?? (deal.stage === "abordado" ? 20 : deal.stage === "qualified" || deal.stage === "proposal" ? 35 : 0);
 
   return (
     <article

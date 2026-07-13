@@ -88,6 +88,7 @@ export function businessDays(now = new Date()): { total: number; elapsed: number
 
 const STAGE_FROM_LABEL: Record<string, string> = {
   prospect: "prospect",
+  abordado: "abordado",
   qualified: "qualified",
   proposal: "proposal",
   negotiation: "negotiation",
@@ -167,7 +168,7 @@ export async function computeNorthStar(now = new Date()): Promise<NorthStar> {
     .gte("created_at", monthStart.toISOString());
   if (actErr) throw actErr;
 
-  const funnel: Record<string, number> = { prospect: 0, qualified: 0, proposal: 0, negotiation: 0, won: 0, lost: 0 };
+  const funnel: Record<string, number> = { prospect: 0, abordado: 0, qualified: 0, proposal: 0, negotiation: 0, won: 0, lost: 0 };
   for (const a of actRows ?? []) {
     const stage = stageFromDescription(a.description as string | null);
     if (stage && funnel[stage] !== undefined) funnel[stage]++;

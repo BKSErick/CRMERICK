@@ -68,6 +68,16 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
+    // Disparo move o lead Prospect -> Abordado automaticamente (so promove quem ainda
+    // esta em prospect; nunca rebaixa quem ja respondeu/avancou). Best-effort.
+    if (type === "whatsapp_sent") {
+      await supabase
+        .from("deals")
+        .update({ stage: "abordado" })
+        .eq("id", dealId)
+        .eq("stage", "prospect");
+    }
+
     return NextResponse.json({ ok: true, activity: data as ActivityRow }, { status: 201 });
   } catch (error) {
     return errorResponse(error);

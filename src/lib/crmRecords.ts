@@ -1,4 +1,4 @@
-export type DealStage = "prospect" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
+export type DealStage = "prospect" | "abordado" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
 
 export type Deal = {
   id: number;
@@ -60,7 +60,7 @@ function asString(value: unknown) {
 
 function asDealStage(value: unknown): DealStage {
   const stage = asString(value);
-  if (stage === "prospect" || stage === "qualified" || stage === "proposal" || stage === "negotiation" || stage === "won" || stage === "lost") {
+  if (stage === "prospect" || stage === "abordado" || stage === "qualified" || stage === "proposal" || stage === "negotiation" || stage === "won" || stage === "lost") {
     return stage;
   }
   return "prospect";

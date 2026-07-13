@@ -27,6 +27,7 @@ const numberFormatter = new Intl.NumberFormat("pt-BR");
 
 const stageLabels: Record<DealStage, string> = {
   prospect: "Prospect",
+  abordado: "Abordado",
   qualified: "Qualificado",
   proposal: "Proposta",
   negotiation: "Negociacao",
