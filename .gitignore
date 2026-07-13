@@ -28,3 +28,8 @@ tmp-next-app/
 Thumbs.db
 .DS_Store
 lista-de-ataque.html
+
+# Dados do disparo de email (PII) — nao commitar
+scripts/email/email_queue.json
+scripts/email/sent_log.json
+preview-emails.html
