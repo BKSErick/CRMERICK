@@ -383,6 +383,7 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [valueInput, setValueInput] = useState(String(deal.value ?? 0));
   const [recurring, setRecurring] = useState(Boolean(deal.recurring));
   const [descriptionInput, setDescriptionInput] = useState(deal.description || "");
+  const [nameInput, setNameInput] = useState(deal.name ?? deal.title ?? deal.company ?? "");
   const [savingValue, setSavingValue] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -473,7 +474,17 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               <div className="deal-breadcrumb">
                 Pipeline / <span>{stage.label}</span>
               </div>
-              <input className="deal-title" readOnly value={deal.name ?? deal.title ?? deal.company} />
+              <input
+                className="deal-title"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onBlur={async () => {
+                  const v = nameInput.trim();
+                  if (v && v !== (deal.name ?? deal.title ?? deal.company ?? "")) {
+                    await updateDeal(deal.id, { name: v });
+                  }
+                }}
+              />
             </div>
             <div className="deal-header-actions">
               <button className="deal-header-btn danger" onClick={() => onDelete(deal.id)} type="button">

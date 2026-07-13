@@ -184,13 +184,16 @@ export default function FunilPage() {
         sourceLabel: "Pipeline CRM",
       },
       instagram: {
+        // So sinais REAIS do Instagram: alcance (Graph API) e cliques (Pixel/CAPI).
+        // Nao existe atribuicao IG->deal ainda, entao leads/conversas/propostas/won
+        // NAO herdam o pipeline outbound (antes mostrava os 943 deals como "leads do IG").
         reach: instagramReach,
         clicks: instagramClicks,
-        leads,
-        conversations,
-        proposals,
-        won,
-        sourceLabel: instagram.status === "live" ? "Instagram API" : "Instagram fallback",
+        leads: 0,
+        conversations: 0,
+        proposals: 0,
+        won: 0,
+        sourceLabel: instagram.status === "live" ? "Instagram API (sem atribuicao de pipeline)" : "Instagram fallback",
       },
       facebook: {
         reach: pixelViews,
