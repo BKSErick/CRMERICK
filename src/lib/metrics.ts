@@ -86,23 +86,6 @@ export function businessDays(now = new Date()): { total: number; elapsed: number
   return { total, elapsed, remaining: Math.max(0, total - elapsed) };
 }
 
-const STAGE_FROM_LABEL: Record<string, string> = {
-  prospect: "prospect",
-  abordado: "abordado",
-  qualified: "qualified",
-  proposal: "proposal",
-  negotiation: "negotiation",
-  won: "won",
-  lost: "lost",
-};
-
-function stageFromDescription(description: string | null): string | null {
-  if (!description) return null;
-  const match = description.match(/Movido para\s+(\w+)/i);
-  if (!match) return null;
-  return STAGE_FROM_LABEL[match[1].toLowerCase()] ?? null;
-}
-
 export type WonDeal = { id: number; company: string; value: number; recurring: boolean; closedAt: string | null };
 
 export type NorthStar = {
@@ -130,7 +113,6 @@ export async function computeNorthStar(now = new Date()): Promise<NorthStar> {
   const supabase = getCrmSupabaseAdmin();
   const goals = loadGoals();
   const key = monthKey(now);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const { data: wonRows, error: wonErr } = await supabase
     .from("deals")
@@ -161,17 +143,19 @@ export async function computeNorthStar(now = new Date()): Promise<NorthStar> {
   const dailyPaceNeeded = bd.remaining > 0 ? Math.round(gap / bd.remaining) : gap;
   const projection = bd.elapsed > 0 ? Math.round((realized / bd.elapsed) * bd.total) : 0;
 
-  const { data: actRows, error: actErr } = await supabase
-    .from("activities")
-    .select("type, description, created_at")
-    .eq("type", "stage_change")
-    .gte("created_at", monthStart.toISOString());
-  if (actErr) throw actErr;
+  // Funil = distribuicao REAL dos deals por etapa (estado atual). Antes lia o log de
+  // stage_change, que poluia com arrastes de teste (mostrava 25 qualified / 4 won com
+  // 0 e 1 reais). Nao apaga eventos, so para de depender deles.
+  const { data: dealStageRows, error: dealStageErr } = await supabase
+    .from("deals")
+    .select("stage")
+    .limit(5000);
+  if (dealStageErr) throw dealStageErr;
 
   const funnel: Record<string, number> = { prospect: 0, abordado: 0, qualified: 0, proposal: 0, negotiation: 0, won: 0, lost: 0 };
-  for (const a of actRows ?? []) {
-    const stage = stageFromDescription(a.description as string | null);
-    if (stage && funnel[stage] !== undefined) funnel[stage]++;
+  for (const d of dealStageRows ?? []) {
+    const s = (d.stage as string) ?? "";
+    if (funnel[s] !== undefined) funnel[s]++;
   }
 
   // Visao do ano: meses definidos + de agosto/26 ate o mes corrente.

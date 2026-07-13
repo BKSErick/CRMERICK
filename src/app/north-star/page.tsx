@@ -172,15 +172,15 @@ export default function NorthStarPage() {
           </div>
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
-            <div className="card-title">Funil do mes</div>
-            <span className="card-badge">Eventos de stage</span>
+            <div className="card-title">Funil (estado atual)</div>
+            <span className="card-badge">Deals por etapa</span>
           </div>
           <div className="kpi-row">
             {STAGE_LABELS.map(([id, label]) => (
               <article className="kpi-card" key={id}>
                 <div className="kpi-label">{label}</div>
                 <div className="kpi-value">{data.funnel[id] ?? 0}</div>
-                <div className="kpi-trend">entradas</div>
+                <div className="kpi-trend">deals</div>
               </article>
             ))}
           </div>
