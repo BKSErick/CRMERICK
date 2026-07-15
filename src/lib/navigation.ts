@@ -14,6 +14,7 @@ export const navItems: NavItem[] = [
   { label: "Brain", href: "/brain", module: "brain", group: "Navegacao", status: "migrated" },
   { label: "Funis", href: "/funil", module: "funil", group: "Navegacao", status: "migrated" },
   { label: "Pipeline", href: "/pipeline", module: "pipeline", group: "Navegacao", status: "migrated" },
+  { label: "Insights", href: "/insights", module: "insights", group: "Navegacao", status: "migrated" },
   { label: "Contatos", href: "/contacts", module: "contacts", group: "Navegacao", status: "migrated" },
   { label: "Conteudo", href: "/conteudo", module: "conteudo", group: "Navegacao", status: "migrated" },
   { label: "Brandbook", href: "/brandbook", module: "brandbook", group: "Navegacao", status: "migrated" },
