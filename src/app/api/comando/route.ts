@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
 import { diagnoseLead } from "@/lib/leadScoring";
+import { TIER_INFO, followupMessage, tierForDays } from "@/lib/followup";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
 // (disparos/follow-ups/calls/deals movidos), a fila priorizada do dia e os alertas das regras
@@ -27,19 +28,28 @@ export async function GET() {
     const todayStart = startOfToday(now);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Disparos (whatsapp_sent) reais: hoje e nos ultimos 7 dias.
+    // Disparos (whatsapp_sent) reais: hoje, ultimos 7 dias e ultimo contato por deal
+    // (o ultimo contato alimenta a fila de follow-up).
     const { data: waRows, error: waErr } = await supabase
       .from("activities")
-      .select("created_at")
+      .select("deal_id, created_at")
       .eq("type", "whatsapp_sent");
     if (waErr) throw waErr;
 
     let disparosToday = 0;
     let disparos7d = 0;
+    const waByDeal = new Map<number, { last: number; count: number }>();
     for (const r of waRows ?? []) {
       const ts = r.created_at ? new Date(r.created_at as string).getTime() : 0;
       if (ts >= todayStart.getTime()) disparosToday++;
       if (ts >= sevenDaysAgo.getTime()) disparos7d++;
+      const dealId = Number(r.deal_id);
+      if (dealId > 0 && ts > 0) {
+        const entry = waByDeal.get(dealId) ?? { last: 0, count: 0 };
+        entry.last = Math.max(entry.last, ts);
+        entry.count++;
+        waByDeal.set(dealId, entry);
+      }
     }
 
     // Placar lido do ESTADO REAL dos deals (nao do log de stage_change, que poluia com
@@ -52,7 +62,7 @@ export async function GET() {
     const { count: aguardandoCount } = await supabase
       .from("deals")
       .select("id", { count: "exact", head: true })
-      .eq("stage", "abordado");
+      .in("stage", ["abordado", "followup"]);
     const respostas = respostasCount ?? 0;
     const aguardando = aguardandoCount ?? 0;
 
@@ -124,6 +134,44 @@ export async function GET() {
       .filter((d) => d.phone && isWhatsappMobile(d.phone))
       .slice(0, goals.dailyInputs.disparos);
 
+    // Fila de follow-up: quem ja foi contatado (abordado/followup) e esta na janela
+    // (M1 D+2, M2 D+5 com prova, M3 D+10 breakup). Mais atrasado primeiro.
+    const { data: fuRows, error: fuErr } = await supabase
+      .from("deals")
+      .select("id, company, phone, whatsapp, name, stage")
+      .in("stage", ["abordado", "followup"])
+      .limit(1000);
+    if (fuErr) throw fuErr;
+
+    const followupQueue = (fuRows ?? [])
+      .map((d) => {
+        const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
+        const phone =
+          own ||
+          phoneByKey.get(keyOf(d.company as string)) ||
+          phoneByKey.get(keyOf(d.name as string)) ||
+          "";
+        const wa = waByDeal.get(Number(d.id));
+        const days = wa ? Math.floor((now.getTime() - wa.last) / 86400000) : null;
+        const tier = tierForDays(days);
+        const company = String(d.company ?? "Sem empresa");
+        return {
+          id: Number(d.id),
+          company,
+          phone,
+          stage: String(d.stage ?? "abordado"),
+          days,
+          msgCount: wa?.count ?? 0,
+          tier,
+          tierLabel: tier === "aguardar" ? "Aguardar D+2" : TIER_INFO[tier].label,
+          window: tier === "aguardar" ? "" : TIER_INFO[tier].window,
+          message: tier === "aguardar" ? "" : followupMessage(tier, company),
+        };
+      })
+      .filter((d) => d.tier !== "aguardar" && d.phone && isWhatsappMobile(d.phone))
+      .sort((a, b) => (b.days ?? 0) - (a.days ?? 0))
+      .slice(0, 50);
+
     // Alerta dia 20: usa a agregacao da meta (mesma da North Star).
     const northStar = await computeNorthStar(now);
 
@@ -149,6 +197,7 @@ export async function GET() {
         },
       },
       queue,
+      followupQueue,
     });
   } catch (error) {
     return NextResponse.json(

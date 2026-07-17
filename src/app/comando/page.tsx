@@ -26,6 +26,19 @@ const APPROACH_LABELS: Record<string, string> = {
   site_auditar: "Auditar site",
   industrial_email: "Industrial (email)",
 };
+type FollowupItem = {
+  id: number;
+  company: string;
+  phone: string;
+  stage: string;
+  days: number | null;
+  msgCount: number;
+  tier: string;
+  tierLabel: string;
+  window: string;
+  message: string;
+};
+
 type Placar = {
   disparos: { done: number; target: number; splitLP: number; splitDFY: number };
   respostas: number;
@@ -35,7 +48,7 @@ type Alerts = {
   sevenDayRule: { disparos7d: number; respostas: number; threshold: number; triggered: boolean };
   day20Rule: { day: number; pct: number; threshold: number; triggered: boolean };
 };
-type Comando = { placar: Placar; alerts: Alerts; queue: QueueItem[] };
+type Comando = { placar: Placar; alerts: Alerts; queue: QueueItem[]; followupQueue: FollowupItem[] };
 
 function whatsappLink(phone: string, message: string) {
   const normalized = phone.startsWith("55") ? phone : `55${phone}`;
@@ -59,12 +72,40 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     text: "Oi! Falo com o responsavel comercial, ou com o dono? Fiz uma analise da presenca de voces no Google e queria mostrar pra quem decide sobre isso. E rapido.",
   },
   {
-    title: "⏱ Follow-up 1 (48h de silencio)",
-    text: "Passando so pra deixar claro: nao e sobre ter pagina bonita. E sobre o comprador que pesquisa voces antes de pedir orcamento encontrar prova solida de operacao real. Sem isso, ele segue pra quem tem. Quer que eu te mande o exemplo?",
+    title: "📞 Respondeu → puxar pra reunião",
+    text: "Boa, [NOME]. Em vez de eu te explicar tudo por texto, prefiro te mostrar na tela: 15 minutos, eu abro o diagnóstico da [EMPRESA] e te mostro exatamente o que eu ajustaria e por quê. Tem uma janela [DIA] ou [DIA]?",
   },
   {
-    title: "⏱ Follow-up 2 (dia 7, quebra de padrao)",
-    text: "Me confirma uma coisa: hoje, quando alguem pergunta \"tem site ou alguma pagina pra eu ver os servicos de voces?\", qual link voces mandam?",
+    title: "✅ Reunião marcada: confirmação (imediata)",
+    text: "Fechado, [NOME]: [DIA] às [HORA]. Vou te mostrar o diagnóstico da [EMPRESA] na tela, coisa de 15 minutos. Qualquer imprevisto me avisa por aqui que a gente remarca sem drama.",
+  },
+  {
+    title: "⏰ Lembrete véspera da reunião",
+    text: "[NOME], amanhã às [HORA] a gente se fala sobre a [EMPRESA]. Separei o diagnóstico e 2 exemplos de indústrias parecidas. Confirmado?",
+  },
+  {
+    title: "🔗 1h antes, com o link (link vai na hora, nunca antes)",
+    text: "[NOME], daqui a pouco às [HORA]. Esse é o link da call: [LINK]. Até já.",
+  },
+  {
+    title: "🙈 No-show: reagendar (até 30 min depois, sem culpa)",
+    text: "[NOME], a gente acabou não se falando hoje. Imagino que a operação puxou aí, acontece. Quer remarcar? Me fala o dia que fica melhor essa semana.",
+  },
+  {
+    title: "📄 Proposta enviada, follow-up D+2",
+    text: "[NOME], viu a proposta da [EMPRESA]? Queria saber se o escopo fez sentido ou se ficou alguma dúvida no valor. Me responde aqui que eu ajusto contigo, é rápido.",
+  },
+  {
+    title: "📄 Proposta parada D+7",
+    text: "[NOME], não quero te pressionar, só organizar minha produção: sigo com o projeto da [EMPRESA] ou guardo o escopo por enquanto? Se tiver algo travando, me fala que na maioria das vezes dá pra resolver ajustando o formato.",
+  },
+  {
+    title: "💰 Objeção de preço: escopo menor (D+4 travado)",
+    text: "[NOME], pensei no que você falou sobre o investimento. Dá pra começar menor: a página principal primeiro, que é o que o comprador vê quando valida vocês, e o resto a gente faz por etapa conforme trazer retorno. Quer que eu te mande esse escopo reduzido?",
+  },
+  {
+    title: "🔥 Re-engajamento 45d (lead frio / perdido)",
+    text: "[NOME], faz um tempo que a gente conversou sobre a [EMPRESA]. Nesse meio tempo, todo orçamento que foi pro concorrente com site mais forte não aparece em relatório nenhum, e é aí que mora o custo de deixar pra depois. Refiz o diagnóstico de vocês atualizado. Quer dar uma olhada?",
   },
 ];
 
@@ -129,6 +170,11 @@ export default function ComandoPage() {
     reload();
   }
 
+  async function handleFollowup(item: FollowupItem) {
+    await logWhatsappSent(item.id, `Follow-up ${item.tier} enviado`);
+    reload();
+  }
+
   return (
     <section>
       <div className="page-header">
@@ -164,7 +210,7 @@ export default function ComandoPage() {
             <article className="kpi-card">
               <div className="kpi-label">No ar (aguardando)</div>
               <div className="kpi-value">{data.placar.aguardando}</div>
-              <div className="kpi-trend">Contatados em Abordado, sem resposta</div>
+              <div className="kpi-trend">Em Abordado/Follow-up, sem resposta</div>
             </article>
             <article className="kpi-card">
               <div className="kpi-label">Respostas</div>
@@ -217,12 +263,12 @@ export default function ComandoPage() {
 
           <details className="card" style={{ margin: "24px 0 0" }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-              Mensagens prontas — gatekeeper + follow-up
+              Mensagens prontas — gatekeeper + funil completo
             </summary>
             <p className="muted-copy" style={{ margin: "10px 0" }}>
-              Copie na hora certa: quando quem responde nao e o dono (o telefone do Maps costuma
-              cair no atendente), ou pra reaquecer quem ficou em silencio. A mensagem por lead ja
-              esta no botao WhatsApp da fila.
+              Copie na hora certa: gatekeeper (quando quem responde nao e o dono), resposta que vira
+              reuniao, confirmacao e lembretes, no-show, proposta, objecao e re-engajamento. Os
+              follow-ups M1/M2/M3 de silencio NAO estao aqui: saem prontos na fila de follow-up acima.
             </p>
             {READY_MESSAGES.map((m) => (
               <div
@@ -237,6 +283,61 @@ export default function ComandoPage() {
               </div>
             ))}
           </details>
+
+          <div className="card-header" style={{ margin: "24px 0 12px" }}>
+            <div className="card-title">Fila de follow-up</div>
+            <span className="card-badge">na janela hoje</span>
+          </div>
+          {(data.followupQueue ?? []).length === 0 ? (
+            <div className="connection-status fallback">
+              Ninguem na janela de follow-up agora. Quem foi abordado entra aqui em D+2 (M1), D+5 (M2 com prova) e D+10 (M3 breakup).
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Empresa</th>
+                    <th>Ultimo contato</th>
+                    <th>Mensagem da janela</th>
+                    <th>Telefone</th>
+                    <th>Acao</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.followupQueue ?? []).map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <div>{item.company}</div>
+                        <span className={`status-pill ${item.stage}`}>{item.stage}</span>
+                      </td>
+                      <td>
+                        {item.days === null ? "Sem registro" : item.days === 0 ? "Hoje" : `D+${item.days}`}
+                        <div className="muted-copy" style={{ fontSize: "11px" }}>{item.msgCount} msg enviada(s)</div>
+                      </td>
+                      <td style={{ maxWidth: "420px" }}>
+                        <strong style={{ fontSize: "12px" }}>{item.tierLabel}</strong>
+                        <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>{item.window}</span>
+                        <div className="muted-copy" style={{ fontSize: "12px", marginTop: "4px" }}>{item.message}</div>
+                      </td>
+                      <td className="font-mono">+{item.phone}</td>
+                      <td>
+                        <a
+                          className="topbar-btn primary"
+                          href={whatsappLink(item.phone, item.message)}
+                          rel="noreferrer"
+                          target="_blank"
+                          onClick={() => handleFollowup(item)}
+                        >
+                          Enviar {item.tier}
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila do dia</div>
