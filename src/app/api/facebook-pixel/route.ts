@@ -39,6 +39,18 @@ type Metrics = {
 
 const EMPTY_METRICS: Metrics = { views: 0, ctaClicks: 0, reportClicks: 0, ostrackClicks: 0, leads: 0, sales: 0 };
 
+// As paginas de diagnostico (huberick) sao servidas fora do dominio do CRM,
+// entao o endpoint aceita POST cross-origin.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 function hash(value?: string) {
   if (!value) return undefined;
   return crypto.createHash("sha256").update(value.trim().toLowerCase()).digest("hex");
@@ -151,7 +163,7 @@ export async function POST(request: NextRequest) {
         status: "stored_only",
         message: "Evento salvo no CRM. Token Meta nao configurado para CAPI (META_API_TOKEN).",
       },
-      { status: 202 },
+      { status: 202, headers: CORS_HEADERS },
     );
   }
 
@@ -193,6 +205,6 @@ export async function POST(request: NextRequest) {
       fbtraceId: meta.fbtrace_id,
       error: meta.error?.message,
     },
-    { status: response.ok ? 200 : 400 },
+    { status: response.ok ? 200 : 400, headers: CORS_HEADERS },
   );
 }

@@ -1,6 +1,12 @@
 (function () {
   var DIAGNOSTICO_OSTRACK_EVENT = "DiagnosticoOStrackClick";
 
+  // Paginas de diagnostico servidas fora do dominio do CRM apontam o endpoint
+  // absoluto via <script src="..." data-endpoint="https://crm.../api/facebook-pixel">.
+  var currentScript = document.currentScript;
+  var ENDPOINT = (currentScript && currentScript.getAttribute("data-endpoint")) || "/api/facebook-pixel";
+  var SAME_ORIGIN = ENDPOINT.indexOf("http") !== 0 || ENDPOINT.indexOf(window.location.origin) === 0;
+
   function text(selector) {
     var el = document.querySelector(selector);
     return el ? (el.textContent || "").trim() : "";
@@ -15,17 +21,18 @@
 
     var sent = false;
     try {
-      if (navigator.sendBeacon) {
-        sent = navigator.sendBeacon("/api/facebook-pixel", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+      if (SAME_ORIGIN && navigator.sendBeacon) {
+        sent = navigator.sendBeacon(ENDPOINT, new Blob([JSON.stringify(payload)], { type: "application/json" }));
       }
     } catch {
       sent = false;
     }
 
     if (!sent) {
-      fetch("/api/facebook-pixel", {
+      // text/plain evita preflight CORS quando o endpoint e cross-origin.
+      fetch(ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
         body: JSON.stringify(payload),
         keepalive: true,
       }).catch(function () {});

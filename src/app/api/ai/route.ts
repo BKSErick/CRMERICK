@@ -42,12 +42,52 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, dealId } = body;
 
-    if (!action || !dealId) {
+    if (!action || (action !== "compile-achados" && !dealId)) {
       return NextResponse.json(
-        { ok: false, error: "Parâmetros 'action' e 'dealId' são obrigatórios." },
+        { ok: false, error: "Parâmetro 'action' é obrigatório ('dealId' também, exceto em compile-achados)." },
         { status: 400 }
       );
     }
+
+    let systemPrompt = "";
+    let userPrompt = "";
+    let dealCompany: string | null = null;
+
+    if (action === "compile-achados") {
+      // Compila todos os achados da tabela insights numa memória + plano de melhoria.
+      const { data: rows, error: achErr } = await supabase
+        .from("insights")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (achErr) throw achErr;
+
+      const achados = (rows ?? []).filter((r) => r.type !== "compilado");
+      if (achados.length === 0) {
+        return NextResponse.json(
+          { ok: false, error: "Nenhum achado para compilar ainda. Registre achados primeiro." },
+          { status: 400 }
+        );
+      }
+
+      systemPrompt = `Você é o analista de aprendizado do CRM do Erick Sena (vendas B2B de landing pages e serviços digitais para indústria).
+Sua tarefa: ler TODOS os achados registrados (aprendizados de copy, dores, objeções, conversões) e compilar uma memória estratégica.
+Responda em português (PT-BR), em Markdown, com EXATAMENTE estas seções:
+1. **Padrões encontrados**: temas que se repetem nos achados (dores, objeções, o que converte).
+2. **O que está funcionando**: práticas confirmadas pelos achados (manter).
+3. **Plano de melhoria**: 3 a 5 ações concretas e priorizadas para as próximas abordagens e copies (comece pela de maior impacto).
+4. **Teste da semana**: 1 experimento simples e mensurável para validar a melhoria mais promissora.
+Baseie TUDO nos achados fornecidos. NÃO invente dados, números ou casos que não estejam neles.`;
+
+      userPrompt = `Achados registrados (${achados.length}, do mais recente ao mais antigo):\n\n` +
+        achados
+          .map((a) => {
+            const empresa = a.company ? ` | empresa: ${a.company}` : "";
+            const data = a.created_at ? ` | ${String(a.created_at).slice(0, 10)}` : "";
+            return `[${a.type ?? "geral"}${empresa}${data}]\n${a.content}`;
+          })
+          .join("\n---\n");
+    } else {
 
     const { data: dealRow, error: fetchError } = await supabase
       .from("deals")
@@ -63,6 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     const deal = mapDealFromRow(dealRow);
+    dealCompany = deal.company;
 
     const { data: contactRow } = await supabase
       .from("contacts")
@@ -70,9 +111,6 @@ export async function POST(request: NextRequest) {
       .eq("company", deal.company)
       .limit(1)
       .maybeSingle();
-
-    let systemPrompt = "";
-    let userPrompt = "";
 
     if (action === "generate-copy") {
       systemPrompt = `Você é o assistente virtual do Erick Sena, especialista em vendas B2B e captação de clientes.
@@ -127,9 +165,10 @@ NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.`;
 - Primeiras mensagens do lead: ${deal.leadMessages || "Nenhuma resposta registrada ainda"}`;
     } else {
       return NextResponse.json(
-        { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary' ou 'generate-insight'." },
+        { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary', 'generate-insight' ou 'compile-achados'." },
         { status: 400 }
       );
+    }
     }
 
     let lastError = "";
@@ -219,10 +258,33 @@ NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.`;
       });
     }
 
+    if (action === "compile-achados") {
+      const { data: compiledRow, error: compErr } = await supabase
+        .from("insights")
+        .insert({ deal_id: null, company: null, type: "compilado", content: aiContent })
+        .select("*")
+        .single();
+
+      if (compErr) {
+        return NextResponse.json(
+          { ok: false, error: "Falha ao salvar o compilado.", detail: compErr.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+        insight: compiledRow,
+        summary: aiContent,
+        providerUsed,
+        modelUsed,
+      });
+    }
+
     if (action === "generate-insight") {
       const { data: insightRow, error: insErr } = await supabase
         .from("insights")
-        .insert({ deal_id: dealId, company: deal.company, type: "geral", content: aiContent })
+        .insert({ deal_id: dealId, company: dealCompany, type: "geral", content: aiContent })
         .select("*")
         .single();
 

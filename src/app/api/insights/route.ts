@@ -49,6 +49,27 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = getCrmSupabaseAdmin();
+    const body = await request.json();
+    const id = Number(body?.id);
+    if (!Number.isInteger(id) || id <= 0) return errorResponse(new Error("id e obrigatorio."), 400);
+
+    const patch: Record<string, unknown> = {};
+    if (typeof body?.content === "string" && body.content.trim()) patch.content = body.content.trim();
+    if (typeof body?.type === "string" && body.type.trim()) patch.type = body.type.trim();
+    if (typeof body?.company === "string") patch.company = body.company.trim() || null;
+    if (Object.keys(patch).length === 0) return errorResponse(new Error("Nada para atualizar."), 400);
+
+    const { data, error } = await supabase.from("insights").update(patch).eq("id", id).select("*").single();
+    if (error) throw error;
+    return NextResponse.json({ ok: true, insight: data });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = getCrmSupabaseAdmin();
