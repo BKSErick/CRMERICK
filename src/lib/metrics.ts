@@ -152,7 +152,7 @@ export async function computeNorthStar(now = new Date()): Promise<NorthStar> {
     .limit(5000);
   if (dealStageErr) throw dealStageErr;
 
-  const funnel: Record<string, number> = { prospect: 0, abordado: 0, qualified: 0, proposal: 0, negotiation: 0, won: 0, lost: 0 };
+  const funnel: Record<string, number> = { prospect: 0, abordado: 0, followup: 0, qualified: 0, proposal: 0, negotiation: 0, won: 0, lost: 0 };
   for (const d of dealStageRows ?? []) {
     const s = (d.stage as string) ?? "";
     if (funnel[s] !== undefined) funnel[s]++;

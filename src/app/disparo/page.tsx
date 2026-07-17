@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCRMStore } from "@/store/useCRMStore";
 import { logWhatsappSent } from "@/lib/activityClient";
+import type { Deal } from "@/lib/crmRecords";
 
 function cleanPhone(value?: string) {
   return value?.replace(/\D/g, "") ?? "";
@@ -12,26 +13,65 @@ function whatsappLink(phone: string, message: string) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
+// Sequencia de follow-up (docs/funil-whatsapp-sequencia.md): tom leve, sem link,
+// objetivo e abrir conversa e levar pra reuniao. Nunca link de checkout.
+type FollowupTier = "aguardar" | "M1" | "M2" | "M3";
+
+const TIER_INFO: Record<Exclude<FollowupTier, "aguardar">, { label: string; window: string }> = {
+  M1: { label: "M1 - Retomada leve", window: "D+2 a D+4" },
+  M2: { label: "M2 - Prova (cases)", window: "D+5 a D+9" },
+  M3: { label: "M3 - Breakup", window: "D+10 ou mais" },
+};
+
+function followupMessage(tier: Exclude<FollowupTier, "aguardar">, company: string) {
+  if (tier === "M1") {
+    return `Oi, Erick de novo. Te mandei uma análise rápida sobre a ${company} esses dias. Sei que a rotina aí não para, então vou direto: é uma leitura de 2 minutos mostrando o que um comprador industrial vê quando pesquisa vocês antes de pedir orçamento. Quer que eu mande?`;
+  }
+  if (tier === "M2") {
+    return `Um contexto rápido: fiz esse mesmo trabalho pra Jotta Manutenções e pra Metalthec, que atendem indústria como vocês. O problema era o mesmo: serviço bom, mas o comprador não achava prova disso na internet. Se fizer sentido, te mostro o diagnóstico da ${company} sem compromisso.`;
+  }
+  return `Vou parar de te chamar pra não virar incômodo. Fica só o registro: o diagnóstico da ${company} está pronto aqui comigo. Se em algum momento presença digital virar prioridade, me responde essa mensagem que eu te envio na hora.`;
+}
+
+function tierForDays(days: number | null): FollowupTier {
+  if (days === null) return "M1";
+  if (days < 2) return "aguardar";
+  if (days <= 4) return "M1";
+  if (days <= 9) return "M2";
+  return "M3";
+}
+
+type WhatsappSummary = Record<number, { last: string; count: number }>;
+
 export default function DisparoPage() {
   const deals = useCRMStore((state) => state.deals);
   const contacts = useCRMStore((state) => state.contacts);
   const setDeals = useCRMStore((state) => state.setDeals);
   const setContacts = useCRMStore((state) => state.setContacts);
+  const [view, setView] = useState<"disparo" | "followup">("disparo");
   const [filter, setFilter] = useState<"ready" | "phone" | "all">("ready");
   const [query, setQuery] = useState("");
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [waSummary, setWaSummary] = useState<WhatsappSummary>({});
+  const [sentNow, setSentNow] = useState<Record<number, boolean>>({});
+  const [loadedAt] = useState(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadCrmData() {
       try {
-        const response = await fetch("/api/crm-data");
-        const body = await response.json();
-        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar dados do CRM");
+        const [crmResponse, waResponse] = await Promise.all([
+          fetch("/api/crm-data"),
+          fetch("/api/activities?summary=whatsapp"),
+        ]);
+        const body = await crmResponse.json();
+        if (!crmResponse.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar dados do CRM");
+        const waBody = await waResponse.json().catch(() => ({ ok: false }));
         if (!cancelled) {
           setDeals(body.deals);
           setContacts(body.contacts);
+          if (waBody?.ok) setWaSummary(waBody.whatsapp ?? {});
           setDataStatus("ready");
         }
       } catch {
@@ -45,13 +85,17 @@ export default function DisparoPage() {
     };
   }, [setContacts, setDeals]);
 
+  function phoneFor(deal: Deal) {
+    const contact = contacts.find((item) => item.company === deal.company || item.name === deal.company);
+    return { phone: cleanPhone(deal.phone || contact?.phone || contact?.whatsapp), contact };
+  }
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
 
     return deals
       .map((deal) => {
-        const contact = contacts.find((item) => item.company === deal.company || item.name === deal.company);
-        const phone = cleanPhone(deal.phone || contact?.phone || contact?.whatsapp);
+        const { phone, contact } = phoneFor(deal);
         const message =
           deal.copyText ||
           `Oi! Falo sobre ${deal.title ?? "a oportunidade"} da ${deal.company}. Posso te mandar uma analise rapida?`;
@@ -72,9 +116,49 @@ export default function DisparoPage() {
         if (q && !`${row.company} ${row.contact} ${row.stage}`.toLowerCase().includes(q)) return false;
         return true;
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contacts, deals, filter, query]);
 
+  const followupRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const now = loadedAt;
+
+    return deals
+      .filter((deal) => deal.stage === "abordado" || deal.stage === "followup")
+      .map((deal) => {
+        const { phone, contact } = phoneFor(deal);
+        const wa = waSummary[deal.id];
+        const days = wa ? Math.floor((now - new Date(wa.last).getTime()) / 86400000) : null;
+        const tier = tierForDays(days);
+        const message = tier === "aguardar" ? "" : followupMessage(tier, deal.company);
+
+        return {
+          id: deal.id,
+          company: deal.company,
+          contact: contact?.name ?? deal.company,
+          phone,
+          stage: deal.stage,
+          days,
+          msgCount: wa?.count ?? 0,
+          tier,
+          message,
+        };
+      })
+      .filter((row) => !q || `${row.company} ${row.contact}`.toLowerCase().includes(q))
+      .sort((a, b) => {
+        if ((a.tier === "aguardar") !== (b.tier === "aguardar")) return a.tier === "aguardar" ? 1 : -1;
+        return (b.days ?? 0) - (a.days ?? 0);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contacts, deals, query, waSummary]);
+
   const readyCount = rows.filter((row) => row.ready).length;
+  const dueCount = followupRows.filter((row) => row.tier !== "aguardar").length;
+
+  function handleFollowupClick(row: (typeof followupRows)[number]) {
+    logWhatsappSent(row.id, `Follow-up ${row.tier} enviado`);
+    setSentNow((prev) => ({ ...prev, [row.id]: true }));
+  }
 
   return (
     <section>
@@ -82,13 +166,34 @@ export default function DisparoPage() {
         <div className="page-header-left">
           <h1>Disparo</h1>
           <div className="subtitle">
-            Central de WhatsApp migrada para React. A fila combina deals, contatos, telefone e copy pronta.
+            {view === "disparo"
+              ? "Central de WhatsApp. A fila combina deals, contatos, telefone e copy pronta."
+              : "Follow-up por janela: M1 (D+2), M2 com prova (D+5), M3 breakup (D+10). Enviar move o card no kanban."}
           </div>
         </div>
         <div className="page-header-right">
-          <div className="label">Prontos</div>
-          <div className="value">{readyCount}</div>
+          <div className="label">{view === "disparo" ? "Prontos" : "Devidos hoje"}</div>
+          <div className="value">{view === "disparo" ? readyCount : dueCount}</div>
         </div>
+      </div>
+
+      <div style={{ display: "flex", gap: "6px", marginBottom: "14px" }}>
+        <button
+          type="button"
+          className="topbar-btn"
+          onClick={() => setView("disparo")}
+          style={view === "disparo" ? { background: "var(--color-brand-violet)", color: "#fff", borderColor: "var(--color-brand-violet)" } : undefined}
+        >
+          Fila de disparo
+        </button>
+        <button
+          type="button"
+          className="topbar-btn"
+          onClick={() => setView("followup")}
+          style={view === "followup" ? { background: "var(--color-brand-violet)", color: "#fff", borderColor: "var(--color-brand-violet)" } : undefined}
+        >
+          Follow-up ({dueCount})
+        </button>
       </div>
 
       <div className="filterbar">
@@ -98,84 +203,175 @@ export default function DisparoPage() {
           placeholder="Buscar contato, empresa ou etapa"
           value={query}
         />
-        <div className="filter-group">
-          <select onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}>
-            <option value="ready">So prontos p/ disparo</option>
-            <option value="phone">Com telefone</option>
-            <option value="all">Todos</option>
-          </select>
-        </div>
+        {view === "disparo" && (
+          <div className="filter-group">
+            <select onChange={(event) => setFilter(event.target.value as typeof filter)} value={filter}>
+              <option value="ready">So prontos p/ disparo</option>
+              <option value="phone">Com telefone</option>
+              <option value="all">Todos</option>
+            </select>
+          </div>
+        )}
         <div className="filterbar-spacer" />
         <span className={`pipeline-status-pill ${dataStatus}`}>
           {dataStatus === "ready" ? `${deals.length} leads` : dataStatus === "loading" ? "Carregando" : "Erro"}
         </span>
       </div>
 
-      <div className="kpi-row">
-        <article className="kpi-card">
-          <div className="kpi-label">Fila atual</div>
-          <div className="kpi-value">{rows.length}</div>
-          <div className="kpi-trend">Filtro aplicado</div>
-        </article>
-        <article className="kpi-card">
-          <div className="kpi-label">Prontos</div>
-          <div className="kpi-value">{readyCount}</div>
-          <div className="kpi-trend up">Telefone + mensagem</div>
-        </article>
-        <article className="kpi-card">
-          <div className="kpi-label">Sem telefone</div>
-          <div className="kpi-value">{rows.filter((row) => !row.phone).length}</div>
-          <div className="kpi-trend down">Completar cadastro</div>
-        </article>
-        <article className="kpi-card">
-          <div className="kpi-label">Fonte</div>
-          <div className="kpi-value">Store</div>
-          <div className="kpi-trend">Deals + contatos</div>
-        </article>
-      </div>
+      {view === "disparo" ? (
+        <>
+          <div className="kpi-row">
+            <article className="kpi-card">
+              <div className="kpi-label">Fila atual</div>
+              <div className="kpi-value">{rows.length}</div>
+              <div className="kpi-trend">Filtro aplicado</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Prontos</div>
+              <div className="kpi-value">{readyCount}</div>
+              <div className="kpi-trend up">Telefone + mensagem</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Sem telefone</div>
+              <div className="kpi-value">{rows.filter((row) => !row.phone).length}</div>
+              <div className="kpi-trend down">Completar cadastro</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Follow-up devido</div>
+              <div className="kpi-value">{dueCount}</div>
+              <div className="kpi-trend">Ver aba Follow-up</div>
+            </article>
+          </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Contato</th>
-              <th>Empresa</th>
-              <th>Etapa</th>
-              <th>Telefone</th>
-              <th>Mensagem</th>
-              <th>Acao</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.contact}</td>
-                <td>{row.company}</td>
-                <td>
-                  <span className={`status-pill ${row.stage}`}>{row.stage}</span>
-                </td>
-                <td className="font-mono">{row.phone ? `+${row.phone}` : "Sem telefone"}</td>
-                <td>{row.message}</td>
-                <td>
-                  {row.phone ? (
-                    <a
-                      className="topbar-btn primary"
-                      href={whatsappLink(row.phone, row.message)}
-                      rel="noreferrer"
-                      target="_blank"
-                      onClick={() => logWhatsappSent(row.id)}
-                    >
-                      WhatsApp
-                    </a>
-                  ) : (
-                    <span className="portfolio-status warning">Sem telefone</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Contato</th>
+                  <th>Empresa</th>
+                  <th>Etapa</th>
+                  <th>Telefone</th>
+                  <th>Mensagem</th>
+                  <th>Acao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.contact}</td>
+                    <td>{row.company}</td>
+                    <td>
+                      <span className={`status-pill ${row.stage}`}>{row.stage}</span>
+                    </td>
+                    <td className="font-mono">{row.phone ? `+${row.phone}` : "Sem telefone"}</td>
+                    <td>{row.message}</td>
+                    <td>
+                      {row.phone ? (
+                        <a
+                          className="topbar-btn primary"
+                          href={whatsappLink(row.phone, row.message)}
+                          rel="noreferrer"
+                          target="_blank"
+                          onClick={() => logWhatsappSent(row.id)}
+                        >
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <span className="portfolio-status warning">Sem telefone</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="kpi-row">
+            <article className="kpi-card">
+              <div className="kpi-label">Devidos hoje</div>
+              <div className="kpi-value">{dueCount}</div>
+              <div className="kpi-trend up">M1 + M2 + M3</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Aguardando janela</div>
+              <div className="kpi-value">{followupRows.length - dueCount}</div>
+              <div className="kpi-trend">Menos de D+2</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Em follow-up</div>
+              <div className="kpi-value">{followupRows.filter((r) => r.stage === "followup").length}</div>
+              <div className="kpi-trend">2a+ mensagem enviada</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Abordados</div>
+              <div className="kpi-value">{followupRows.filter((r) => r.stage === "abordado").length}</div>
+              <div className="kpi-trend">1 mensagem enviada</div>
+            </article>
+          </div>
+
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Empresa</th>
+                  <th>Ultimo contato</th>
+                  <th>Proxima mensagem</th>
+                  <th>Telefone</th>
+                  <th>Mensagem sugerida</th>
+                  <th>Acao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {followupRows.map((row) => (
+                  <tr key={row.id} style={sentNow[row.id] ? { opacity: 0.45 } : undefined}>
+                    <td>
+                      <div>{row.company}</div>
+                      <span className={`status-pill ${row.stage}`}>{row.stage}</span>
+                    </td>
+                    <td>
+                      {row.days === null ? "Sem registro" : row.days === 0 ? "Hoje" : `D+${row.days}`}
+                      <div className="muted-copy" style={{ fontSize: "11px" }}>{row.msgCount} msg enviada(s)</div>
+                    </td>
+                    <td>
+                      {row.tier === "aguardar" ? (
+                        <span className="status-pill">Aguardar D+2</span>
+                      ) : (
+                        <div>
+                          <strong style={{ fontSize: "12px" }}>{TIER_INFO[row.tier].label}</strong>
+                          <div className="muted-copy" style={{ fontSize: "11px" }}>{TIER_INFO[row.tier].window}</div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="font-mono">{row.phone ? `+${row.phone}` : "Sem telefone"}</td>
+                    <td style={{ maxWidth: "420px" }}>{row.message || "Janela de follow-up ainda nao abriu."}</td>
+                    <td>
+                      {sentNow[row.id] ? (
+                        <span className="status-pill">Enviado agora</span>
+                      ) : row.tier === "aguardar" ? (
+                        <span className="muted-copy" style={{ fontSize: "12px" }}>Aguardar</span>
+                      ) : row.phone ? (
+                        <a
+                          className="topbar-btn primary"
+                          href={whatsappLink(row.phone, row.message)}
+                          rel="noreferrer"
+                          target="_blank"
+                          onClick={() => handleFollowupClick(row)}
+                        >
+                          Enviar {row.tier}
+                        </a>
+                      ) : (
+                        <span className="portfolio-status warning">Sem telefone</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   );
 }

@@ -38,6 +38,7 @@ function monthLabel(key: string): string {
 const STAGE_LABELS: Array<[string, string]> = [
   ["prospect", "Prospect"],
   ["abordado", "Abordado"],
+  ["followup", "Follow-up"],
   ["qualified", "Qualified"],
   ["proposal", "Proposal"],
   ["negotiation", "Negotiation"],

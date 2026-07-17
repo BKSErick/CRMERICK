@@ -24,6 +24,7 @@ type CRMState = {
 const STAGE_LABELS: Record<DealStage, string> = {
   prospect: "Prospect",
   abordado: "Abordado",
+  followup: "Follow-up",
   qualified: "Qualified",
   proposal: "Proposal",
   negotiation: "Negotiation",

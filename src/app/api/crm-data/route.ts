@@ -6,6 +6,8 @@ export const runtime = "nodejs";
 
 const stages = [
   { id: "prospect", label: "Prospect" },
+  { id: "abordado", label: "Abordado" },
+  { id: "followup", label: "Follow-up" },
   { id: "qualified", label: "Qualified" },
   { id: "proposal", label: "Proposal" },
   { id: "negotiation", label: "Negotiation" },
