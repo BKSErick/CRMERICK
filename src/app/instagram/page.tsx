@@ -30,8 +30,40 @@ type InstagramPayload = {
   };
   metrics?: { reach30?: number; views30?: number; interactions30?: number };
   media?: InstagramMedia[];
+  demographics?: {
+    country?: { label: string; value: number }[];
+    city?: { label: string; value: number }[];
+    age?: { label: string; value: number }[];
+    gender?: { label: string; value: number }[];
+    note?: string | null;
+  };
   error?: string;
 };
+
+const GENDER_LABELS: Record<string, string> = { F: "Feminino", M: "Masculino", U: "Nao informado" };
+
+function DemoList({ title, items, mapLabel }: { title: string; items?: { label: string; value: number }[]; mapLabel?: (l: string) => string }) {
+  const total = (items ?? []).reduce((a, i) => a + i.value, 0);
+  return (
+    <div style={{ marginBottom: "14px" }}>
+      <div style={{ fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>{title}</div>
+      {!items || items.length === 0 ? (
+        <p className="muted-copy" style={{ fontSize: "12px" }}>Sem dados (a API exige 100+ seguidores para demografia).</p>
+      ) : (
+        <div className="stage-list">
+          {items.map((i) => (
+            <div className="stage-row" key={i.label}>
+              <span>{mapLabel ? mapLabel(i.label) : i.label}</span>
+              <strong>
+                {numberFormatter.format(i.value)}{total > 0 ? ` (${((i.value / total) * 100).toFixed(0)}%)` : ""}
+              </strong>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
 
@@ -134,6 +166,25 @@ export default function InstagramPage() {
           <div className="kpi-label">Engajamento</div>
           <div className="kpi-value">{engagement ? `${engagement.toFixed(1).replace(".", ",")}%` : "--"}</div>
           <div className="kpi-trend">Interacoes / alcance</div>
+        </article>
+      </div>
+
+      <div className="grid-2col" style={{ marginBottom: "16px" }}>
+        <article className="card">
+          <div className="card-header">
+            <div className="card-title">Publico — quem te segue</div>
+            <span className="card-badge">demografia real</span>
+          </div>
+          <DemoList title="Genero" items={payload?.demographics?.gender} mapLabel={(l) => GENDER_LABELS[l] ?? l} />
+          <DemoList title="Faixa etaria" items={payload?.demographics?.age} />
+        </article>
+        <article className="card">
+          <div className="card-header">
+            <div className="card-title">Publico — onde esta</div>
+            <span className="card-badge">top 10</span>
+          </div>
+          <DemoList title="Pais" items={payload?.demographics?.country} />
+          <DemoList title="Cidade" items={payload?.demographics?.city} />
         </article>
       </div>
 

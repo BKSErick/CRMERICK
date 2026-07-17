@@ -15,6 +15,20 @@ function sumInsights(data: InsightRow[] | undefined) {
   return out;
 }
 
+// follower_demographics vem com total_value.breakdowns[].results[] ({dimension_values, value}).
+type DemoJson = {
+  data?: { total_value?: { breakdowns?: { results?: { dimension_values?: string[]; value?: number }[] }[] } }[];
+  error?: { message?: string };
+};
+function parseBreakdown(json: DemoJson): { label: string; value: number }[] {
+  const results = json?.data?.[0]?.total_value?.breakdowns?.[0]?.results ?? [];
+  return results
+    .map((r) => ({ label: (r.dimension_values ?? []).join(" "), value: Number(r.value ?? 0) }))
+    .filter((r) => r.label && r.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+}
+
 export async function GET(request: Request) {
   const overrideToken = request.headers.get("x-crm-ig-access-token")?.trim();
   const overrideAccountId = request.headers.get("x-crm-ig-business-account-id")?.trim();
@@ -55,12 +69,26 @@ export async function GET(request: Request) {
   insightsB.searchParams.set("until", String(now));
   insightsB.searchParams.set("access_token", accessToken);
 
+  // Demografia dos seguidores (lifetime): pais, cidade, faixa etaria, genero.
+  // Exige conta com 100+ seguidores; se a API negar, o campo volta vazio (sem inventar).
+  const demoUrl = (breakdown: string) => {
+    const u = new URL(`${base}/${accountId}/insights`);
+    u.searchParams.set("metric", "follower_demographics");
+    u.searchParams.set("period", "lifetime");
+    u.searchParams.set("metric_type", "total_value");
+    u.searchParams.set("breakdown", breakdown);
+    u.searchParams.set("access_token", accessToken);
+    return u;
+  };
+
   try {
-    const [accountRes, mediaRes, insARes, insBRes] = await Promise.all([
+    const [accountRes, mediaRes, insARes, insBRes, demoCountryRes, demoCityRes, demoAgeRes, demoGenderRes] = await Promise.all([
       fetch(accountUrl), fetch(mediaUrl), fetch(insightsA), fetch(insightsB),
+      fetch(demoUrl("country")), fetch(demoUrl("city")), fetch(demoUrl("age")), fetch(demoUrl("gender")),
     ]);
-    const [account, media, insA, insB] = await Promise.all([
+    const [account, media, insA, insB, demoCountry, demoCity, demoAge, demoGender] = await Promise.all([
       accountRes.json(), mediaRes.json(), insARes.json(), insBRes.json(),
+      demoCountryRes.json(), demoCityRes.json(), demoAgeRes.json(), demoGenderRes.json(),
     ]);
 
     if (!accountRes.ok || account.error) {
@@ -109,6 +137,13 @@ export async function GET(request: Request) {
         shares30: acct.shares ?? 0,
       },
       media: enriched,
+      demographics: {
+        country: parseBreakdown(demoCountry as DemoJson),
+        city: parseBreakdown(demoCity as DemoJson),
+        age: parseBreakdown(demoAge as DemoJson),
+        gender: parseBreakdown(demoGender as DemoJson),
+        note: (demoCountry as DemoJson)?.error?.message ?? null,
+      },
     });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Unexpected Instagram API error.");

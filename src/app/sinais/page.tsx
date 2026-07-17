@@ -1,74 +1,61 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-// Sinais = leitura REAL de performance do Instagram (Graph API). Substitui o antigo
-// modules/sinais.html que mostrava numeros inventados (28.4K alcance, +212%, "melhor
-// horario"). Aqui so entra o que a API entrega de verdade. O que a API NAO da
-// (crescimento % historico, melhor horario, narrativa de tendencia) foi REMOVIDO.
+// Sinais = radar de INTERESSE do funil outbound (nao e mais espelho do Instagram — as
+// metricas de IG vivem na aba Instagram). Aqui entra quem deu sinal de vida nas paginas
+// de diagnostico: abriu a auditoria, clicou no link, clicou no WhatsApp. Esse e o
+// gatilho mais quente do follow-up: quem abriu nas ultimas 48h merece mensagem HOJE.
 
-type Media = {
-  id: string;
-  caption?: string;
-  media_product_type?: string;
-  media_type?: string;
-  timestamp?: string;
-  like_count?: number;
-  comments_count?: number;
-  reach?: number;
-  saved?: number;
-  shares?: number;
-  total_interactions?: number;
+type Signal = {
+  company: string;
+  pageUrl: string | null;
+  views: number;
+  waClicks: number;
+  linkClicks: number;
+  lastEvent: string;
+  hot: boolean;
 };
+
 type Payload = {
   ok: boolean;
-  profile?: { username?: string };
-  metrics?: {
-    reach30?: number; views30?: number; profileViews30?: number; accountsEngaged30?: number;
-    interactions30?: number; likes30?: number; comments30?: number; saves30?: number; shares30?: number;
-  };
-  media?: Media[];
+  totals?: { companies: number; views: number; waClicks: number; linkClicks: number; hot: number };
+  signals?: Signal[];
   error?: string;
 };
 
 const nf = new Intl.NumberFormat("pt-BR");
-const firstLine = (c?: string) => {
-  const t = c?.split("\n")[0]?.trim() || "Post sem legenda";
-  return t.length > 60 ? `${t.slice(0, 57)}...` : t;
-};
+
+function timeAgo(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(ms / 3600000);
+  if (h < 1) return "ha menos de 1h";
+  if (h < 24) return `ha ${h}h`;
+  const d = Math.floor(h / 24);
+  return `ha ${d} dia(s)`;
+}
 
 export default function SinaisPage() {
   const [data, setData] = useState<Payload | null>(null);
-  const [status, setStatus] = useState<"loading" | "live" | "fallback">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/instagram");
+        const res = await fetch("/api/sinais");
         const body = await res.json();
-        if (!res.ok || !body.ok) throw new Error(body.error ?? "Instagram indisponivel.");
-        if (!cancelled) { setData(body); setStatus("live"); }
+        if (!res.ok || !body.ok) throw new Error(body.error ?? "Sinais indisponiveis.");
+        if (!cancelled) { setData(body); setStatus("ready"); }
       } catch (e) {
-        if (!cancelled) { setData({ ok: false, error: e instanceof Error ? e.message : "indisponivel" }); setStatus("fallback"); }
+        if (!cancelled) { setData({ ok: false, error: e instanceof Error ? e.message : "indisponivel" }); setStatus("error"); }
       }
     })();
     return () => { cancelled = true; };
   }, []);
 
-  const m = data?.metrics ?? {};
-  const mixTotal = (m.likes30 ?? 0) + (m.comments30 ?? 0) + (m.saves30 ?? 0) + (m.shares30 ?? 0);
-  const mix = [
-    { label: "Curtidas", value: m.likes30 ?? 0 },
-    { label: "Comentarios", value: m.comments30 ?? 0 },
-    { label: "Salvos", value: m.saves30 ?? 0 },
-    { label: "Compartilhamentos", value: m.shares30 ?? 0 },
-  ];
-
-  const topPosts = useMemo(
-    () => [...(data?.media ?? [])].sort((a, b) => (b.reach ?? 0) - (a.reach ?? 0)).slice(0, 8),
-    [data?.media],
-  );
+  const totals = data?.totals ?? { companies: 0, views: 0, waClicks: 0, linkClicks: 0, hot: 0 };
+  const signals = data?.signals ?? [];
 
   return (
     <section>
@@ -76,84 +63,89 @@ export default function SinaisPage() {
         <div className="page-header-left">
           <h1>Sinais</h1>
           <div className="subtitle">
-            Leitura real de performance do Instagram (@{data?.profile?.username ?? "euericksena"}) — Graph API, ultimos 30 dias.
+            Radar de interesse do funil: quem abriu sua pagina de diagnostico, clicou no link ou no WhatsApp.
+            Quem deu sinal nas ultimas 48h e follow-up de HOJE.
           </div>
         </div>
         <div className="page-header-right">
-          <div className="label">Alcance 30d</div>
-          <div className="value">{status === "live" ? nf.format(m.reach30 ?? 0) : "--"}</div>
+          <div className="label">Quentes (48h)</div>
+          <div className="value">{status === "ready" ? totals.hot : "--"}</div>
         </div>
       </div>
 
-      <div className={`connection-status ${status === "live" ? "success" : status}`}>
-        {status === "live"
-          ? "Dados reais do Instagram (Graph API)."
-          : status === "loading"
-            ? "Buscando metricas reais..."
-            : `Instagram indisponivel: ${data?.error}`}
-      </div>
-
-      <div className="kpi-row">
-        <article className="kpi-card"><div className="kpi-label">Alcance 30d</div><div className="kpi-value">{nf.format(m.reach30 ?? 0)}</div><div className="kpi-trend">Contas alcancadas</div></article>
-        <article className="kpi-card"><div className="kpi-label">Visualizacoes</div><div className="kpi-value">{nf.format(m.views30 ?? 0)}</div><div className="kpi-trend">Views 30d</div></article>
-        <article className="kpi-card"><div className="kpi-label">Visitas ao perfil</div><div className="kpi-value">{nf.format(m.profileViews30 ?? 0)}</div><div className="kpi-trend">30d</div></article>
-        <article className="kpi-card"><div className="kpi-label">Contas engajadas</div><div className="kpi-value">{nf.format(m.accountsEngaged30 ?? 0)}</div><div className="kpi-trend up">30d</div></article>
-      </div>
-
-      <div className="grid-2col">
-        <article className="card">
-          <div className="card-header">
-            <div className="card-title">Mix de engajamento (30d)</div>
-            <span className="card-badge">{nf.format(mixTotal)} interacoes</span>
+      {status === "loading" ? (
+        <div className="connection-status fallback">Carregando sinais das paginas de diagnostico...</div>
+      ) : status === "error" ? (
+        <div className="portfolio-status warning">Nao foi possivel carregar os sinais: {data?.error}</div>
+      ) : (
+        <>
+          <div className="kpi-row">
+            <article className="kpi-card">
+              <div className="kpi-label">Empresas com atividade</div>
+              <div className="kpi-value">{nf.format(totals.companies)}</div>
+              <div className="kpi-trend">Abriram alguma pagina</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Aberturas de auditoria</div>
+              <div className="kpi-value">{nf.format(totals.views)}</div>
+              <div className="kpi-trend">DiagnosticoView</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Cliques no WhatsApp</div>
+              <div className="kpi-value">{nf.format(totals.waClicks)}</div>
+              <div className="kpi-trend up">Lead direto da pagina</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Quentes agora</div>
+              <div className="kpi-value">{totals.hot}</div>
+              <div className="kpi-trend up">Atividade nas ultimas 48h</div>
+            </article>
           </div>
-          {mixTotal === 0 ? (
-            <p className="muted-copy">Sem interacoes registradas na janela de 30 dias.</p>
+
+          {signals.length === 0 ? (
+            <div className="connection-status fallback">
+              Nenhum sinal ainda. Os eventos chegam quando um lead abre a pagina de diagnostico que voce
+              mandou (o pixel registra abertura, clique em link e clique no WhatsApp automaticamente).
+            </div>
           ) : (
-            <div className="stage-list">
-              {mix.map((item) => (
-                <div className="stage-row" key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{nf.format(item.value)} ({((item.value / mixTotal) * 100).toFixed(0)}%)</strong>
-                </div>
-              ))}
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Empresa</th>
+                    <th>Aberturas</th>
+                    <th>Cliques link</th>
+                    <th>Cliques WhatsApp</th>
+                    <th>Ultimo sinal</th>
+                    <th>Pagina</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {signals.map((s) => (
+                    <tr key={s.company}>
+                      <td>
+                        {s.company}
+                        {s.hot && <span className="status-pill" style={{ marginLeft: "6px", background: "#d32f2f", color: "#fff" }}>QUENTE</span>}
+                      </td>
+                      <td>{nf.format(s.views)}</td>
+                      <td>{nf.format(s.linkClicks)}</td>
+                      <td>{s.waClicks > 0 ? <strong>{nf.format(s.waClicks)}</strong> : 0}</td>
+                      <td>{s.lastEvent ? `${new Date(s.lastEvent).toLocaleDateString("pt-BR")} (${timeAgo(s.lastEvent)})` : "--"}</td>
+                      <td>
+                        {s.pageUrl ? (
+                          <a className="topbar-btn" href={s.pageUrl} rel="noreferrer" target="_blank">Abrir</a>
+                        ) : (
+                          "--"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </article>
-        <article className="card">
-          <div className="card-header">
-            <div className="card-title">O que a API nao entrega</div>
-            <span className="card-badge">honesto</span>
-          </div>
-          <p className="muted-copy">
-            Crescimento % mes-a-mes, &quot;melhor horario&quot; e narrativas de tendencia nao vem da Graph API
-            e foram removidos para nao inventar numero. Podem ser reintroduzidos se guardarmos snapshots historicos.
-          </p>
-        </article>
-      </div>
-
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Post</th><th>Tipo</th><th>Alcance</th><th>Interacoes</th><th>Salvos</th><th>Data</th></tr>
-          </thead>
-          <tbody>
-            {topPosts.length ? (
-              topPosts.map((item) => (
-                <tr key={item.id}>
-                  <td>{firstLine(item.caption)}</td>
-                  <td>{item.media_product_type ?? item.media_type ?? "MEDIA"}</td>
-                  <td>{nf.format(item.reach ?? 0)}</td>
-                  <td>{nf.format(item.total_interactions ?? 0)}</td>
-                  <td>{nf.format(item.saved ?? 0)}</td>
-                  <td>{item.timestamp ? new Date(item.timestamp).toLocaleDateString("pt-BR") : "--"}</td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={6}>Sem posts carregados.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        </>
+      )}
     </section>
   );
 }
