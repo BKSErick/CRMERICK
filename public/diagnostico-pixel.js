@@ -6,6 +6,9 @@
   var currentScript = document.currentScript;
   var ENDPOINT = (currentScript && currentScript.getAttribute("data-endpoint")) || "/api/facebook-pixel";
   var SAME_ORIGIN = ENDPOINT.indexOf("http") !== 0 || ENDPOINT.indexOf(window.location.origin) === 0;
+  // Modelos de site (Lps) nao tem h1 com o nome do cliente: o nome vem explicito
+  // via data-client-name para o agrupamento do radar de Sinais ficar correto.
+  var CLIENT_NAME = currentScript && currentScript.getAttribute("data-client-name");
 
   function text(selector) {
     var el = document.querySelector(selector);
@@ -16,7 +19,7 @@
     var payload = Object.assign({
       eventName: eventName,
       pageUrl: window.location.href,
-      clientName: text("h1") || document.title.replace(/^Analise Digital - /, ""),
+      clientName: CLIENT_NAME || text("h1") || document.title.replace(/^Analise Digital - /, ""),
     }, extra || {});
 
     var sent = false;

@@ -17,10 +17,24 @@ type Signal = {
   hot: boolean;
 };
 
+// Volume por pagina: de ONDE vem o acesso (modelo de site, diagnostico, etc.).
+type PageStat = {
+  pageUrl: string;
+  label: string;
+  host: string;
+  views: number;
+  waClicks: number;
+  linkClicks: number;
+  companies: number;
+  lastEvent: string;
+  hot: boolean;
+};
+
 type Payload = {
   ok: boolean;
-  totals?: { companies: number; views: number; waClicks: number; linkClicks: number; hot: number };
+  totals?: { companies: number; views: number; waClicks: number; linkClicks: number; hot: number; pages: number };
   signals?: Signal[];
+  pages?: PageStat[];
   error?: string;
 };
 
@@ -54,8 +68,9 @@ export default function SinaisPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const totals = data?.totals ?? { companies: 0, views: 0, waClicks: 0, linkClicks: 0, hot: 0 };
+  const totals = data?.totals ?? { companies: 0, views: 0, waClicks: 0, linkClicks: 0, hot: 0, pages: 0 };
   const signals = data?.signals ?? [];
+  const pages = data?.pages ?? [];
 
   return (
     <section>
@@ -100,7 +115,58 @@ export default function SinaisPage() {
               <div className="kpi-value">{totals.hot}</div>
               <div className="kpi-trend up">Atividade nas ultimas 48h</div>
             </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Paginas com acesso</div>
+              <div className="kpi-value">{nf.format(totals.pages)}</div>
+              <div className="kpi-trend">Modelos e diagnosticos</div>
+            </article>
           </div>
+
+          {pages.length > 0 && (
+            <>
+              <h2 style={{ marginTop: "24px" }}>Volume por pagina</h2>
+              <div className="subtitle" style={{ marginBottom: "12px" }}>
+                De onde esta vindo o acesso: cada linha e uma pagina (modelo de site ou diagnostico),
+                com o total de aberturas e cliques que ela gerou.
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Pagina</th>
+                      <th>Dominio</th>
+                      <th>Acessos</th>
+                      <th>Cliques link</th>
+                      <th>Cliques WhatsApp</th>
+                      <th>Empresas</th>
+                      <th>Ultimo acesso</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pages.map((p) => (
+                      <tr key={p.pageUrl}>
+                        <td>
+                          {p.label}
+                          {p.hot && <span className="status-pill" style={{ marginLeft: "6px", background: "#d32f2f", color: "#fff" }}>QUENTE</span>}
+                        </td>
+                        <td>{p.host || "--"}</td>
+                        <td><strong>{nf.format(p.views)}</strong></td>
+                        <td>{nf.format(p.linkClicks)}</td>
+                        <td>{p.waClicks > 0 ? <strong>{nf.format(p.waClicks)}</strong> : 0}</td>
+                        <td>{nf.format(p.companies)}</td>
+                        <td>{p.lastEvent ? timeAgo(p.lastEvent) : "--"}</td>
+                        <td>
+                          <a className="topbar-btn" href={p.pageUrl} rel="noreferrer" target="_blank">Abrir</a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <h2 style={{ marginTop: "24px" }}>Por empresa</h2>
+            </>
+          )}
 
           {signals.length === 0 ? (
             <div className="connection-status fallback">
