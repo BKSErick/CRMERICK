@@ -31,6 +31,9 @@ export type Deal = {
   description?: string;
   pains?: string;
   leadMessages?: string;
+  contactId?: number;
+  origin?: string;
+  originDetail?: string;
 };
 
 export type Contact = {
@@ -104,6 +107,9 @@ export function mapDealFromRow(row: DealRow): Deal {
     description: asString(row.description),
     pains: asString(row.pains),
     leadMessages: asString(row.lead_messages ?? row.leadMessages),
+    contactId: row.contact_id != null ? asNumber(row.contact_id) : undefined,
+    origin: asString(row.origin),
+    originDetail: asString(row.origin_detail ?? row.originDetail),
   };
 }
 

@@ -70,7 +70,7 @@ export async function GET() {
     // Fila do dia: deals ativos com telefone, priorizados pelo score (points) ja persistido.
     const { data: dealRows, error: dealErr } = await supabase
       .from("deals")
-      .select("id, company, phone, whatsapp, points, stage, copy_text, name, site_url")
+      .select("id, company, phone, whatsapp, points, stage, copy_text, name, site_url, contact_id")
       .in("stage", ["prospect", "qualified"])
       .order("points", { ascending: false })
       .limit(1000);
@@ -80,7 +80,7 @@ export async function GET() {
     // Join por company/name (mesmo import, 1:1). O campo whatsapp do contact e um link wa.me completo.
     const { data: contactRows, error: contactErr } = await supabase
       .from("contacts")
-      .select("name, company, phone, whatsapp");
+      .select("id, name, company, phone, whatsapp");
     if (contactErr) throw contactErr;
 
     // Sinal de interesse das paginas (aba Sinais): quem abriu a auditoria hoje e o
@@ -99,12 +99,16 @@ export async function GET() {
 
     const keyOf = (v?: string | null) => (v ?? "").trim().toLowerCase();
     const phoneByKey = new Map<string, string>();
+    // Fio 3: resolve telefone por contact_id (FK real) primeiro; o mapa por nome
+    // vira fallback para o punhado de deals sem contato casado.
+    const phoneById = new Map<number, string>();
     for (const c of contactRows ?? []) {
       const fromWa =
         typeof c.whatsapp === "string" ? (c.whatsapp.match(/wa\.me\/(\d+)/) || [])[1] : undefined;
       let digits = fromWa || cleanPhone(c.phone as string);
       if (!digits) continue;
       if (!fromWa && (digits.length === 10 || digits.length === 11)) digits = `55${digits}`;
+      if (c.id != null) phoneById.set(Number(c.id), digits);
       for (const k of [keyOf(c.company as string), keyOf(c.name as string)]) {
         if (k && !phoneByKey.has(k)) phoneByKey.set(k, digits);
       }
@@ -123,6 +127,7 @@ export async function GET() {
         const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
         const phone =
           own ||
+          (d.contact_id != null ? phoneById.get(Number(d.contact_id)) : undefined) ||
           phoneByKey.get(keyOf(d.company as string)) ||
           phoneByKey.get(keyOf(d.name as string)) ||
           "";
@@ -161,7 +166,7 @@ export async function GET() {
     // (M1 D+2, M2 D+5 com prova, M3 D+10 breakup). Mais atrasado primeiro.
     const { data: fuRows, error: fuErr } = await supabase
       .from("deals")
-      .select("id, company, phone, whatsapp, name, stage")
+      .select("id, company, phone, whatsapp, name, stage, contact_id")
       .in("stage", ["abordado", "followup"])
       .limit(1000);
     if (fuErr) throw fuErr;
@@ -171,6 +176,7 @@ export async function GET() {
         const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
         const phone =
           own ||
+          (d.contact_id != null ? phoneById.get(Number(d.contact_id)) : undefined) ||
           phoneByKey.get(keyOf(d.company as string)) ||
           phoneByKey.get(keyOf(d.name as string)) ||
           "";

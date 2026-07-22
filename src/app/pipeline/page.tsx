@@ -329,6 +329,19 @@ type DealCardProps = {
   onDragStart: () => void;
 };
 
+// Fio 4: origem legível do lead. Distingue de qual quiz/linha ele veio direto no card.
+function originLabel(origin?: string): string | null {
+  if (!origin) return null;
+  const map: Record<string, string> = {
+    "quiz:linkbio": "Quiz · Bio",
+    "quiz:ostrack-site": "Quiz · OStrack",
+    "quiz:quiz": "Quiz",
+  };
+  if (map[origin]) return map[origin];
+  if (origin.startsWith("quiz:")) return `Quiz · ${origin.slice(5)}`;
+  return origin;
+}
+
 function DealCard({ deal, onDragEnd, onDragStart, onOpen }: DealCardProps) {
   const tag = tagTypeMeta[deal.tagType ?? "research"] ?? tagTypeMeta.research;
   const assignee = deal.assignee ?? deal.owner ?? "JM";
@@ -344,6 +357,11 @@ function DealCard({ deal, onDragEnd, onDragStart, onOpen }: DealCardProps) {
       onDragStart={onDragStart}
     >
       <span className={`card-tag ${tag.className}`}>{tag.label}</span>
+      {originLabel(deal.origin) ? (
+        <span className="card-tag" style={{ marginLeft: "6px", background: "#e8eef7", color: "#2b4a7a" }}>
+          {originLabel(deal.origin)}
+        </span>
+      ) : null}
       <div className="card-title-text">{deal.name ?? deal.title ?? deal.company}</div>
       {progress ? (
         <div className="card-progress">

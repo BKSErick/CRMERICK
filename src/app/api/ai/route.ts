@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { mapDealFromRow } from "@/lib/crmRecords";
+import { getCompanySignals, signalAliases, type CompanySignal } from "@/lib/sinais";
 
 export const runtime = "nodejs";
 
@@ -105,12 +106,58 @@ Baseie TUDO nos achados fornecidos. NÃO invente dados, números ou casos que n�
     const deal = mapDealFromRow(dealRow);
     dealCompany = deal.company;
 
-    const { data: contactRow } = await supabase
-      .from("contacts")
-      .select("*")
-      .eq("company", deal.company)
-      .limit(1)
-      .maybeSingle();
+    // Fio 3: usa o contact_id (FK real) quando existe; cai para o match por empresa
+    // só no punhado de deals sem contato casado.
+    const contactId = (dealRow as { contact_id?: number | null }).contact_id ?? null;
+    const contactQuery = contactId
+      ? supabase.from("contacts").select("*").eq("id", contactId)
+      : supabase.from("contacts").select("*").eq("company", deal.company);
+    const { data: contactRow } = await contactQuery.limit(1).maybeSingle();
+
+    // Fio 2: a IA deixa de ser cega ao comportamento. Lê o sinal de interesse
+    // (aberturas/cliques nas páginas) e as últimas atividades reais do deal, e
+    // injeta isso no prompt para a resposta virar próxima ação, não descrição.
+    let signalContext = "";
+    try {
+      const [signalIndex, activitiesRes] = await Promise.all([
+        getCompanySignals(supabase).catch(() => new Map<string, CompanySignal>()),
+        supabase
+          .from("activities")
+          .select("type, description, created_at")
+          .eq("deal_id", dealId)
+          .order("created_at", { ascending: false })
+          .limit(8),
+      ]);
+
+      let signal: CompanySignal | null = null;
+      for (const alias of [...signalAliases(deal.company), ...signalAliases(deal.name ?? "")]) {
+        const hit = signalIndex.get(alias);
+        if (hit) { signal = hit; break; }
+      }
+
+      const parts: string[] = [];
+      if (signal) {
+        const quando = signal.lastEvent ? new Date(signal.lastEvent).toLocaleString("pt-BR") : "recente";
+        parts.push(
+          `Sinal de interesse (páginas): ${signal.views} abertura(s), ${signal.linkClicks} clique(s) em link, ` +
+            `${signal.waClicks} clique(s) no WhatsApp. ${signal.hot ? "QUENTE (ativo nas últimas 48h)." : "Sem atividade recente."} Último sinal: ${quando}.`,
+        );
+      } else {
+        parts.push("Sinal de interesse (páginas): nenhuma abertura registrada ainda.");
+      }
+      const acts = activitiesRes.data ?? [];
+      if (acts.length > 0) {
+        parts.push(
+          "Atividade recente:\n" +
+            acts
+              .map((a) => `- [${String(a.created_at ?? "").slice(0, 10)}] ${a.type ?? "nota"}: ${a.description ?? ""}`)
+              .join("\n"),
+        );
+      }
+      signalContext = "\n\n" + parts.join("\n");
+    } catch {
+      signalContext = "";
+    }
 
     if (action === "generate-copy") {
       systemPrompt = `Você é o assistente virtual do Erick Sena, especialista em vendas B2B e captação de clientes.
@@ -128,8 +175,9 @@ Ela DEVE ser escrita em português (PT-BR) e seguir o estilo de abordagem do "ve
 - Nome do contato (opcional, use se fizer sentido): ${contactRow?.name || ""}
 - Site do lead: ${deal.siteUrl || "Não informado"}
 - Gargalo identificado: ${deal.segment || "Não detalhado"}
-- Pontuação/Score do lead (de 0 a 10): ${deal.points || 0}/10
+- Pontuação/Score do lead (de 0 a 10): ${deal.points || 0}/10${signalContext}
 
+Se o lead já abriu a página ou clicou no WhatsApp, use isso a favor (ex: "vi que você deu uma olhada..."), sem soar invasivo.
 Retorne APENAS o texto da mensagem a ser enviada no WhatsApp. Não inclua observações, tags adicionais, introduções ou explicações.`;
     } else if (action === "generate-summary") {
       systemPrompt = `Você é um analista de negócios e assistente do CRM.
@@ -147,7 +195,9 @@ Retorne o resumo formatado em Markdown limpo (usando negritos e listas). Mantenh
 - Valor Estimado: R$ ${deal.value || 0}
 - Gargalo Principal: ${deal.segment || "Não detalhado"}
 - Prioridade (Pontuação): ${deal.points || 0}/10
-- Última atualização: ${deal.updated_at || "Recente"}`;
+- Última atualização: ${deal.updated_at || "Recente"}${signalContext}
+
+No "Próximo Passo Recomendado", leve em conta o sinal de interesse e a atividade recente acima (se o lead esquentou, priorize; se esfriou, sugira reativação).`;
     } else if (action === "generate-insight") {
       systemPrompt = `Você é o Webson, vendedor consultivo B2B do Erick Sena.
 Sua tarefa: ler a ABORDAGEM enviada e as PRIMEIRAS MENSAGENS/DORES do lead e destilar insights ACIONÁVEIS de vendas.
@@ -162,7 +212,7 @@ NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.`;
 - Empresa: ${deal.company}
 - Abordagem enviada: ${deal.copyText || "Não registrada"}
 - Dores anotadas: ${deal.pains || "Não informado"}
-- Primeiras mensagens do lead: ${deal.leadMessages || "Nenhuma resposta registrada ainda"}`;
+- Primeiras mensagens do lead: ${deal.leadMessages || "Nenhuma resposta registrada ainda"}${signalContext}`;
     } else {
       return NextResponse.json(
         { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary', 'generate-insight' ou 'compile-achados'." },

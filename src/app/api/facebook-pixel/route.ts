@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
+import { classifySource, normalizeUrl } from "@/lib/sinais";
 
 type PixelEventBody = {
   eventName?: string;
@@ -93,6 +95,57 @@ async function persistEvent(body: PixelEventBody, eventName: string): Promise<bo
   }
 }
 
+// Fio 1: o sinal vira evento na timeline do deal. Só para páginas OUTBOUND
+// (diagnóstico/LP ligada a um prospect) — inbound (bio/site próprio) não mapeia
+// para um deal. Aberturas são deduplicadas (1 por deal a cada 12h) para o
+// histórico não encher de "abriu a página"; cliques entram sempre.
+async function logSignalActivity(body: PixelEventBody, eventName: string): Promise<void> {
+  try {
+    const page = normalizeUrl(body.pageUrl);
+    if (page && classifySource(page.host, page.label).kind !== "outbound") return;
+
+    const company = (body.clientName ?? "").trim();
+    if (!company) return;
+
+    const supabase = getCrmSupabaseAdmin();
+    const { data: deal } = await supabase
+      .from("deals")
+      .select("id")
+      .ilike("company", company)
+      .limit(1)
+      .maybeSingle();
+    if (!deal) return;
+
+    const isView = eventName === "DiagnosticoView";
+    if (isView) {
+      const since = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+      const { data: recent } = await supabase
+        .from("activities")
+        .select("id")
+        .eq("deal_id", deal.id)
+        .eq("type", "signal_view")
+        .gte("created_at", since)
+        .limit(1);
+      if (recent && recent.length > 0) return;
+    }
+
+    const type = isView
+      ? "signal_view"
+      : eventName === "DiagnosticoWhatsAppClick"
+        ? "signal_whatsapp"
+        : "signal_click";
+    const description = isView
+      ? "Abriu a página de diagnóstico"
+      : eventName === "DiagnosticoWhatsAppClick"
+        ? "Clicou no WhatsApp na página de diagnóstico"
+        : `Clicou em "${(body.buttonName ?? "link").slice(0, 60)}" na página`;
+
+    await supabase.from("activities").insert({ deal_id: deal.id, type, description });
+  } catch {
+    // best-effort: o sinal nunca pode quebrar o beacon do pixel
+  }
+}
+
 // Lê o resumo agregado (só contagens) via RPC SECURITY DEFINER.
 async function fetchSummary(): Promise<Metrics | null> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
@@ -153,6 +206,9 @@ export async function POST(request: NextRequest) {
 
   // 1) Persiste SEMPRE (independe do CAPI) para alimentar o funil.
   const persisted = await persistEvent(body, eventName);
+
+  // 1b) Fio 1: reflete o sinal na timeline do deal casado (best-effort).
+  await logSignalActivity(body, eventName);
 
   // 2) Envia ao Meta CAPI, se configurado.
   if (!DATASET_ID || !META_TOKEN) {
