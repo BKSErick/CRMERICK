@@ -108,12 +108,16 @@ async function logSignalActivity(body: PixelEventBody, eventName: string): Promi
     if (!company) return;
 
     const supabase = getCrmSupabaseAdmin();
-    const { data: deal } = await supabase
-      .from("deals")
-      .select("id")
-      .ilike("company", company)
-      .limit(1)
-      .maybeSingle();
+    // Nomes do Garimpo truncam ("ABC Metal - Caixa de... - Por..."), entao o
+    // client_name da pagina raramente casa exato com deals.company. Tenta exato e,
+    // se falhar, casa pelo prefixo antes do primeiro " - ".
+    const prefix = company.split(" - ")[0].trim();
+    const candidates = prefix && prefix !== company ? [company, `${prefix}%`] : [company];
+    let deal: { id: number } | null = null;
+    for (const pattern of candidates) {
+      const { data } = await supabase.from("deals").select("id").ilike("company", pattern).limit(1).maybeSingle();
+      if (data) { deal = data as { id: number }; break; }
+    }
     if (!deal) return;
 
     const isView = eventName === "DiagnosticoView";
