@@ -91,6 +91,28 @@ export default function PipelinePage() {
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
   const [draggedDealId, setDraggedDealId] = useState<number | null>(null);
+  // #5: busca em linguagem natural (a IA traduz a frase num filtro sobre deals+sinais).
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiResults, setAiResults] = useState<Array<{ id: number; company: string; stage: string; points: number; segment: string; views: number; waClicks: number; hot: boolean }> | null>(null);
+  const [aiSearching, setAiSearching] = useState(false);
+
+  async function runAiSearch() {
+    if (!aiQuery.trim()) return;
+    setAiSearching(true);
+    try {
+      const res = await fetch("/api/ai-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: aiQuery.trim() }),
+      });
+      const body = await res.json();
+      setAiResults(body?.ok ? body.results : []);
+    } catch {
+      setAiResults([]);
+    } finally {
+      setAiSearching(false);
+    }
+  }
   const [visibleByStage, setVisibleByStage] = useState<Record<DealStage, number>>({
     prospect: 40,
     abordado: 40,
@@ -249,6 +271,52 @@ export default function PipelinePage() {
       {dataStatus === "error" ? (
         <div className="portfolio-status warning">Nao foi possivel carregar os dados reais do Supabase.</div>
       ) : null}
+
+      <div className="card" style={{ marginBottom: "16px", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          <span className="card-badge">Busca IA</span>
+          <input
+            className="table-search"
+            style={{ flex: 1, minWidth: "220px" }}
+            placeholder='Ex: "leads de usinagem que abriram a pagina essa semana"'
+            value={aiQuery}
+            onChange={(e) => setAiQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void runAiSearch(); }}
+          />
+          <button className="topbar-btn primary" type="button" disabled={aiSearching || !aiQuery.trim()} onClick={() => void runAiSearch()}>
+            {aiSearching ? "Buscando..." : "Buscar"}
+          </button>
+          {aiResults ? (
+            <button className="topbar-btn" type="button" onClick={() => { setAiResults(null); setAiQuery(""); }}>Limpar</button>
+          ) : null}
+        </div>
+        {aiResults ? (
+          aiResults.length === 0 ? (
+            <div className="muted-copy" style={{ marginTop: "10px", fontSize: "13px" }}>Nenhum lead bate com essa busca.</div>
+          ) : (
+            <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div className="muted-copy" style={{ fontSize: "12px" }}>{aiResults.length} lead(s):</div>
+              {aiResults.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setSelectedDealId(r.id)}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", background: "var(--panel-2, #f0eef7)", border: 0, borderRadius: "8px", padding: "8px 12px", cursor: "pointer", textAlign: "left" }}
+                >
+                  <span style={{ fontSize: "13px" }}>
+                    <strong>{r.company}</strong>
+                    <span className="muted-copy" style={{ marginLeft: "8px", fontSize: "11px" }}>{r.stage} · {r.points} pts{r.segment ? ` · ${r.segment}` : ""}</span>
+                  </span>
+                  <span style={{ fontSize: "11px" }}>
+                    {r.hot ? <span className="status-pill" style={{ background: "#d32f2f", color: "#fff" }}>QUENTE</span> : null}
+                    {r.views > 0 ? <span className="muted-copy" style={{ marginLeft: "6px" }}>{r.views} abertura(s)</span> : null}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )
+        ) : null}
+      </div>
 
       <div className="kanban-board">
         {stages.map((stage) => {

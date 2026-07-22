@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { logWhatsappSent } from "@/lib/activityClient";
 
 // Sala de Comando = cockpit de cobranca diaria. Placar do dia (disparos/follow-ups/calls/deals
@@ -164,6 +164,23 @@ function CopyButton({ text }: { text: string }) {
 export default function ComandoPage() {
   const [data, setData] = useState<Comando | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  // #3: sugestao de proxima acao da IA por lead (sob demanda, nao no carregamento).
+  const [actions, setActions] = useState<Record<number, { loading: boolean; text?: string }>>({});
+
+  async function suggestAction(dealId: number) {
+    setActions((a) => ({ ...a, [dealId]: { loading: true } }));
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "next-action", dealId }),
+      });
+      const body = await res.json();
+      setActions((a) => ({ ...a, [dealId]: { loading: false, text: body?.summary ?? "IA indisponível agora." } }));
+    } catch {
+      setActions((a) => ({ ...a, [dealId]: { loading: false, text: "IA indisponível agora." } }));
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -393,27 +410,45 @@ export default function ComandoPage() {
                 </thead>
                 <tbody>
                   {data.queue.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.company}{signalBadge(item.signal)}</td>
-                      <td><span className={`status-pill ${item.stage}`}>{item.stage}</span></td>
-                      <td>{item.points}</td>
-                      <td>
-                        <span className="status-pill">{APPROACH_LABELS[item.recommended_approach] ?? item.recommended_approach}</span>
-                        <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>{item.channel}</span>
-                      </td>
-                      <td className="font-mono">+{item.phone}</td>
-                      <td>
-                        <a
-                          className="topbar-btn primary"
-                          href={whatsappLink(item.phone, item.message)}
-                          rel="noreferrer"
-                          target="_blank"
-                          onClick={() => handleWhatsapp(item)}
-                        >
-                          WhatsApp
-                        </a>
-                      </td>
-                    </tr>
+                    <Fragment key={item.id}>
+                      <tr>
+                        <td>{item.company}{signalBadge(item.signal)}</td>
+                        <td><span className={`status-pill ${item.stage}`}>{item.stage}</span></td>
+                        <td>{item.points}</td>
+                        <td>
+                          <span className="status-pill">{APPROACH_LABELS[item.recommended_approach] ?? item.recommended_approach}</span>
+                          <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>{item.channel}</span>
+                        </td>
+                        <td className="font-mono">+{item.phone}</td>
+                        <td style={{ display: "flex", gap: "6px" }}>
+                          <a
+                            className="topbar-btn primary"
+                            href={whatsappLink(item.phone, item.message)}
+                            rel="noreferrer"
+                            target="_blank"
+                            onClick={() => handleWhatsapp(item)}
+                          >
+                            WhatsApp
+                          </a>
+                          <button
+                            className="topbar-btn"
+                            type="button"
+                            title="Sugestão da IA: por que agir agora e o que dizer"
+                            disabled={actions[item.id]?.loading}
+                            onClick={() => suggestAction(item.id)}
+                          >
+                            {actions[item.id]?.loading ? "..." : "Próxima ação IA"}
+                          </button>
+                        </td>
+                      </tr>
+                      {actions[item.id]?.text ? (
+                        <tr>
+                          <td colSpan={6} style={{ background: "var(--panel-2, #f0eef7)", fontSize: "13px" }}>
+                            <strong>IA:</strong> {actions[item.id]?.text}
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

@@ -213,9 +213,21 @@ NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.`;
 - Abordagem enviada: ${deal.copyText || "Não registrada"}
 - Dores anotadas: ${deal.pains || "Não informado"}
 - Primeiras mensagens do lead: ${deal.leadMessages || "Nenhuma resposta registrada ainda"}${signalContext}`;
+    } else if (action === "next-action") {
+      // #3: próxima ação do copiloto. Usa sinal + atividade para dizer POR QUE agir
+      // agora e O QUE fazer no próximo toque. Não persiste — é sugestão de tela.
+      systemPrompt = `Você é o copiloto de vendas do Erick Sena (B2B, landing pages e serviços digitais para indústria).
+Dado um lead, o sinal de interesse (aberturas/cliques nas páginas) e a atividade recente, responda em NO MÁXIMO 2 frases curtas:
+1. Por que agir com esse lead agora (use o sinal se houver: "abriu 3x", "clicou no WhatsApp ontem").
+2. O que fazer no próximo toque (ação concreta e canal).
+Direto, sem enrolação, PT-BR, sem markdown. Se não houver sinal nenhum, diga que é abordagem fria e sugira o primeiro toque.`;
+      userPrompt = `Lead: ${deal.company}
+Estágio: ${deal.stage}
+Score: ${deal.points || 0}/10
+Gargalo: ${deal.segment || "não detalhado"}${signalContext}`;
     } else {
       return NextResponse.json(
-        { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary', 'generate-insight' ou 'compile-achados'." },
+        { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary', 'generate-insight', 'next-action' ou 'compile-achados'." },
         { status: 400 }
       );
     }

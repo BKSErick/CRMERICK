@@ -13,6 +13,22 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
 
+// #1 Briefing do dia: quem esquentou, quem esfriou e a agenda de hoje.
+type BriefLead = { id: number; company: string; stage: string; phone: string; views: number; waClicks: number; linkClicks: number; daysSince?: number };
+type BriefEvent = { id: number; title: string; kind: string; starts_at: string };
+type Briefing = {
+  ok: boolean;
+  counts: { hot: number; stale: number; today: number };
+  hotLeads: BriefLead[];
+  staleLeads: BriefLead[];
+  today: BriefEvent[];
+};
+
+function waLink(phone: string, company: string) {
+  const p = phone.startsWith("55") ? phone : `55${phone}`;
+  return `https://wa.me/${p}?text=${encodeURIComponent(`Oi! Falo da parte do Erick sobre a ${company}.`)}`;
+}
+
 export default function Home() {
   const deals = useCRMStore((state) => state.deals);
   const contacts = useCRMStore((state) => state.contacts);
@@ -22,6 +38,21 @@ export default function Home() {
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">(
     deals.length > 0 || contacts.length > 0 ? "ready" : "loading"
   );
+  const [briefing, setBriefing] = useState<Briefing | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/briefing");
+        const body = await res.json();
+        if (!cancelled && res.ok && body.ok) setBriefing(body as Briefing);
+      } catch {
+        // briefing e complementar; a home funciona sem ele
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +166,79 @@ export default function Home() {
           </div>
         </article>
       </div>
+
+      {briefing && (briefing.counts.hot > 0 || briefing.counts.stale > 0 || briefing.counts.today > 0) ? (
+        <article className="card" style={{ marginBottom: "18px" }}>
+          <div className="card-header">
+            <div className="card-title">Briefing do dia</div>
+            <span className="card-badge">IA + sinais</span>
+          </div>
+          <div className="grid-2col" style={{ gap: "18px" }}>
+            <div>
+              <p className="focus-title" style={{ marginBottom: "8px" }}>
+                🔥 Esquentaram ({briefing.counts.hot})
+              </p>
+              {briefing.hotLeads.length === 0 ? (
+                <p className="muted-copy">Ninguém quente nas últimas 48h.</p>
+              ) : (
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {briefing.hotLeads.map((l) => (
+                    <li key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "13px" }}>
+                        <strong>{l.company}</strong>
+                        <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>
+                          {l.views} abertura(s){l.waClicks > 0 ? ", clicou no WhatsApp" : ""}
+                        </span>
+                      </span>
+                      {l.phone ? (
+                        <a className="topbar-btn primary" href={waLink(l.phone, l.company)} rel="noreferrer" target="_blank" style={{ fontSize: "11px" }}>
+                          WhatsApp
+                        </a>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <p className="focus-title" style={{ marginBottom: "8px" }}>
+                🧊 Parados no follow-up ({briefing.counts.stale})
+              </p>
+              {briefing.staleLeads.length === 0 ? (
+                <p className="muted-copy">Nada atrasado. Follow-up em dia.</p>
+              ) : (
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {briefing.staleLeads.map((l) => (
+                    <li key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "13px" }}>
+                        <strong>{l.company}</strong>
+                        <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>há {l.daysSince} dias sem contato</span>
+                      </span>
+                      {l.phone ? (
+                        <a className="topbar-btn" href={waLink(l.phone, l.company)} rel="noreferrer" target="_blank" style={{ fontSize: "11px" }}>
+                          Cobrar
+                        </a>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          {briefing.today.length > 0 ? (
+            <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--line, #e0dcec)" }}>
+              <p className="focus-title" style={{ marginBottom: "6px" }}>📅 Hoje na agenda</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {briefing.today.map((e) => (
+                  <span key={e.id} className="status-pill">
+                    {new Date(e.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · {e.title}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </article>
+      ) : null}
 
       <div className="grid-2col">
         <article className="card">
