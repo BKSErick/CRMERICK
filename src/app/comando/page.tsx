@@ -7,6 +7,16 @@ import { logWhatsappSent } from "@/lib/activityClient";
 // movidos), fila priorizada e alertas das regras (7 dias, dia 20), tudo da rota server-side
 // /api/comando (activities + deals reais). Zero fabricado: contadores em zero real + vazio.
 
+// Sinal das paginas (aba Sinais) viaja junto com o lead: e o porque de ele furar a fila.
+type LeadSignal = {
+  views: number;
+  waClicks: number;
+  linkClicks?: number;
+  lastEvent: string;
+  hot: boolean;
+  pageUrl?: string | null;
+};
+
 type QueueItem = {
   id: number;
   company: string;
@@ -17,6 +27,7 @@ type QueueItem = {
   recommended_approach: string;
   channel: string;
   opportunity: string;
+  signal: LeadSignal | null;
 };
 
 const APPROACH_LABELS: Record<string, string> = {
@@ -37,7 +48,27 @@ type FollowupItem = {
   tierLabel: string;
   window: string;
   message: string;
+  signal: LeadSignal | null;
 };
+
+// Selo compacto do sinal: "abriu a pagina 4x, clicou no WhatsApp, ha 2h".
+function signalBadge(signal: LeadSignal | null) {
+  if (!signal || (signal.views === 0 && signal.waClicks === 0 && !signal.linkClicks)) return null;
+  const parts: string[] = [];
+  if (signal.views > 0) parts.push(`${signal.views} abertura${signal.views > 1 ? "s" : ""}`);
+  if (signal.linkClicks) parts.push(`${signal.linkClicks} clique${signal.linkClicks > 1 ? "s" : ""}`);
+  if (signal.waClicks > 0) parts.push(`WhatsApp`);
+  return (
+    <span
+      className="status-pill"
+      title={`Ultimo sinal: ${signal.lastEvent ? new Date(signal.lastEvent).toLocaleString("pt-BR") : "--"}`}
+      style={{ marginLeft: "6px", background: signal.hot ? "#d32f2f" : "#455a64", color: "#fff" }}
+    >
+      {signal.hot ? "QUENTE · " : "Sinal · "}
+      {parts.join(", ")}
+    </span>
+  );
+}
 
 type Placar = {
   disparos: { done: number; target: number; splitLP: number; splitDFY: number };
@@ -308,7 +339,7 @@ export default function ComandoPage() {
                   {(data.followupQueue ?? []).map((item) => (
                     <tr key={item.id}>
                       <td>
-                        <div>{item.company}</div>
+                        <div>{item.company}{signalBadge(item.signal)}</div>
                         <span className={`status-pill ${item.stage}`}>{item.stage}</span>
                       </td>
                       <td>
@@ -363,7 +394,7 @@ export default function ComandoPage() {
                 <tbody>
                   {data.queue.map((item) => (
                     <tr key={item.id}>
-                      <td>{item.company}</td>
+                      <td>{item.company}{signalBadge(item.signal)}</td>
                       <td><span className={`status-pill ${item.stage}`}>{item.stage}</span></td>
                       <td>{item.points}</td>
                       <td>

@@ -3,6 +3,7 @@ import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
 import { diagnoseLead } from "@/lib/leadScoring";
 import { TIER_INFO, followupMessage, tierForDays } from "@/lib/followup";
+import { getCompanySignals, signalAliases, signalWeight, type CompanySignal } from "@/lib/sinais";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
 // (disparos/follow-ups/calls/deals movidos), a fila priorizada do dia e os alertas das regras
@@ -82,6 +83,20 @@ export async function GET() {
       .select("name, company, phone, whatsapp");
     if (contactErr) throw contactErr;
 
+    // Sinal de interesse das paginas (aba Sinais): quem abriu a auditoria hoje e o
+    // lead mais quente que existe. Sem isso a fila prioriza so pelo points estatico do
+    // Garimpo e trata quem abriu 4x igual a quem nunca abriu.
+    const signalIndex = await getCompanySignals(supabase, now).catch(() => new Map<string, CompanySignal>());
+    const signalFor = (...names: Array<string | null | undefined>): CompanySignal | null => {
+      for (const n of names) {
+        for (const alias of signalAliases(String(n ?? ""))) {
+          const hit = signalIndex.get(alias);
+          if (hit) return hit;
+        }
+      }
+      return null;
+    };
+
     const keyOf = (v?: string | null) => (v ?? "").trim().toLowerCase();
     const phoneByKey = new Map<string, string>();
     for (const c of contactRows ?? []) {
@@ -117,6 +132,7 @@ export async function GET() {
           website: (d.site_url as string) || "",
           phone,
         });
+        const signal = signalFor(d.company as string, d.name as string);
         return {
           id: Number(d.id),
           company: String(d.company ?? "Sem empresa"),
@@ -126,12 +142,19 @@ export async function GET() {
           recommended_approach: diag.recommended_approach,
           channel: diag.channel,
           opportunity: diag.opportunity,
+          // Sinal viaja junto com o lead: a UI mostra o porque de ele estar no topo.
+          signal: signal
+            ? { views: signal.views, waClicks: signal.waClicks, linkClicks: signal.linkClicks, lastEvent: signal.lastEvent, hot: signal.hot, pageUrl: signal.pageUrl }
+            : null,
+          signalWeight: signalWeight(signal),
           message:
             (d.copy_text as string) ||
             `Oi! Falo sobre ${(d.name as string) || "a oportunidade"} da ${d.company}. Posso te mandar uma analise rapida?`,
         };
       })
       .filter((d) => d.phone && isWhatsappMobile(d.phone))
+      // Quem deu sinal fura a fila; sem sinal, mantem a ordem por points.
+      .sort((a, b) => b.signalWeight - a.signalWeight || b.points - a.points)
       .slice(0, goals.dailyInputs.disparos);
 
     // Fila de follow-up: quem ja foi contatado (abordado/followup) e esta na janela
@@ -155,6 +178,7 @@ export async function GET() {
         const days = wa ? Math.floor((now.getTime() - wa.last) / 86400000) : null;
         const tier = tierForDays(days);
         const company = String(d.company ?? "Sem empresa");
+        const signal = signalFor(company, d.name as string);
         return {
           id: Number(d.id),
           company,
@@ -162,6 +186,11 @@ export async function GET() {
           stage: String(d.stage ?? "abordado"),
           days,
           msgCount: wa?.count ?? 0,
+          // Abriu a pagina depois de ser abordado: e o follow-up mais quente da lista.
+          signal: signal
+            ? { views: signal.views, waClicks: signal.waClicks, lastEvent: signal.lastEvent, hot: signal.hot }
+            : null,
+          signalWeight: signalWeight(signal),
           tier,
           tierLabel: tier === "aguardar" ? "Aguardar D+2" : TIER_INFO[tier].label,
           window: tier === "aguardar" ? "" : TIER_INFO[tier].window,
@@ -169,7 +198,8 @@ export async function GET() {
         };
       })
       .filter((d) => d.tier !== "aguardar" && d.phone && isWhatsappMobile(d.phone))
-      .sort((a, b) => (b.days ?? 0) - (a.days ?? 0))
+      // Sinal primeiro, atraso depois: quem reabriu a pagina vale mais que quem so envelheceu.
+      .sort((a, b) => b.signalWeight - a.signalWeight || (b.days ?? 0) - (a.days ?? 0))
       .slice(0, 50);
 
     // Alerta dia 20: usa a agregacao da meta (mesma da North Star).

@@ -30,11 +30,27 @@ type PageStat = {
   hot: boolean;
 };
 
+// Linha de trafego = cada propriedade que traz acesso (bio, quiz, site OStrack,
+// modelo de LP, diagnostico). destinations mostra para onde a linha empurra gente.
+type TrafficSource = {
+  key: string;
+  label: string;
+  kind: "inbound" | "outbound";
+  views: number;
+  linkClicks: number;
+  waClicks: number;
+  pages: number;
+  lastEvent: string;
+  hot: boolean;
+  destinations: Array<{ label: string; clicks: number }>;
+};
+
 type Payload = {
   ok: boolean;
-  totals?: { companies: number; views: number; waClicks: number; linkClicks: number; hot: number; pages: number };
+  totals?: { companies: number; views: number; waClicks: number; linkClicks: number; hot: number; pages: number; sources: number };
   signals?: Signal[];
   pages?: PageStat[];
+  sources?: TrafficSource[];
   error?: string;
 };
 
@@ -68,9 +84,10 @@ export default function SinaisPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const totals = data?.totals ?? { companies: 0, views: 0, waClicks: 0, linkClicks: 0, hot: 0, pages: 0 };
+  const totals = data?.totals ?? { companies: 0, views: 0, waClicks: 0, linkClicks: 0, hot: 0, pages: 0, sources: 0 };
   const signals = data?.signals ?? [];
   const pages = data?.pages ?? [];
+  const sources = data?.sources ?? [];
 
   return (
     <section>
@@ -116,11 +133,57 @@ export default function SinaisPage() {
               <div className="kpi-trend up">Atividade nas ultimas 48h</div>
             </article>
             <article className="kpi-card">
-              <div className="kpi-label">Paginas com acesso</div>
-              <div className="kpi-value">{nf.format(totals.pages)}</div>
-              <div className="kpi-trend">Modelos e diagnosticos</div>
+              <div className="kpi-label">Linhas de trafego</div>
+              <div className="kpi-value">{nf.format(totals.sources)}</div>
+              <div className="kpi-trend">{nf.format(totals.pages)} paginas ativas</div>
             </article>
           </div>
+
+          {sources.length > 0 && (
+            <>
+              <h2 style={{ marginTop: "24px" }}>Linhas de trafego</h2>
+              <div className="subtitle" style={{ marginBottom: "12px" }}>
+                Cada propriedade sua que traz acesso, e para onde ela empurra a pessoa depois.
+                Inbound = quem chega ate voce. Outbound = pagina que voce mandou pro lead.
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Linha</th>
+                      <th>Tipo</th>
+                      <th>Acessos</th>
+                      <th>Cliques</th>
+                      <th>WhatsApp</th>
+                      <th>Destinos mais clicados</th>
+                      <th>Ultimo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sources.map((s) => (
+                      <tr key={s.key}>
+                        <td>
+                          {s.label}
+                          {s.hot && <span className="status-pill" style={{ marginLeft: "6px", background: "#d32f2f", color: "#fff" }}>QUENTE</span>}
+                          {s.pages > 1 && <span className="subtitle" style={{ display: "block", fontSize: "11px" }}>{s.pages} paginas</span>}
+                        </td>
+                        <td>{s.kind === "inbound" ? "Inbound" : "Outbound"}</td>
+                        <td><strong>{nf.format(s.views)}</strong></td>
+                        <td>{nf.format(s.linkClicks)}</td>
+                        <td>{s.waClicks > 0 ? <strong>{nf.format(s.waClicks)}</strong> : 0}</td>
+                        <td>
+                          {s.destinations.length === 0
+                            ? "-- nenhum clique ainda"
+                            : s.destinations.map((d) => `${d.label} (${d.clicks})`).join(" · ")}
+                        </td>
+                        <td>{s.lastEvent ? timeAgo(s.lastEvent) : "--"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
 
           {pages.length > 0 && (
             <>
