@@ -340,16 +340,16 @@ export default function CalendarPage() {
                 </button>
               ))}
             </div>
-            <input className="settings-input" placeholder="Título (ex: Call com RC Performance)" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+            <input className="settings-input" autoComplete="off" placeholder="Título (ex: Call com RC Performance)" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
             <div style={{ display: "flex", gap: "8px" }}>
               <input className="settings-input" type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} style={{ flex: 1 }} />
               <input className="settings-input" type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} style={{ width: "120px" }} />
             </div>
-            <input className="settings-input" list="deal-list" placeholder="Vincular a um lead (opcional)" value={form.company} onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))} />
+            <input className="settings-input" list="deal-list" name="lead-vinculo" autoComplete="off" placeholder="Vincular a um lead (opcional)" value={form.company} onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))} />
             <datalist id="deal-list">
               {deals.slice(0, 500).map((d) => <option key={d.id} value={d.company} />)}
             </datalist>
-            <input className="settings-input" placeholder="Local ou link da call (opcional)" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
+            <input className="settings-input" autoComplete="off" placeholder="Local ou link da call (opcional)" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
             <textarea className="settings-input" placeholder="Notas (opcional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} />
             <button className="topbar-btn primary" type="button" disabled={saving || !form.title.trim()} onClick={submit}>
               {saving ? "Salvando..." : editId ? "Salvar alterações" : "Marcar"}
