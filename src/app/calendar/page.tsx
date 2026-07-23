@@ -50,6 +50,7 @@ export default function CalendarPage() {
   const [deals, setDeals] = useState<DealLite[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({
     title: "",
     kind: "reuniao" as Kind,
@@ -129,6 +130,36 @@ export default function CalendarPage() {
 
   const todayKey = ymd(new Date(nowTs));
 
+  function closeForm() {
+    setFormOpen(false);
+    setEditId(null);
+    setForm({ title: "", kind: "reuniao", date: ymd(new Date()), time: "09:00", company: "", location: "", notes: "" });
+  }
+
+  // Abre o modal em modo criacao, opcionalmente com um dia pre-selecionado.
+  function openCreate(date?: string) {
+    setEditId(null);
+    setForm({ title: "", kind: "reuniao", date: date ?? ymd(new Date()), time: "09:00", company: "", location: "", notes: "" });
+    setFormOpen(true);
+  }
+
+  // Abre o modal em modo edicao, pre-preenchido com o evento clicado.
+  function openEdit(e: CalEvent) {
+    const d = new Date(e.starts_at);
+    const company = e.deal_id ? deals.find((x) => x.id === e.deal_id)?.company ?? "" : "";
+    setForm({
+      title: e.title,
+      kind: e.kind,
+      date: ymd(d),
+      time: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+      company,
+      location: e.location ?? "",
+      notes: e.notes ?? "",
+    });
+    setEditId(e.id);
+    setFormOpen(true);
+  }
+
   async function submit() {
     if (!form.title.trim()) return;
     setSaving(true);
@@ -137,21 +168,27 @@ export default function CalendarPage() {
       const dealId = form.company
         ? deals.find((d) => d.company.toLowerCase() === form.company.trim().toLowerCase())?.id ?? null
         : null;
-      const res = await fetch("/api/calendar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title.trim(),
-          kind: form.kind,
-          startsAt,
-          dealId,
-          location: form.location,
-          notes: form.notes,
-        }),
-      });
+      const payload = {
+        title: form.title.trim(),
+        kind: form.kind,
+        startsAt,
+        dealId,
+        location: form.location,
+        notes: form.notes,
+      };
+      const res = editId
+        ? await fetch("/api/calendar", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: editId, ...payload }),
+          })
+        : await fetch("/api/calendar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
       if (!res.ok) throw new Error("Falha ao salvar");
-      setFormOpen(false);
-      setForm({ title: "", kind: "reuniao", date: ymd(new Date()), time: "09:00", company: "", location: "", notes: "" });
+      closeForm();
       await load();
     } catch {
       // erro silencioso; o reload mantem o estado atual
@@ -186,7 +223,7 @@ export default function CalendarPage() {
           </div>
         </div>
         <div className="page-header-right">
-          <button className="topbar-btn primary" onClick={() => setFormOpen(true)} type="button">
+          <button className="topbar-btn primary" onClick={() => openCreate()} type="button">
             + Marcar
           </button>
         </div>
@@ -240,13 +277,13 @@ export default function CalendarPage() {
             return (
               <div
                 key={i}
-                onClick={() => { setForm((f) => ({ ...f, date: key })); setFormOpen(true); }}
+                onClick={() => openCreate(key)}
                 style={{ background: "var(--surface, #fff)", minHeight: "96px", padding: "6px", cursor: "pointer", opacity: inMonth ? 1 : 0.4, outline: key === todayKey ? "2px solid #6d4aff" : "none", outlineOffset: "-2px" }}
               >
                 <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "4px" }}>{d.getDate()}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                   {dayEvents.slice(0, 3).map((e) => (
-                    <div key={e.id} title={e.title} style={{ fontSize: "10.5px", padding: "2px 5px", borderRadius: "4px", background: `${KIND_META[e.kind].color}22`, color: KIND_META[e.kind].color, borderLeft: `2px solid ${KIND_META[e.kind].color}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: e.done ? "line-through" : "none" }}>
+                    <div key={e.id} title={`${e.title} — clique para editar`} onClick={(ev) => { ev.stopPropagation(); openEdit(e); }} style={{ fontSize: "10.5px", padding: "2px 5px", borderRadius: "4px", background: `${KIND_META[e.kind].color}22`, color: KIND_META[e.kind].color, borderLeft: `2px solid ${KIND_META[e.kind].color}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: e.done ? "line-through" : "none", cursor: "pointer" }}>
                       {fmtTime(e.starts_at)} {e.title}
                     </div>
                   ))}
@@ -274,7 +311,7 @@ export default function CalendarPage() {
                 <tr key={e.id}>
                   <td className="font-mono">{fmtDay(e.starts_at)} {fmtTime(e.starts_at)}</td>
                   <td><span className="status-pill" style={{ background: `${KIND_META[e.kind].color}22`, color: KIND_META[e.kind].color }}>{KIND_META[e.kind].label}</span></td>
-                  <td>{e.title}{e.notes ? <div className="muted-copy" style={{ fontSize: "11px" }}>{e.notes}</div> : null}</td>
+                  <td onClick={() => openEdit(e)} style={{ cursor: "pointer" }} title="Clique para editar">{e.title}{e.notes ? <div className="muted-copy" style={{ fontSize: "11px" }}>{e.notes}</div> : null}</td>
                   <td className="muted-copy" style={{ fontSize: "12px" }}>{e.location || (e.deal_id ? `Lead #${e.deal_id}` : "—")}</td>
                   <td style={{ display: "flex", gap: "6px" }}>
                     <button className="topbar-btn" type="button" onClick={() => toggleDone(e)}>Concluir</button>
@@ -288,11 +325,11 @@ export default function CalendarPage() {
       )}
 
       {formOpen ? (
-        <div onClick={() => setFormOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,12,20,0.55)", display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: "8vh", zIndex: 50 }}>
+        <div onClick={closeForm} style={{ position: "fixed", inset: 0, background: "rgba(10,12,20,0.55)", display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: "8vh", zIndex: 50 }}>
           <div onClick={(ev) => ev.stopPropagation()} className="card" style={{ width: "min(460px, 94vw)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "12px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ margin: 0 }}>Marcar compromisso</h2>
-              <button className="topbar-btn" type="button" onClick={() => setFormOpen(false)}>Fechar</button>
+              <h2 style={{ margin: 0 }}>{editId ? "Editar compromisso" : "Marcar compromisso"}</h2>
+              <button className="topbar-btn" type="button" onClick={closeForm}>Fechar</button>
             </div>
             <div style={{ display: "flex", gap: "8px" }}>
               {(Object.keys(KIND_META) as Kind[]).map((k) => (
@@ -315,7 +352,7 @@ export default function CalendarPage() {
             <input className="settings-input" placeholder="Local ou link da call (opcional)" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
             <textarea className="settings-input" placeholder="Notas (opcional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} />
             <button className="topbar-btn primary" type="button" disabled={saving || !form.title.trim()} onClick={submit}>
-              {saving ? "Salvando..." : "Marcar"}
+              {saving ? "Salvando..." : editId ? "Salvar alterações" : "Marcar"}
             </button>
           </div>
         </div>

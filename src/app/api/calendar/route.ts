@@ -94,6 +94,8 @@ export async function PATCH(request: NextRequest) {
     if (typeof body.done === "boolean") updates.done = body.done;
     if (typeof body.location === "string") updates.location = body.location.trim() || null;
     if (typeof body.notes === "string") updates.notes = body.notes.trim() || null;
+    if (body.dealId === null) updates.deal_id = null;
+    else if (Number.isInteger(body.dealId)) updates.deal_id = body.dealId;
 
     if (Object.keys(updates).length === 0) return errorResponse(new Error("Nada para atualizar."), 400);
 
