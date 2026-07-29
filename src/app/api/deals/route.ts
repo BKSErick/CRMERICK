@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { mapDealFromRow, mapDealToRow } from "@/lib/crmRecords";
 
@@ -15,7 +16,7 @@ function errorResponse(error: unknown, status = 500) {
   return NextResponse.json(
     {
       ok: false,
-      error: error instanceof Error ? error.message : "Erro inesperado em /api/deals",
+      error: getApiErrorMessage(error, "Erro inesperado em /api/deals"),
     },
     { status },
   );

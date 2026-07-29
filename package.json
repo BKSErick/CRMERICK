@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/uazapi-webhook.test.ts",
+    "test": "node --test tests/uazapi-webhook.test.ts tests/deal-deletion.test.ts",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",

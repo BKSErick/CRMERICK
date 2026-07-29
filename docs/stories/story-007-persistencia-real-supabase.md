@@ -36,6 +36,8 @@ Alem disso, `initialDeals`/`initialContacts` (linhas 58-164 do store) sao dados 
 - [x] Implementar estado de erro visivel quando `/api/deals` ou `/api/contacts` falharem.
 - [x] Validar manualmente Pipeline (mudanca de estagio, criacao/remocao de deal) e Contatos persistindo entre refreshes.
 - [x] Rodar `npm run lint` e `npm run build`.
+- [x] Bugfix 2026-07-29: permitir excluir deals com historico em `messages`/`activities`, preservando os registros com `deal_id = null`.
+- [x] Bugfix 2026-07-29: exibir a mensagem real retornada pelo Supabase e cobrir a regressao com teste automatizado.
 
 ## Dependencias
 - Coordenar com a Story 006: o lock de RLS (deny-by-default para `anon`/`public`) e a entrada em producao das rotas `/api/deals` e `/api/contacts` com service-role devem acontecer no mesmo ciclo de deploy, para evitar uma janela sem nenhum caminho de escrita valido.
@@ -53,11 +55,14 @@ Alem disso, `initialDeals`/`initialContacts` (linhas 58-164 do store) sao dados 
 GPT-5 Codex (Dex)
 
 ### Debug Log References
+- `npm test` (RED, 2026-07-29) - teste de regressao falhou antes do fix porque a migration/helper ainda nao existiam.
+- `npm test` (GREEN, 2026-07-29) - 10/10 testes passaram, incluindo exclusao de deal e erro estruturado do Supabase.
+- `npm run lint` (2026-07-29) - passou.
+- `npm run typecheck` (2026-07-29) - passou.
+- `npm run build` (2026-07-29) - passou; 40/40 paginas estaticas geradas e `/api/deals` dinamica.
+- `node scripts/apply-migration.mjs scripts/migrations/20260729_fix_deal_deletion.sql` - migration aplicada no Supabase do CRM, HTTP 201.
 - `node scripts/seed-supabase.js --dry-run --limit=2` - validou parsing de `mock-db.js`, `garimpo-leads.json` e `disparo-data.json` sem gravar.
 - `node scripts/verify-crm-rls.js` - confirmou Supabase ja populado com 942 deals e 942 contacts.
-- `npm run lint` - passou.
-- `npm run build` - passou.
-- `npm test` - nao existe script `test` no `package.json`.
 
 ### Completion Notes List
 - Criadas rotas server-side `/api/deals` e `/api/contacts` com GET/POST/PATCH/DELETE usando service-role via env server-side.
@@ -65,11 +70,15 @@ GPT-5 Codex (Dex)
 - Store Zustand removeu os dados fake iniciais e passou a executar optimistic update com rollback em erro.
 - Pipeline, Contatos, Funil e Disparo passaram a mostrar erro/loading sem fallback fake silencioso.
 - `scripts/seed-supabase.js` foi refeito como seed one-time server-side; nao foi gravado em producao porque as tabelas ja possuem 942 deals e 942 contacts, evitando duplicacao.
+- Bugfix de exclusao: FKs de `messages.deal_id` e `activities.deal_id` agora usam `ON DELETE SET NULL`; o lead pode ser removido sem apagar o historico relacionado.
+- Erros estruturados do Supabase agora exibem sua mensagem real em `/api/deals`, em vez do fallback generico.
 
 ### File List
 - `.env.example`
+- `package.json`
 - `scripts/seed-supabase.js`
 - `scripts/supabase-schema.sql`
+- `scripts/migrations/20260729_fix_deal_deletion.sql`
 - `scripts/verify-crm-rls.js`
 - `src/app/api/contacts/route.ts`
 - `src/app/api/crm-data/route.ts`
@@ -80,7 +89,9 @@ GPT-5 Codex (Dex)
 - `src/app/pipeline/page.tsx`
 - `src/lib/crmRecords.ts`
 - `src/lib/crmSupabase.ts`
+- `src/lib/apiError.ts`
 - `src/store/useCRMStore.ts`
+- `tests/deal-deletion.test.ts`
 - `docs/stories/story-007-persistencia-real-supabase.md`
 
 ### Change Log
@@ -88,6 +99,7 @@ GPT-5 Codex (Dex)
 - 2026-07-07: Validada por Pax (PO). Escopo conferido contra o relatorio (secoes 2, 4, 5, 8 Fase 1 e 10). Prioridade maxima de valor, seed one-time (sem snapshot offline), coordenacao de deploy com o lock de RLS da 006 documentada. Status Draft -> Ready for Dev.
 - 2026-07-07: Implementada por Dex junto com a Story 006 para publicar rotas server-side no mesmo pacote do lock de RLS.
 - 2026-07-07: Revisada por Quinn (QA). Gate PASS. Status Ready for Review -> Done.
+- 2026-07-29: Dex corrigiu a regressao de exclusao de deals com historico, aplicou a migration no Supabase e adicionou teste automatizado. Quality gates PASS; status permanece Done.
 
 ## QA Results
 

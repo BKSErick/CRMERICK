@@ -58,7 +58,7 @@ create table if not exists public.contacts (
 -- ─────────────────────────────────────────────
 create table if not exists public.messages (
   id          serial primary key,
-  deal_id     integer references public.deals(id),
+  deal_id     integer references public.deals(id) on delete set null,
   contact_id  integer references public.contacts(id),
   channel     text default 'whatsapp',     -- whatsapp | instagram | email
   content     text,
@@ -85,7 +85,7 @@ create table if not exists public.messages (
 -- ─────────────────────────────────────────────
 create table if not exists public.activities (
   id          serial primary key,
-  deal_id     integer references public.deals(id),
+  deal_id     integer references public.deals(id) on delete set null,
   contact_id  integer references public.contacts(id),
   type        text,                         -- note | call | email | meeting | stage_change
   description text,
