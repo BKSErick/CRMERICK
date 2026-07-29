@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
   hashWebhookSecret,
-  describeUazapiPayloadShape,
   isValidWebhookSecret,
   isValidWebhookSecretHash,
   normalizeUazapiWebhook,
@@ -43,29 +42,6 @@ test("valida com seguranca um segredo aleatorio armazenado apenas como hash", ()
   assert.equal(isValidWebhookSecretHash(null, hash), false);
 });
 
-test("descreve somente nomes e tipos do payload para diagnostico seguro", () => {
-  assert.deepEqual(
-    describeUazapiPayloadShape({
-      EventType: "messages",
-      message: {
-        text: "conteudo privado",
-        sender: "5531999999999@s.whatsapp.net",
-        fromMe: false,
-        metadata: { retries: 1 },
-      },
-    }),
-    {
-      EventType: "string",
-      message: {
-        text: "string",
-        sender: "string",
-        fromMe: "boolean",
-        metadata: { retries: "number" },
-      },
-    },
-  );
-});
-
 test("normaliza mensagem recebida usando remetente como telefone do contato", () => {
   const result = normalizeUazapiWebhook(baseMessage);
 
@@ -84,6 +60,29 @@ test("normaliza mensagem recebida usando remetente como telefone do contato", ()
     content: "Tenho interesse no projeto.",
     occurredAt: "2025-07-29T18:46:40.000Z",
   });
+});
+
+test("normaliza o envelope real da Uazapi com EventType e message no topo", () => {
+  const result = normalizeUazapiWebhook({
+    EventType: "messages",
+    instanceName: "PBrHN8",
+    token: "valor-que-nao-deve-ser-persistido",
+    message: {
+      ...baseMessage.data,
+      messageid: "3EB0REAL",
+      sender_pn: "5531777777777@s.whatsapp.net",
+      sender: "5531777777777@s.whatsapp.net",
+      chatid: "5531777777777@s.whatsapp.net",
+      text: "Teste pelo envelope real.",
+    },
+  });
+
+  assert.equal(result.kind, "message");
+  if (result.kind !== "message") return;
+  assert.equal(result.message.providerMessageId, "3EB0REAL");
+  assert.equal(result.message.instanceId, "PBrHN8");
+  assert.equal(result.message.contactPhone, "5531777777777");
+  assert.equal(result.message.content, "Teste pelo envelope real.");
 });
 
 test("normaliza mensagem enviada usando o chat como telefone do contato", () => {

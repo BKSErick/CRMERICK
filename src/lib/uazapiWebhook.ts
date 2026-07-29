@@ -28,32 +28,10 @@ export type UazapiNormalizationResult =
         | "missing_contact_phone";
     };
 
-export type PayloadShape =
-  | string
-  | { [key: string]: PayloadShape }
-  | PayloadShape[];
-
 function asRecord(value: unknown): JsonRecord | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as JsonRecord)
     : null;
-}
-
-export function describeUazapiPayloadShape(value: unknown, depth = 0): PayloadShape {
-  if (value === null) return "null";
-  if (depth >= 5) return "max_depth";
-  if (Array.isArray(value)) {
-    return value.length > 0 ? [describeUazapiPayloadShape(value[0], depth + 1)] : [];
-  }
-  if (typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as JsonRecord).map(([key, child]) => [
-        key,
-        describeUazapiPayloadShape(child, depth + 1),
-      ]),
-    );
-  }
-  return typeof value;
 }
 
 function asString(value: unknown) {
@@ -106,13 +84,13 @@ export function normalizeUazapiWebhook(payload: unknown): UazapiNormalizationRes
   const envelope = asRecord(payload);
   if (!envelope) return { kind: "ignored", reason: "invalid_payload" };
 
-  const event = asString(envelope.event).toLowerCase();
+  const event = (asString(envelope.event) || asString(envelope.EventType)).toLowerCase();
   if (event !== "message" && event !== "messages") {
     return { kind: "ignored", reason: "unsupported_event" };
   }
 
   const data = asRecord(envelope.data);
-  const message = asRecord(data?.message) ?? data;
+  const message = asRecord(data?.message) ?? asRecord(envelope.message) ?? data;
   if (!message) return { kind: "ignored", reason: "invalid_payload" };
 
   const chatId = asString(message.chatid);
@@ -144,7 +122,7 @@ export function normalizeUazapiWebhook(payload: unknown): UazapiNormalizationRes
     message: {
       provider: "uazapi",
       providerMessageId,
-      instanceId: asString(envelope.instance),
+      instanceId: asString(envelope.instance) || asString(envelope.instanceName),
       chatId,
       contactPhone,
       senderName: asString(message.senderName),
