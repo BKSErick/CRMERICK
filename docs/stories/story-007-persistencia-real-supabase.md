@@ -38,6 +38,7 @@ Alem disso, `initialDeals`/`initialContacts` (linhas 58-164 do store) sao dados 
 - [x] Rodar `npm run lint` e `npm run build`.
 - [x] Bugfix 2026-07-29: permitir excluir deals com historico em `messages`/`activities`, preservando os registros com `deal_id = null`.
 - [x] Bugfix 2026-07-29: exibir a mensagem real retornada pelo Supabase e cobrir a regressao com teste automatizado.
+- [x] Hardening pre-push 2026-07-29: atualizar dependencias vulneraveis e fechar `npm audit` com zero vulnerabilidades.
 
 ## Dependencias
 - Coordenar com a Story 006: o lock de RLS (deny-by-default para `anon`/`public`) e a entrada em producao das rotas `/api/deals` e `/api/contacts` com service-role devem acontecer no mesmo ciclo de deploy, para evitar uma janela sem nenhum caminho de escrita valido.
@@ -56,11 +57,14 @@ GPT-5 Codex (Dex)
 
 ### Debug Log References
 - `npm test` (RED, 2026-07-29) - teste de regressao falhou antes do fix porque a migration/helper ainda nao existiam.
-- `npm test` (GREEN, 2026-07-29) - 10/10 testes passaram, incluindo exclusao de deal e erro estruturado do Supabase.
+- `npm test` (GREEN, 2026-07-29) - 11/11 testes passaram, incluindo exclusao de deal, erro estruturado do Supabase e compatibilidade do grafo de glob.
 - `npm run lint` (2026-07-29) - passou.
 - `npm run typecheck` (2026-07-29) - passou.
-- `npm run build` (2026-07-29) - passou; 40/40 paginas estaticas geradas e `/api/deals` dinamica.
+- `npm run build` (2026-07-29) - passou com Next.js 16.2.12; 40/40 paginas estaticas geradas e `/api/deals` dinamica.
 - `node scripts/apply-migration.mjs scripts/migrations/20260729_fix_deal_deletion.sql` - migration aplicada no Supabase do CRM, HTTP 201.
+- `npm audit --audit-level=moderate` (antes do hardening) - 4 vulnerabilidades high em Next.js/PostCSS/Sharp/brace-expansion.
+- `npm install` + overrides seguros - Next.js e eslint-config-next 16.2.12; PostCSS 8.5.25; Sharp 0.35.3; minimatch 10.2.5; brace-expansion 5.0.8.
+- `npm audit --audit-level=moderate` (apos hardening) - 0 vulnerabilidades.
 - `node scripts/seed-supabase.js --dry-run --limit=2` - validou parsing de `mock-db.js`, `garimpo-leads.json` e `disparo-data.json` sem gravar.
 - `node scripts/verify-crm-rls.js` - confirmou Supabase ja populado com 942 deals e 942 contacts.
 
@@ -72,6 +76,7 @@ GPT-5 Codex (Dex)
 - `scripts/seed-supabase.js` foi refeito como seed one-time server-side; nao foi gravado em producao porque as tabelas ja possuem 942 deals e 942 contacts, evitando duplicacao.
 - Bugfix de exclusao: FKs de `messages.deal_id` e `activities.deal_id` agora usam `ON DELETE SET NULL`; o lead pode ser removido sem apagar o historico relacionado.
 - Erros estruturados do Supabase agora exibem sua mensagem real em `/api/deals`, em vez do fallback generico.
+- Dependencias do deploy atualizadas para patches corrigidos; overrides explicitos impedem reinstalacao das versoes transitivas vulneraveis. Teste de regressao garante que `minimatch` e `brace-expansion` continuam compativeis com o lint.
 
 ### File List
 - `.env.example`
@@ -92,6 +97,7 @@ GPT-5 Codex (Dex)
 - `src/lib/apiError.ts`
 - `src/store/useCRMStore.ts`
 - `tests/deal-deletion.test.ts`
+- `tests/dependency-security.test.ts`
 - `docs/stories/story-007-persistencia-real-supabase.md`
 
 ### Change Log
@@ -100,6 +106,7 @@ GPT-5 Codex (Dex)
 - 2026-07-07: Implementada por Dex junto com a Story 006 para publicar rotas server-side no mesmo pacote do lock de RLS.
 - 2026-07-07: Revisada por Quinn (QA). Gate PASS. Status Ready for Review -> Done.
 - 2026-07-29: Dex corrigiu a regressao de exclusao de deals com historico, aplicou a migration no Supabase e adicionou teste automatizado. Quality gates PASS; status permanece Done.
+- 2026-07-29: Gage fechou os 4 alertas high do pre-push com atualizacao de patch/overrides e `npm audit` zerado.
 
 ## QA Results
 

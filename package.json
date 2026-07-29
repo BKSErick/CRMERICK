@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/uazapi-webhook.test.ts tests/deal-deletion.test.ts",
+    "test": "node --test tests/uazapi-webhook.test.ts tests/deal-deletion.test.ts tests/dependency-security.test.ts",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
-    "next": "16.2.10",
+    "next": "16.2.12",
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -37,8 +37,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8",
+    "minimatch": "10.2.5",
+    "postcss": "8.5.25",
+    "sharp": "0.35.3"
   }
 }
