@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for Review
+Done
 
 ## Story
 
@@ -22,12 +22,12 @@ Como Erick, quero que o CRM leia as mensagens individuais enviadas e recebidas n
 - [x] Grupos, status/canais e mensagens originadas pela API sao ignorados.
 - [x] A mesma mensagem nao e persistida duas vezes.
 - [x] Contato e deal sao ligados por telefone; ausentes sao criados como lead/prospect.
-- [ ] A mensagem aparece na timeline do deal.
+- [x] A mensagem aparece na timeline do deal.
 - [x] IA gera insight best-effort sem responder, alterar etapa ou impedir a ingestao em caso de falha.
 - [x] Nenhum token real ou payload bruto e versionado.
 - [x] Existe configurador CLI com `--dry-run`.
 - [x] Testes direcionados, lint, typecheck e build passam.
-- [ ] Uma mensagem real e validada durante a janela gratuita.
+- [x] Uma mensagem real e validada durante a janela gratuita.
 
 ## Tasks / Subtasks
 
@@ -38,7 +38,7 @@ Como Erick, quero que o CRM leia as mensagens individuais enviadas e recebidas n
 - [x] Integrar timeline e insight de IA best-effort.
 - [x] Criar configurador CLI e contrato de ambiente.
 - [x] Executar quality gates.
-- [ ] Publicar, configurar webhook e executar smoke real. A migration ja foi aplicada.
+- [x] Publicar, configurar webhook e executar smoke real.
 
 ## Dependencias
 
@@ -62,13 +62,18 @@ GPT-5 Codex
 ### Debug Log References
 
 - RED: `node --test tests/uazapi-webhook.test.ts` falhou com `ERR_MODULE_NOT_FOUND` antes da implementacao.
-- GREEN: `npm.cmd test` passou 7/7.
+- GREEN inicial: `npm.cmd test` passou 7/7.
+- Regressao do envelope real (`EventType`, `instanceName`, `message` no topo): `npm.cmd test` passou 8/8.
 - `npm.cmd run lint` passou. Dois erros herdados em `pipeline/page.tsx` foram corrigidos por causa raiz antes do gate.
 - `npm.cmd run typecheck` passou.
 - `npm.cmd run build` passou e listou `/api/webhooks/uazapi` como rota dinamica.
 - `npm.cmd run whatsapp:webhook:dry` passou com token e segredo redigidos.
 - Secret scan nao encontrou `UAZAPI_INSTANCE_TOKEN` ou `UAZAPI_WEBHOOK_SECRET` preenchidos no repositorio.
 - Migration `20260729_uazapi_messages.sql` aplicada no Supabase via Management API, HTTP 201.
+- Deploy Vercel do commit `9ed94b5` concluido com status `success`.
+- Smoke real confirmou mensagem recebida, contato, deal, atividade, insight via Groq e uma unica linha para o ID do provedor.
+- Diagnostico temporario removido do runtime e seus metadados limpos pela migration `20260729_uazapi_diagnostic_cleanup.sql`.
+- Segredo do webhook rotacionado apos o smoke; apenas o novo hash permanece no Supabase.
 - CodeRabbit nao executado porque este Windows nao possui distribuicao WSL instalada.
 
 ### Completion Notes List
@@ -77,7 +82,8 @@ GPT-5 Codex
 - Segredo exclusivo e aleatorio; apenas SHA-256 fica em `integration_settings` com RLS deny-by-default.
 - Mensagens usam indice unico `(provider, provider_message_id)`.
 - IA roda via `after()` e e best-effort, depois da persistencia principal.
-- Publicacao/configuracao e smoke real permanecem como checkpoint operacional final.
+- Webhook configurado para `messages`, excluindo mensagens de grupo e originadas pela API.
+- Smoke real concluido de ponta a ponta no ambiente de producao.
 
 ### File List
 
@@ -89,6 +95,7 @@ GPT-5 Codex
 - `tsconfig.json`
 - `scripts/configure-uazapi-webhook.mjs`
 - `scripts/migrations/20260729_uazapi_messages.sql`
+- `scripts/migrations/20260729_uazapi_diagnostic_cleanup.sql`
 - `scripts/supabase-schema.sql`
 - `src/app/api/webhooks/uazapi/route.ts`
 - `src/app/pipeline/page.tsx`
@@ -99,3 +106,4 @@ GPT-5 Codex
 
 - 2026-07-29: Story criada apos aprovacao explicita do desenho da prova de conceito.
 - 2026-07-29: Implementacao e migration concluidas; status Ready for Review aguardando publicacao e mensagem real.
+- 2026-07-29: Envelope real da Uazapi suportado, deploy e smoke real concluidos; diagnostico limpo e segredo rotacionado.
