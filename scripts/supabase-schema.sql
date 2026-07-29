@@ -64,6 +64,19 @@ create table if not exists public.messages (
   content     text,
   status      text default 'draft',        -- draft | sent | read | replied | bounced
   sent_at     timestamptz,
+  provider    text not null default 'manual',
+  provider_message_id text,
+  provider_instance_id text,
+  chat_id     text,
+  direction   text,
+  sender_phone text,
+  sender_name text,
+  message_type text,
+  occurred_at timestamptz,
+  ai_insight  text,
+  ai_provider text,
+  ai_model    text,
+  ai_processed_at timestamptz,
   created_at  timestamptz default now()
 );
 
@@ -121,6 +134,21 @@ create index if not exists idx_deals_owner    on public.deals(owner);
 create index if not exists idx_contacts_status on public.contacts(status);
 create index if not exists idx_messages_deal  on public.messages(deal_id);
 create index if not exists idx_messages_status on public.messages(status);
+create unique index if not exists messages_provider_message_uidx
+  on public.messages(provider, provider_message_id)
+  where provider_message_id is not null;
+create index if not exists messages_phone_occurred_idx
+  on public.messages(sender_phone, occurred_at desc)
+  where sender_phone is not null;
+
+create table if not exists public.integration_settings (
+  provider text primary key,
+  webhook_secret_hash text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.integration_settings enable row level security;
+drop policy if exists "Allow all" on public.integration_settings;
 
 -- QUIZ LEADS (captura do funil -> pipeline)
 create table if not exists public.quiz_leads (

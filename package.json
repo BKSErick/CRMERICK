@@ -7,6 +7,8 @@
     "build": "node scripts/build.js && next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/uazapi-webhook.test.ts",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",
@@ -17,7 +19,9 @@
     "disparo:audit:csv": "node scripts/audit-disparo-readiness.js --csv",
     "db:schema": "echo 'Run scripts/supabase-schema.sql no SQL Editor do Supabase'",
     "db:seed": "node scripts/seed-supabase.js",
-    "leads:import": "node js/import-huberick-leads.js"
+    "leads:import": "node js/import-huberick-leads.js",
+    "whatsapp:webhook:dry": "node --env-file-if-exists=.env scripts/configure-uazapi-webhook.mjs --dry-run",
+    "whatsapp:webhook:configure": "node --env-file-if-exists=.env scripts/configure-uazapi-webhook.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",

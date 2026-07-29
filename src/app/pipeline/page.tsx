@@ -487,11 +487,6 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
 
 
 
-  // Sincroniza a caixa editavel quando a IA regenera a mensagem (deal.copyText muda).
-  useEffect(() => {
-    setCopyInput(deal.copyText || "");
-  }, [deal.copyText]);
-
   async function handleSaveValue() {
     setSavingValue(true);
     try {
@@ -516,6 +511,7 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error ?? "Erro ao gerar a mensagem.");
       await updateDeal(deal.id, { copyText: data.copyText });
+      setCopyInput(data.copyText);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -574,8 +570,18 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   }
 
   useEffect(() => {
-    loadInsights();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    fetch(`/api/insights?dealId=${encodeURIComponent(deal.id)}`)
+      .then((response) => response.json().then((body) => ({ response, body })))
+      .then(({ response, body }) => {
+        if (!cancelled && response.ok && body.ok) setInsights(body.insights ?? []);
+      })
+      .catch(() => {
+        // silencioso: insights sao complementares
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [deal.id]);
 
   useEffect(() => {
