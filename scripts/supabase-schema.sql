@@ -144,6 +144,9 @@ create index if not exists messages_phone_occurred_idx
 create table if not exists public.integration_settings (
   provider text primary key,
   webhook_secret_hash text not null,
+  last_event_shape jsonb,
+  last_event_reason text,
+  last_event_at timestamptz,
   updated_at timestamptz not null default now()
 );
 

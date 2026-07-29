@@ -28,10 +28,32 @@ export type UazapiNormalizationResult =
         | "missing_contact_phone";
     };
 
+export type PayloadShape =
+  | string
+  | { [key: string]: PayloadShape }
+  | PayloadShape[];
+
 function asRecord(value: unknown): JsonRecord | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as JsonRecord)
     : null;
+}
+
+export function describeUazapiPayloadShape(value: unknown, depth = 0): PayloadShape {
+  if (value === null) return "null";
+  if (depth >= 5) return "max_depth";
+  if (Array.isArray(value)) {
+    return value.length > 0 ? [describeUazapiPayloadShape(value[0], depth + 1)] : [];
+  }
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as JsonRecord).map(([key, child]) => [
+        key,
+        describeUazapiPayloadShape(child, depth + 1),
+      ]),
+    );
+  }
+  return typeof value;
 }
 
 function asString(value: unknown) {

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   hashWebhookSecret,
+  describeUazapiPayloadShape,
   isValidWebhookSecret,
   isValidWebhookSecretHash,
   normalizeUazapiWebhook,
@@ -40,6 +41,29 @@ test("valida com seguranca um segredo aleatorio armazenado apenas como hash", ()
   assert.equal(isValidWebhookSecretHash("segredo-aleatorio", hash), true);
   assert.equal(isValidWebhookSecretHash("segredo-incorreto", hash), false);
   assert.equal(isValidWebhookSecretHash(null, hash), false);
+});
+
+test("descreve somente nomes e tipos do payload para diagnostico seguro", () => {
+  assert.deepEqual(
+    describeUazapiPayloadShape({
+      EventType: "messages",
+      message: {
+        text: "conteudo privado",
+        sender: "5531999999999@s.whatsapp.net",
+        fromMe: false,
+        metadata: { retries: 1 },
+      },
+    }),
+    {
+      EventType: "string",
+      message: {
+        text: "string",
+        sender: "string",
+        fromMe: "boolean",
+        metadata: { retries: "number" },
+      },
+    },
+  );
 });
 
 test("normaliza mensagem recebida usando remetente como telefone do contato", () => {

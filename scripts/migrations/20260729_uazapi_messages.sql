@@ -27,8 +27,16 @@ create index if not exists messages_phone_occurred_idx
 create table if not exists public.integration_settings (
   provider text primary key,
   webhook_secret_hash text not null,
+  last_event_shape jsonb,
+  last_event_reason text,
+  last_event_at timestamptz,
   updated_at timestamptz not null default now()
 );
 
 alter table public.integration_settings enable row level security;
 drop policy if exists "Allow all" on public.integration_settings;
+
+alter table public.integration_settings
+  add column if not exists last_event_shape jsonb,
+  add column if not exists last_event_reason text,
+  add column if not exists last_event_at timestamptz;

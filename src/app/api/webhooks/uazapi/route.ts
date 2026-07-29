@@ -3,6 +3,7 @@ import { after, NextRequest, NextResponse } from "next/server";
 import { aiComplete } from "@/lib/aiComplete";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import {
+  describeUazapiPayloadShape,
   isValidWebhookSecret,
   isValidWebhookSecretHash,
   normalizeUazapiWebhook,
@@ -203,6 +204,17 @@ export async function POST(request: NextRequest) {
 
   const normalized = normalizeUazapiWebhook(payload);
   if (normalized.kind === "ignored") {
+    const diagnostic = await supabase
+      .from("integration_settings")
+      .update({
+        last_event_shape: describeUazapiPayloadShape(payload),
+        last_event_reason: normalized.reason,
+        last_event_at: new Date().toISOString(),
+      })
+      .eq("provider", "uazapi");
+    if (diagnostic.error) {
+      console.error("Falha ao registrar shape seguro do webhook:", diagnostic.error);
+    }
     return NextResponse.json({ ok: true, ignored: true, reason: normalized.reason });
   }
 
