@@ -86,6 +86,7 @@ async function listQueue(supabase) {
           responseType: deal.response_type || "sem_resposta",
           phone,
           nextActionAt: deal.next_action_at,
+          nextActionType: deal.next_action_type,
           nextActionSource: deal.next_action_source,
           lastInboundAt: deal.last_inbound_at,
           lastOutboundAt: deal.last_outbound_at,

@@ -159,6 +159,7 @@ export default function DisparoPage() {
             responseType,
             phone,
             nextActionAt,
+            nextActionType: deal.nextActionType ?? recommended.type,
             nextActionSource: deal.nextActionSource,
             lastInboundAt: lastInbound,
             lastOutboundAt: lastOutbound,

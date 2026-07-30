@@ -277,6 +277,7 @@ export function queueSectionForDeal(
     responseType: ResponseType;
     phone?: string | null;
     nextActionAt?: string | null;
+    nextActionType?: NextActionType | null;
     nextActionSource?: "automatic" | "manual" | null;
     lastInboundAt?: string | null;
     lastOutboundAt?: string | null;
@@ -290,6 +291,12 @@ export function queueSectionForDeal(
   const now = new Date(nowIso).getTime();
   if (deal.nextActionSource === "manual" && nextAction > now) {
     return "aguardando_cadencia";
+  }
+  if (
+    deal.nextActionType === "contactar_responsavel" &&
+    nextAction <= now
+  ) {
+    return "encaminhamentos";
   }
   const inboundAlreadyHandled = Boolean(
     deal.lastInboundAt &&

@@ -137,6 +137,18 @@ test("organiza cada deal em uma unica secao operacional", () => {
     }, now),
     "aguardando_cadencia",
   );
+  assert.equal(
+    queueSectionForDeal({
+      responseType: "encaminhamento",
+      phone: "5531999999999",
+      nextActionAt: now,
+      nextActionType: "contactar_responsavel",
+      nextActionSource: "manual",
+      lastInboundAt: "2026-07-30T10:00:00.000Z",
+      lastOutboundAt: "2026-07-30T10:05:00.000Z",
+    }, now),
+    "encaminhamentos",
+  );
 });
 
 test("normaliza telefone brasileiro e cria variante segura do nono digito", () => {
