@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { InstagramPublishedKpi } from "./InstagramPublishedKpi";
+import { ThreadsPanel } from "./ThreadsPanel";
 
 // Tela Conteudo = backlog editorial REAL, sincronizado do vault (fonte de verdade).
 // Gerado por `node scripts/sync-vault-content.mjs` -> content/conteudo.json (commitado).
@@ -116,13 +117,15 @@ export default function ConteudoPage() {
           <h2 className="section-title">Instagram ({instagram.length})</h2>
           <ContentTable items={instagram} textoLabel="Gancho" />
 
-          <h2 className="section-title">Threads ({threads.length})</h2>
           {threads.length === 0 ? (
-            <div className="connection-status fallback">
-              Nenhum post de Threads no vault (Erick Sena/Threads_Posts_Prontos.md).
-            </div>
+            <>
+              <h2 className="section-title">Threads (0)</h2>
+              <div className="connection-status fallback">
+                Nenhum post de Threads no vault (Erick Sena/Threads_Posts_Prontos.md).
+              </div>
+            </>
           ) : (
-            <ContentTable items={threads} textoLabel="Texto do post" />
+            <ThreadsPanel items={threads} />
           )}
         </>
       )}
