@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 type ThreadsPost = {
   id: string;
@@ -40,17 +41,27 @@ type ThreadsPayload = {
 
 const nf = new Intl.NumberFormat("pt-BR");
 
+// useSearchParams exige limite de Suspense no App Router; por isso o conteudo
+// fica num componente interno e o default so envelopa.
 export default function ThreadsPage() {
+  return (
+    <Suspense fallback={<div className="connection-status fallback">Carregando Threads...</div>}>
+      <ThreadsConteudo />
+    </Suspense>
+  );
+}
+
+function ThreadsConteudo() {
   const [data, setData] = useState<ThreadsPayload | null>(null);
   const [carregando, setCarregando] = useState(true);
   // O callback devolve ?erro= quando a troca do code falha. Sem ler isso, a tela
-  // repetia "nao conectado" e escondia o motivo real.
-  const [retorno, setRetorno] = useState<{ erro?: string; conectado?: boolean }>({});
-
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    setRetorno({ erro: q.get("erro") ?? undefined, conectado: q.get("conectado") === "1" });
-  }, []);
+  // repetia "nao conectado" e escondia o motivo real. Lido na renderizacao (nao em
+  // efeito) porque so depende da URL: useSearchParams evita o setState em efeito.
+  const params = useSearchParams();
+  const retorno = {
+    erro: params.get("erro") ?? undefined,
+    conectado: params.get("conectado") === "1",
+  };
 
   useEffect(() => {
     let ativo = true;
