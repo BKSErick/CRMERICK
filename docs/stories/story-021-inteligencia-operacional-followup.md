@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for Review
+Done
 
 ## Story
 
@@ -38,6 +38,8 @@ pipeline ou de calculos implicitos.
 - [x] A engine funciona via CLI para listar, classificar e agendar antes da UI.
 - [x] Mensagem que menciona outra empresa conhecida e bloqueada para correcao antes
   de abrir o WhatsApp.
+- [x] Abrir qualquer card do pipeline mantem o modal estavel, sem loop do seletor
+  Zustand ou tela de erro.
 - [x] Nenhuma mensagem e enviada automaticamente.
 - [x] Testes cobrem dominio, integridade e retrocompatibilidade.
 - [x] Lint, typecheck, testes e build passam.
@@ -53,8 +55,9 @@ pipeline ou de calculos implicitos.
 - [x] Criar CLI de listagem, classificacao e agendamento.
 - [x] Reestruturar fila e acoes rapidas.
 - [x] Adicionar badges e resumo no pipeline.
+- [x] Cobrir e corrigir a estabilidade do modal ao abrir cards.
 - [x] Executar quality gates e smoke visual.
-- [ ] Publicar e confirmar deployment.
+- [x] Publicar e confirmar deployment.
 
 ## Fora de Escopo
 
@@ -81,10 +84,14 @@ GPT-5 Codex
   bot sem encerramento em D+21 e backfill sem origem da classificacao.
 - Correcoes RED/GREEN: clique virou `whatsapp_opened`, stage automatico foi removido,
   fontes manual/automatic foram separadas e bot encerra apos o terceiro follow-up.
-- GREEN final: 22 testes passam.
+- GREEN final: 23 testes passam.
 - `npm.cmd run lint`, `npm.cmd run typecheck` e `npm.cmd run build` passam.
 - Smoke local: `/disparo`, `/pipeline`, `/api/activities?summary=whatsapp`,
   `/api/crm-data` e `/api/comando` responderam HTTP 200 contra o Supabase real.
+- Hotfix RED/GREEN: o teste detectou array criado dentro do seletor Zustand;
+  a selecao passou a ser estavel e a lista derivada foi memoizada.
+- Smoke de navegador local e em producao abriu o card da Valvugas, exibiu o modal
+  e registrou zero excecoes de runtime.
 
 ### Completion Notes List
 
@@ -95,6 +102,8 @@ GPT-5 Codex
   D+7 em 2026-08-05.
 - Nenhum envio automatico ou movimento automatico de stage foi introduzido.
 - Guard de empresa bloqueia mensagem que cite outra empresa conhecida.
+- Producao confirmada em `https://crmerick.vercel.app` no commit
+  `b11a9f4068b60b09e6b016e902a6f8ebcdc9b837`.
 
 ### File List
 
@@ -121,9 +130,11 @@ GPT-5 Codex
 - `src/styles/hub.css`
 - `src/styles/legacy-pipeline.css`
 - `tests/followup-operations.test.ts`
+- `tests/pipeline-runtime.test.ts`
 
 ## Change Log
 
 - 2026-07-30: Story criada apos aprovacao explicita do design.
 - 2026-07-30: Engine, CLI, migration, fila e pipeline implementados e validados.
 - 2026-07-30: Bloqueadores do QA corrigidos por causa raiz e cobertos por regressao.
+- 2026-07-30: Loop ao abrir cards corrigido, validado por clique real e publicado.
