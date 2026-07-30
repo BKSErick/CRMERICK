@@ -43,6 +43,14 @@ const nf = new Intl.NumberFormat("pt-BR");
 export default function ThreadsPage() {
   const [data, setData] = useState<ThreadsPayload | null>(null);
   const [carregando, setCarregando] = useState(true);
+  // O callback devolve ?erro= quando a troca do code falha. Sem ler isso, a tela
+  // repetia "nao conectado" e escondia o motivo real.
+  const [retorno, setRetorno] = useState<{ erro?: string; conectado?: boolean }>({});
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    setRetorno({ erro: q.get("erro") ?? undefined, conectado: q.get("conectado") === "1" });
+  }, []);
 
   useEffect(() => {
     let ativo = true;
@@ -90,6 +98,12 @@ export default function ThreadsPage() {
         </div>
       </div>
 
+      {retorno.erro ? (
+        <div className="portfolio-status warning" style={{ marginBottom: 16 }}>
+          <strong>A autorizacao voltou com erro:</strong> {retorno.erro}
+        </div>
+      ) : null}
+
       {carregando ? (
         <div className="connection-status fallback">Carregando dados do Threads...</div>
       ) : data?.needsAuth ? (
@@ -99,11 +113,28 @@ export default function ThreadsPage() {
             Instagram e nasce de uma autorizacao sua.
           </p>
           {data.authUrl ? (
-            <p style={{ marginTop: 12 }}>
-              <a className="status-pill active" href={data.authUrl} rel="noreferrer">
-                Conectar minha conta do Threads
-              </a>
-            </p>
+            <>
+              <p style={{ marginTop: 16 }}>
+                <a
+                  href={data.authUrl}
+                  rel="noreferrer"
+                  style={{
+                    display: "inline-block",
+                    padding: "10px 18px",
+                    borderRadius: 8,
+                    background: "var(--color-brand-violet, #7b68ee)",
+                    color: "#fff",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                  }}
+                >
+                  Conectar minha conta do Threads
+                </a>
+              </p>
+              <p style={{ marginTop: 12, fontSize: 12, opacity: 0.75, wordBreak: "break-all" }}>
+                Se o botao nao abrir, cole no navegador: {data.authUrl}
+              </p>
+            </>
           ) : (
             <p>Configure THREADS_APP_ID e THREADS_APP_SECRET no servidor.</p>
           )}
