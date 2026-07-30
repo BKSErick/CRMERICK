@@ -27,8 +27,11 @@ export async function GET(request: Request) {
         {
           ok: false,
           needsScope: semPermissao,
+          // Verificado em 30/07/2026 com token novo e a permissao "Pronto para teste":
+          // trending_topics responde code 10 em BR e US. Nao e escopo faltando nem
+          // reautorizacao, e endpoint restrito a app aprovado em App Review.
           error: semPermissao
-            ? "Falta o escopo threads_keyword_search. Reautorize a conta para liberar os tópicos em alta."
+            ? "Topicos em alta exigem App Review aprovado pela Meta. Com o app em modo de teste a API nao libera esse endpoint (nem a busca publica: keyword_search so devolve os seus proprios posts)."
             : msg,
         },
         { status: 200 },

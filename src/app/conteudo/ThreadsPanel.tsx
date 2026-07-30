@@ -18,6 +18,7 @@ const LIMITE = 500;
 export function ThreadsPanel({ items }: { items: ThreadsItem[] }) {
   const [topicos, setTopicos] = useState<Topico[] | null>(null);
   const [avisoTopicos, setAvisoTopicos] = useState<string | null>(null);
+  const [meusTop, setMeusTop] = useState<{ text: string; views: number; replies: number }[]>([]);
   const [publicando, setPublicando] = useState<number | null>(null);
   const [resultado, setResultado] = useState<EstadoPublicacao | null>(null);
   const [publicados, setPublicados] = useState<Record<number, string>>({});
@@ -30,6 +31,26 @@ export function ThreadsPanel({ items }: { items: ThreadsItem[] }) {
         else setAvisoTopicos(j.error ?? "Nao foi possivel carregar os topicos.");
       })
       .catch(() => setAvisoTopicos("Falha de rede ao buscar topicos em alta."));
+
+    // Sinal que a API entrega hoje: o desempenho dos SEUS posts. Enquanto o app nao
+    // passa por App Review, isso e o unico "em alta" real disponivel.
+    fetch("/api/threads")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!j.ok) return;
+        type PostApi = { text?: string; views?: number; replies?: number };
+        const top = (j.posts ?? [])
+          .map((p: PostApi) => ({
+            text: p.text ?? "",
+            views: p.views ?? 0,
+            replies: p.replies ?? 0,
+          }))
+          .filter((p: { text: string }) => p.text)
+          .sort((a: { views: number }, b: { views: number }) => b.views - a.views)
+          .slice(0, 5);
+        setMeusTop(top);
+      })
+      .catch(() => setMeusTop([]));
   }, []);
 
   async function publicar(item: ThreadsItem) {
@@ -64,6 +85,32 @@ export function ThreadsPanel({ items }: { items: ThreadsItem[] }) {
 
   return (
     <>
+      <h2 className="section-title">O que mais rodou nos seus posts</h2>
+      {meusTop.length === 0 ? (
+        <div className="connection-status fallback">Carregando seus posts...</div>
+      ) : (
+        <div className="table-wrap" style={{ marginBottom: 16 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Post</th>
+                <th>Views</th>
+                <th>Respostas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {meusTop.map((p, i) => (
+                <tr key={i}>
+                  <td>{p.text.slice(0, 110)}</td>
+                  <td>{p.views}</td>
+                  <td>{p.replies}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <h2 className="section-title">Em alta no Threads (Brasil)</h2>
       {avisoTopicos ? (
         <div className="portfolio-status warning">{avisoTopicos}</div>
