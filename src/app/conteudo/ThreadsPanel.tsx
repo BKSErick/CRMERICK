@@ -22,6 +22,10 @@ export function ThreadsPanel({ items }: { items: ThreadsItem[] }) {
   const [publicando, setPublicando] = useState<number | null>(null);
   const [resultado, setResultado] = useState<EstadoPublicacao | null>(null);
   const [publicados, setPublicados] = useState<Record<number, string>>({});
+  // Assunto em alta digitado na mao: a API do Threads nao entrega trending.
+  const [assunto, setAssunto] = useState("");
+  const [gerando, setGerando] = useState<number | null>(null);
+  const [reescritos, setReescritos] = useState<Record<number, string>>({});
 
   useEffect(() => {
     fetch("/api/threads/trending?country=BR")
@@ -53,8 +57,32 @@ export function ThreadsPanel({ items }: { items: ThreadsItem[] }) {
       .catch(() => setMeusTop([]));
   }, []);
 
+  function textoAtual(item: ThreadsItem) {
+    return reescritos[item.n] ?? item.excerpt ?? item.hook;
+  }
+
+  async function regenerar(item: ThreadsItem) {
+    if (!assunto.trim()) return;
+    setGerando(item.n);
+    setResultado(null);
+    try {
+      const res = await fetch("/api/threads/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: item.excerpt || item.hook, topic: assunto }),
+      });
+      const json = await res.json();
+      if (json.ok) setReescritos((r) => ({ ...r, [item.n]: json.text }));
+      else setResultado({ n: item.n, ok: false, msg: json.error ?? "Falha ao gerar." });
+    } catch (e) {
+      setResultado({ n: item.n, ok: false, msg: e instanceof Error ? e.message : "Falha de rede." });
+    } finally {
+      setGerando(null);
+    }
+  }
+
   async function publicar(item: ThreadsItem) {
-    const texto = item.excerpt || item.hook;
+    const texto = textoAtual(item);
     // Publicar e irreversivel e publico: confirma com o texto na frente do usuario.
     const ok = window.confirm(
       `Publicar agora no Threads?\n\n"${texto}"\n\n${texto.length}/${LIMITE} caracteres.`,
@@ -141,6 +169,19 @@ export function ThreadsPanel({ items }: { items: ThreadsItem[] }) {
         </div>
       ) : null}
 
+      <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}>
+        <input
+          className="settings-input"
+          placeholder="Assunto em alta (ex: agente de IA, layoff em tech, Pix parcelado)"
+          value={assunto}
+          onChange={(e) => setAssunto(e.target.value)}
+          style={{ flex: 1, maxWidth: 520 }}
+        />
+        <span style={{ fontSize: 12, opacity: 0.7 }}>
+          usado pelo botao Regenerar de cada post
+        </span>
+      </div>
+
       <div className="table-wrap">
         <table>
           <thead>
@@ -154,19 +195,71 @@ export function ThreadsPanel({ items }: { items: ThreadsItem[] }) {
           </thead>
           <tbody>
             {items.map((item) => {
-              const texto = item.excerpt || item.hook;
+              const texto = textoAtual(item);
               const cabe = texto.length <= LIMITE;
+              const reescrito = Boolean(reescritos[item.n]);
               return (
                 <tr key={item.n}>
                   <td>{item.n}</td>
                   <td>{item.title}</td>
-                  <td>{texto}</td>
+                  <td>
+                    {reescrito ? (
+                      <>
+                        <textarea
+                          className="settings-input"
+                          value={texto}
+                          rows={4}
+                          onChange={(e) =>
+                            setReescritos((r) => ({ ...r, [item.n]: e.target.value }))
+                          }
+                          style={{ width: "100%", minWidth: 320 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReescritos((r) => {
+                              const copia = { ...r };
+                              delete copia[item.n];
+                              return copia;
+                            })
+                          }
+                          style={{
+                            marginTop: 4,
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            fontSize: 11,
+                            opacity: 0.7,
+                            cursor: "pointer",
+                          }}
+                        >
+                          voltar ao original
+                        </button>
+                      </>
+                    ) : (
+                      texto
+                    )}
+                  </td>
                   <td>
                     <span className={`status-pill ${cabe ? "active" : "lost"}`}>
                       {texto.length}/{LIMITE}
                     </span>
                   </td>
-                  <td>
+                  <td style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="settings-input"
+                      style={{
+                        cursor: assunto.trim() ? "pointer" : "not-allowed",
+                        width: "auto",
+                        padding: "6px 12px",
+                      }}
+                      disabled={!assunto.trim() || gerando === item.n}
+                      title={assunto.trim() ? "" : "Digite o assunto em alta acima"}
+                      onClick={() => regenerar(item)}
+                    >
+                      {gerando === item.n ? "Gerando..." : "Regenerar com IA"}
+                    </button>
                     {publicados[item.n] ? (
                       <a href={publicados[item.n]} target="_blank" rel="noreferrer">
                         publicado
