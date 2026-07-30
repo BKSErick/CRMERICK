@@ -6,7 +6,14 @@ import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 export const THREADS_GRAPH = "https://graph.threads.net";
 export const THREADS_API = `${THREADS_GRAPH}/v1.0`;
 export const THREADS_PROVIDER = "threads";
-const SCOPES = ["threads_basic", "threads_manage_insights"];
+// threads_content_publish: publicar pelo CRM. threads_keyword_search: trending topics
+// e busca por assunto (a API recusa os dois sem o escopo, code 10).
+const SCOPES = [
+  "threads_basic",
+  "threads_manage_insights",
+  "threads_content_publish",
+  "threads_keyword_search",
+];
 const RENEW_WHEN_DAYS_LEFT = 7;
 
 export type ThreadsToken = {
