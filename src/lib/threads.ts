@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 
 // Threads (Meta) tem host proprio e token proprio: nada do Instagram/Facebook funciona aqui.
@@ -135,6 +136,26 @@ export async function refreshIfNeeded(token: ThreadsToken): Promise<ThreadsToken
     return { ...token, accessToken: json.access_token };
   } catch {
     return token;
+  }
+}
+
+// signed_request = base64url(assinatura) + "." + base64url(payload), assinado com o app secret.
+// Usado nos callbacks de desinstalar e de exclusao de dados. Assinatura invalida => null.
+export function parseSignedRequest(
+  signed: string,
+  appSecret: string | undefined,
+): Record<string, unknown> | null {
+  if (!signed || !appSecret) return null;
+  const [sigB64, payloadB64] = signed.split(".");
+  if (!sigB64 || !payloadB64) return null;
+
+  try {
+    const esperada = createHmac("sha256", appSecret).update(payloadB64).digest();
+    const recebida = Buffer.from(sigB64, "base64url");
+    if (esperada.length !== recebida.length || !timingSafeEqual(esperada, recebida)) return null;
+    return JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+  } catch {
+    return null;
   }
 }
 
