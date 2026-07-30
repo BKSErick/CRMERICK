@@ -31,7 +31,16 @@ create table if not exists public.deals (
   site_url      text,
   status        text default 'open',       -- open | won | lost
   created_at    timestamptz default now(),
-  updated_at    timestamptz default now()
+  updated_at    timestamptz default now(),
+  response_type text not null default 'sem_resposta',
+  response_type_source text not null default 'automatic',
+  next_action_at timestamptz,
+  next_action_type text,
+  next_action_note text,
+  next_action_source text not null default 'automatic',
+  last_inbound_at timestamptz,
+  last_outbound_at timestamptz,
+  response_time_minutes integer
 );
 
 -- ─────────────────────────────────────────────
@@ -131,6 +140,9 @@ create trigger contacts_updated_at
 -- ─────────────────────────────────────────────
 create index if not exists idx_deals_stage    on public.deals(stage);
 create index if not exists idx_deals_owner    on public.deals(owner);
+create index if not exists deals_next_action_at_idx on public.deals(next_action_at)
+  where next_action_at is not null;
+create index if not exists deals_response_type_idx on public.deals(response_type);
 create index if not exists idx_contacts_status on public.contacts(status);
 create index if not exists idx_messages_deal  on public.messages(deal_id);
 create index if not exists idx_messages_status on public.messages(status);

@@ -29,12 +29,12 @@ export async function GET() {
     const todayStart = startOfToday(now);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Disparos (whatsapp_sent) reais: hoje, ultimos 7 dias e ultimo contato por deal
+    // Disparos manuais e sincronizados: hoje, ultimos 7 dias e ultimo contato por deal
     // (o ultimo contato alimenta a fila de follow-up).
     const { data: waRows, error: waErr } = await supabase
       .from("activities")
       .select("deal_id, created_at")
-      .eq("type", "whatsapp_sent");
+      .in("type", ["whatsapp_sent", "whatsapp_sent_sync"]);
     if (waErr) throw waErr;
 
     let disparosToday = 0;

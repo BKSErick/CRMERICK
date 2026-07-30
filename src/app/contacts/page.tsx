@@ -32,6 +32,9 @@ const activityLabel: Record<string, string> = {
   signal_whatsapp: "Clicou no WhatsApp",
   signal_click: "Clicou em link",
   whatsapp_sent: "Disparo enviado",
+  whatsapp_opened: "WhatsApp aberto",
+  whatsapp_sent_sync: "WhatsApp enviado",
+  whatsapp_received: "WhatsApp recebido",
   quiz_lead: "Veio do quiz",
   note: "Nota",
 };

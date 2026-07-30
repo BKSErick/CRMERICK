@@ -5,6 +5,15 @@ import { mapDealFromRow, mapDealToRow } from "@/lib/crmRecords";
 
 export const runtime = "nodejs";
 
+const responseTypes = new Set([
+  "sem_resposta",
+  "bot",
+  "humana",
+  "encaminhamento",
+  "objecao",
+  "perdido",
+]);
+
 function getId(request: NextRequest, body?: Record<string, unknown>) {
   const fromQuery = request.nextUrl.searchParams.get("id");
   const rawId = fromQuery ?? body?.id;
@@ -59,6 +68,23 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const id = getId(request, body);
     if (!id) return errorResponse(new Error("id do deal e obrigatorio."), 400);
+    if (body.responseType !== undefined && !responseTypes.has(String(body.responseType))) {
+      return errorResponse(new Error("responseType invalido."), 400);
+    }
+    if (
+      body.responseTypeSource !== undefined &&
+      body.responseTypeSource !== "automatic" &&
+      body.responseTypeSource !== "manual"
+    ) {
+      return errorResponse(new Error("responseTypeSource invalido."), 400);
+    }
+    if (
+      body.nextActionSource !== undefined &&
+      body.nextActionSource !== "automatic" &&
+      body.nextActionSource !== "manual"
+    ) {
+      return errorResponse(new Error("nextActionSource invalido."), 400);
+    }
 
     const updates = { ...body };
     delete updates.id;
@@ -70,6 +96,21 @@ export async function PATCH(request: NextRequest) {
     }
     const { data, error } = await supabase.from("deals").update(payload).eq("id", id).select("*").single();
     if (error) throw error;
+
+    if (body.responseType !== undefined || body.nextActionAt !== undefined) {
+      const activityType =
+        body.responseType !== undefined ? "followup_classified" : "followup_scheduled";
+      const description =
+        body.responseType !== undefined
+          ? `Resposta classificada como ${String(body.responseType)}`
+          : `Proxima acao agendada para ${String(body.nextActionAt || "sem data")}`;
+      const audit = await supabase.from("activities").insert({
+        deal_id: id,
+        type: activityType,
+        description,
+      });
+      if (audit.error) console.error("Falha ao registrar auditoria operacional:", audit.error);
+    }
 
     return NextResponse.json({ ok: true, deal: mapDealFromRow(data) });
   } catch (error) {

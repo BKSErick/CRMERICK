@@ -1,3 +1,5 @@
+import type { NextActionType, ResponseType, ResponseTypeSource } from "./followup.ts";
+
 export type DealStage = "prospect" | "abordado" | "followup" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
 
 export type Deal = {
@@ -34,6 +36,15 @@ export type Deal = {
   contactId?: number;
   origin?: string;
   originDetail?: string;
+  responseType?: ResponseType;
+  responseTypeSource?: ResponseTypeSource;
+  nextActionAt?: string | null;
+  nextActionType?: NextActionType | null;
+  nextActionNote?: string | null;
+  nextActionSource?: "automatic" | "manual";
+  lastInboundAt?: string | null;
+  lastOutboundAt?: string | null;
+  responseTimeMinutes?: number | null;
 };
 
 export type Contact = {
@@ -69,6 +80,20 @@ function asDealStage(value: unknown): DealStage {
     return stage;
   }
   return "prospect";
+}
+
+function asResponseType(value: unknown): ResponseType {
+  const responseType = asString(value);
+  if (
+    responseType === "bot" ||
+    responseType === "humana" ||
+    responseType === "encaminhamento" ||
+    responseType === "objecao" ||
+    responseType === "perdido"
+  ) {
+    return responseType;
+  }
+  return "sem_resposta";
 }
 
 export function mapDealFromRow(row: DealRow): Deal {
@@ -110,6 +135,18 @@ export function mapDealFromRow(row: DealRow): Deal {
     contactId: row.contact_id != null ? asNumber(row.contact_id) : undefined,
     origin: asString(row.origin),
     originDetail: asString(row.origin_detail ?? row.originDetail),
+    responseType: asResponseType(row.response_type ?? row.responseType),
+    responseTypeSource: asString(row.response_type_source ?? row.responseTypeSource) as Deal["responseTypeSource"],
+    nextActionAt: asString(row.next_action_at ?? row.nextActionAt),
+    nextActionType: asString(row.next_action_type ?? row.nextActionType) as Deal["nextActionType"],
+    nextActionNote: asString(row.next_action_note ?? row.nextActionNote),
+    nextActionSource: asString(row.next_action_source ?? row.nextActionSource) as Deal["nextActionSource"],
+    lastInboundAt: asString(row.last_inbound_at ?? row.lastInboundAt),
+    lastOutboundAt: asString(row.last_outbound_at ?? row.lastOutboundAt),
+    responseTimeMinutes:
+      row.response_time_minutes != null || row.responseTimeMinutes != null
+        ? asNumber(row.response_time_minutes ?? row.responseTimeMinutes)
+        : undefined,
   };
 }
 
@@ -158,6 +195,15 @@ export function mapDealToRow(deal: Partial<Deal>) {
     description: deal.description,
     pains: deal.pains,
     lead_messages: deal.leadMessages,
+    response_type: deal.responseType,
+    response_type_source: deal.responseTypeSource,
+    next_action_at: deal.nextActionAt,
+    next_action_type: deal.nextActionType,
+    next_action_note: deal.nextActionNote,
+    next_action_source: deal.nextActionSource,
+    last_inbound_at: deal.lastInboundAt,
+    last_outbound_at: deal.lastOutboundAt,
+    response_time_minutes: deal.responseTimeMinutes,
   });
 }
 

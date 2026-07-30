@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/uazapi-webhook.test.ts tests/deal-deletion.test.ts tests/dependency-security.test.ts",
+    "test": "node --test tests/uazapi-webhook.test.ts tests/followup-operations.test.ts tests/deal-deletion.test.ts tests/dependency-security.test.ts",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",
@@ -21,7 +21,8 @@
     "db:seed": "node scripts/seed-supabase.js",
     "leads:import": "node js/import-huberick-leads.js",
     "whatsapp:webhook:dry": "node --env-file-if-exists=.env scripts/configure-uazapi-webhook.mjs --dry-run",
-    "whatsapp:webhook:configure": "node --env-file-if-exists=.env scripts/configure-uazapi-webhook.mjs"
+    "whatsapp:webhook:configure": "node --env-file-if-exists=.env scripts/configure-uazapi-webhook.mjs",
+    "followup:ops": "node --env-file-if-exists=.env scripts/followup-ops.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",

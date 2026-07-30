@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
+import {
+  buildWhatsappActivitySummary,
+  normalizeClientActivityType,
+} from "@/lib/followup";
 
 // Feed de atividade REAL do deal. A tabela public.activities tem RLS deny-by-default; a escrita
 // e a leitura acontecem so aqui, server-side, via service-role (nunca exposta ao cliente).
@@ -26,23 +30,20 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getCrmSupabaseAdmin();
 
-    // Agregado p/ tela de follow-up: ultimo whatsapp_sent + contagem por deal.
+    // Agregado da operacao: envios manuais e sincronizados, alem da ultima entrada.
     if (request.nextUrl.searchParams.get("summary") === "whatsapp") {
       const { data, error } = await supabase
         .from("activities")
-        .select("deal_id, created_at")
-        .eq("type", "whatsapp_sent")
+        .select("deal_id, type, description, created_at")
+        .in("type", ["whatsapp_sent", "whatsapp_sent_sync", "whatsapp_received"])
         .order("created_at", { ascending: false })
         .limit(5000);
       if (error) throw error;
 
-      const byDeal: Record<number, { last: string; count: number }> = {};
-      for (const row of data ?? []) {
-        if (!row.deal_id || !row.created_at) continue;
-        if (!byDeal[row.deal_id]) byDeal[row.deal_id] = { last: row.created_at, count: 0 };
-        byDeal[row.deal_id].count++;
-      }
-      return NextResponse.json({ ok: true, whatsapp: byDeal });
+      return NextResponse.json({
+        ok: true,
+        whatsapp: buildWhatsappActivitySummary(data ?? []),
+      });
     }
 
     const rawDealId = request.nextUrl.searchParams.get("dealId");
@@ -70,7 +71,8 @@ export async function POST(request: NextRequest) {
     const supabase = getCrmSupabaseAdmin();
     const body = await request.json();
     const dealId = Number(body?.dealId);
-    const type = typeof body?.type === "string" ? body.type : "note";
+    const requestedType = typeof body?.type === "string" ? body.type : "note";
+    const type = normalizeClientActivityType(requestedType);
     const description = typeof body?.description === "string" ? body.description.trim() : "";
 
     if (!Number.isInteger(dealId) || dealId <= 0) {
@@ -87,25 +89,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
-
-    // Disparo promove o lead automaticamente: prospect -> abordado (1a mensagem),
-    // abordado -> followup (2a em diante). Nunca rebaixa quem ja respondeu/avancou.
-    // Best-effort: filtros .eq("stage", ...) garantem exclusividade sem race.
-    if (type === "whatsapp_sent") {
-      const { data: moved } = await supabase
-        .from("deals")
-        .update({ stage: "abordado" })
-        .eq("id", dealId)
-        .eq("stage", "prospect")
-        .select("id");
-      if (!moved || moved.length === 0) {
-        await supabase
-          .from("deals")
-          .update({ stage: "followup" })
-          .eq("id", dealId)
-          .eq("stage", "abordado");
-      }
-    }
 
     return NextResponse.json({ ok: true, activity: data as ActivityRow }, { status: 201 });
   } catch (error) {

@@ -2,7 +2,13 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useCRMStore, type Deal, type DealStage } from "@/store/useCRMStore";
-import { logWhatsappSent } from "@/lib/activityClient";
+import { logWhatsappOpened } from "@/lib/activityClient";
+import {
+  RESPONSE_TYPE_INFO,
+  classificationUpdate,
+  messageCompanyMismatch,
+  type ResponseType,
+} from "@/lib/followup";
 
 const stages: Array<{ id: DealStage; label: string; hint: string; color: string }> = [
   { id: "prospect", label: "Prospect", hint: "Entrada", color: "#0091ff" },
@@ -59,6 +65,9 @@ const activityTypeLabels: Record<string, string> = {
   call: "Ligacao",
   email: "E-mail",
   meeting: "Reuniao",
+  whatsapp_opened: "WhatsApp aberto",
+  whatsapp_sent_sync: "WhatsApp enviado",
+  whatsapp_received: "WhatsApp recebido",
 };
 
 function activityLabel(type: string | null): string {
@@ -430,7 +439,17 @@ function DealCard({ deal, onDragEnd, onDragStart, onOpen }: DealCardProps) {
           {originLabel(deal.origin)}
         </span>
       ) : null}
+      {deal.responseType && deal.responseType !== "sem_resposta" ? (
+        <span className={`response-pill ${RESPONSE_TYPE_INFO[deal.responseType].tone}`} style={{ marginLeft: "6px" }}>
+          {RESPONSE_TYPE_INFO[deal.responseType].label}
+        </span>
+      ) : null}
       <div className="card-title-text">{deal.name ?? deal.title ?? deal.company}</div>
+      {deal.nextActionAt ? (
+        <div className="card-next-action">
+          Proxima acao: {new Date(deal.nextActionAt).toLocaleDateString("pt-BR")}
+        </div>
+      ) : null}
       {progress ? (
         <div className="card-progress">
           <span style={{ width: `${progress}%` }} />
@@ -467,6 +486,7 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [activities, setActivities] = useState<DealActivity[]>([]);
   const [activitiesStatus, setActivitiesStatus] = useState<"loading" | "ready" | "error">("loading");
   const updateDeal = useCRMStore((state) => state.updateDeal);
+  const knownCompanies = useCRMStore((state) => state.deals.map((item) => item.company));
   const updateDealStage = useCRMStore((state) => state.updateDealStage);
   const [valueInput, setValueInput] = useState(String(deal.value ?? 0));
   const [recurring, setRecurring] = useState(Boolean(deal.recurring));
@@ -496,6 +516,37 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
     } finally {
       setSavingValue(false);
     }
+  }
+
+  async function handleResponseType(responseType: ResponseType) {
+    await updateDeal(
+      deal.id,
+      classificationUpdate(
+        responseType,
+        new Date().toISOString(),
+        deal.nextActionSource,
+      ),
+    );
+  }
+
+  async function handleNextActionDate(value: string) {
+    if (!value) {
+      await updateDeal(deal.id, {
+        nextActionAt: null,
+        nextActionType: null,
+        nextActionNote: null,
+        nextActionSource: "manual",
+      });
+      return;
+    }
+    const date = new Date(`${value}T09:00:00`);
+    if (Number.isNaN(date.getTime())) return;
+    await updateDeal(deal.id, {
+      nextActionAt: date.toISOString(),
+      nextActionType: "followup_silencio",
+      nextActionNote: "Proxima acao agendada manualmente.",
+      nextActionSource: "manual",
+    });
   }
 
   // Story 010: integracao de IA (rota /api/ai reabilitada apos QA PASS).
@@ -637,7 +688,51 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
             </div>
           </div>
 
+          <div className="operational-strip">
+            <div>
+              <span>Resposta</span>
+              <strong>{RESPONSE_TYPE_INFO[deal.responseType ?? "sem_resposta"].label}</strong>
+            </div>
+            <div>
+              <span>Ultima entrada</span>
+              <strong>{deal.lastInboundAt ? new Date(deal.lastInboundAt).toLocaleString("pt-BR") : "Sem registro"}</strong>
+            </div>
+            <div>
+              <span>Tempo de resposta</span>
+              <strong>{deal.responseTimeMinutes != null ? `${deal.responseTimeMinutes} min` : "Nao calculado"}</strong>
+            </div>
+            <div>
+              <span>Proxima acao</span>
+              <strong>{deal.nextActionAt ? new Date(deal.nextActionAt).toLocaleString("pt-BR") : "Sem agenda"}</strong>
+            </div>
+            <div>
+              <span>Prioridade</span>
+              <strong>{deal.priority || "Normal"}</strong>
+            </div>
+          </div>
+
           <div className="meta-grid">
+            <div className="meta-row">
+              <span className="meta-label">Tipo de resposta</span>
+              <select
+                className="settings-select"
+                onChange={(event) => void handleResponseType(event.target.value as ResponseType)}
+                value={deal.responseType ?? "sem_resposta"}
+              >
+                {(Object.keys(RESPONSE_TYPE_INFO) as ResponseType[]).map((type) => (
+                  <option key={type} value={type}>{RESPONSE_TYPE_INFO[type].label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="meta-row">
+              <span className="meta-label">Proxima acao</span>
+              <input
+                className="settings-input"
+                onChange={(event) => void handleNextActionDate(event.target.value)}
+                type="date"
+                value={deal.nextActionAt?.slice(0, 10) ?? ""}
+              />
+            </div>
             <div className="meta-row">
               <span className="meta-label">Status</span>
               <select
@@ -862,7 +957,22 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
                   href={whatsappHref}
                   rel="noreferrer"
                   target="_blank"
-                  onClick={() => logWhatsappSent(deal.id)}
+                  onClick={(event) => {
+                    const message = deal.copyText || "";
+                    const mismatch = messageCompanyMismatch(
+                      message,
+                      deal.company,
+                      knownCompanies,
+                    );
+                    if (mismatch) {
+                      event.preventDefault();
+                      window.alert(
+                        `Revise a mensagem: ela menciona ${mismatch}, mas este card e da ${deal.company}.`,
+                      );
+                      return;
+                    }
+                    logWhatsappOpened(deal.id);
+                  }}
                 >
                   WhatsApp
                 </a>

@@ -3,6 +3,13 @@ import { after, NextRequest, NextResponse } from "next/server";
 import { aiComplete } from "@/lib/aiComplete";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import {
+  classifyInboundResponse,
+  nextActionAfterInbound,
+  nextActionAfterOutbound,
+  type ResponseType,
+} from "@/lib/followup";
+import { phoneMatchVariants } from "@/lib/whatsappPhone";
+import {
   isValidWebhookSecret,
   isValidWebhookSecretHash,
   normalizeUazapiWebhook,
@@ -14,7 +21,19 @@ export const maxDuration = 30;
 
 type SupabaseAdmin = ReturnType<typeof getCrmSupabaseAdmin>;
 type ContactRef = { id: number; name: string | null; company: string | null };
-type DealRef = { id: number; name: string | null; company: string | null };
+type DealRef = {
+  id: number;
+  name: string | null;
+  company: string | null;
+  response_type: ResponseType | null;
+  response_type_source: "automatic" | "manual" | null;
+  next_action_at: string | null;
+  next_action_source: "automatic" | "manual" | null;
+  last_outbound_at: string | null;
+};
+
+const dealOperationalSelect =
+  "id, name, company, response_type, response_type_source, next_action_at, next_action_source, last_outbound_at";
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ ok: false, error: message }, { status });
@@ -27,16 +46,20 @@ function fallbackContactName(message: UazapiMessage) {
 
 async function findOrCreateContact(supabase: SupabaseAdmin, message: UazapiMessage) {
   const phone = message.contactPhone;
-  const lookup = await supabase
-    .from("contacts")
-    .select("id, name, company")
-    .or(`phone.eq.${phone},whatsapp.eq.${phone}`)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (lookup.error) throw lookup.error;
-  if (lookup.data) return lookup.data as ContactRef;
+  const variants = phoneMatchVariants(phone);
+  const [byPhone, byWhatsapp] = await Promise.all([
+    supabase.from("contacts").select("id, name, company").in("phone", variants).limit(3),
+    supabase.from("contacts").select("id, name, company").in("whatsapp", variants).limit(3),
+  ]);
+  if (byPhone.error) throw byPhone.error;
+  if (byWhatsapp.error) throw byWhatsapp.error;
+  const matches = [...(byPhone.data ?? []), ...(byWhatsapp.data ?? [])].filter(
+    (candidate, index, all) => all.findIndex((item) => item.id === candidate.id) === index,
+  );
+  if (matches.length > 1) {
+    throw new Error(`Correspondencia ambigua de telefone para ${phone}.`);
+  }
+  if (matches[0]) return matches[0] as ContactRef;
 
   const name = fallbackContactName(message);
   const created = await supabase
@@ -62,7 +85,7 @@ async function findOrCreateDeal(
 ) {
   const linked = await supabase
     .from("deals")
-    .select("id, name, company")
+    .select(dealOperationalSelect)
     .eq("contact_id", contact.id)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -72,17 +95,21 @@ async function findOrCreateDeal(
   if (linked.data) return linked.data as DealRef;
 
   const phone = message.contactPhone;
-  const byPhone = await supabase
-    .from("deals")
-    .select("id, name, company")
-    .or(`phone.eq.${phone},whatsapp.eq.${phone}`)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
+  const variants = phoneMatchVariants(phone);
+  const [byPhone, byWhatsapp] = await Promise.all([
+    supabase.from("deals").select(dealOperationalSelect).in("phone", variants).limit(3),
+    supabase.from("deals").select(dealOperationalSelect).in("whatsapp", variants).limit(3),
+  ]);
   if (byPhone.error) throw byPhone.error;
-  if (byPhone.data) {
-    const existing = byPhone.data as DealRef;
+  if (byWhatsapp.error) throw byWhatsapp.error;
+  const matches = [...(byPhone.data ?? []), ...(byWhatsapp.data ?? [])].filter(
+    (candidate, index, all) => all.findIndex((item) => item.id === candidate.id) === index,
+  );
+  if (matches.length > 1) {
+    throw new Error(`Correspondencia ambigua de deal para ${phone}.`);
+  }
+  if (matches[0]) {
+    const existing = matches[0] as DealRef;
     await supabase.from("deals").update({ contact_id: contact.id }).eq("id", existing.id);
     return existing;
   }
@@ -101,7 +128,7 @@ async function findOrCreateDeal(
       origin: "whatsapp",
       origin_detail: "uazapi",
     })
-    .select("id, name, company")
+    .select(dealOperationalSelect)
     .single();
 
   if (created.error) throw created.error;
@@ -256,6 +283,63 @@ export async function POST(request: NextRequest) {
       description: activityDescription(message),
     });
     if (activity.error) throw activity.error;
+
+    if (message.direction === "received") {
+      const detectedResponseType = classifyInboundResponse(message.content);
+      const responseType =
+        deal.response_type_source === "manual"
+          ? (deal.response_type ?? detectedResponseType)
+          : detectedResponseType;
+      const plan = nextActionAfterInbound(responseType, message.occurredAt);
+      const responseMinutes =
+        deal.last_outbound_at &&
+        new Date(message.occurredAt).getTime() >= new Date(deal.last_outbound_at).getTime()
+          ? Math.round(
+              (new Date(message.occurredAt).getTime() -
+                new Date(deal.last_outbound_at).getTime()) /
+                60000,
+            )
+          : null;
+      const operationalUpdate: Record<string, unknown> = {
+        last_inbound_at: message.occurredAt,
+        response_time_minutes: responseMinutes,
+      };
+      if (deal.response_type_source !== "manual") {
+        operationalUpdate.response_type = responseType;
+        operationalUpdate.response_type_source = "automatic";
+      }
+      if (deal.next_action_source !== "manual") {
+        operationalUpdate.next_action_at = plan.at;
+        operationalUpdate.next_action_type = plan.type;
+        operationalUpdate.next_action_note = plan.note;
+        operationalUpdate.next_action_source = "automatic";
+      }
+      const updated = await supabase.from("deals").update(operationalUpdate).eq("id", deal.id);
+      if (updated.error) throw updated.error;
+    } else {
+      const outboundCount = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("deal_id", deal.id)
+        .eq("direction", "sent");
+      if (outboundCount.error) throw outboundCount.error;
+      const plan = nextActionAfterOutbound({
+        responseType: deal.response_type === "bot" ? "bot" : "sem_resposta",
+        occurredAt: message.occurredAt,
+        outboundCount: outboundCount.count ?? 1,
+      });
+      const operationalUpdate: Record<string, unknown> = {
+        last_outbound_at: message.occurredAt,
+      };
+      if (deal.next_action_source !== "manual") {
+        operationalUpdate.next_action_at = plan.at;
+        operationalUpdate.next_action_type = plan.type;
+        operationalUpdate.next_action_note = plan.note;
+        operationalUpdate.next_action_source = "automatic";
+      }
+      const updated = await supabase.from("deals").update(operationalUpdate).eq("id", deal.id);
+      if (updated.error) throw updated.error;
+    }
 
     if (message.direction === "received" && !message.content.startsWith("[")) {
       after(() => enrichWithAi(supabase, Number(inserted.data.id), deal));

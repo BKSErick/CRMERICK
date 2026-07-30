@@ -1,13 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useCRMStore } from "@/store/useCRMStore";
-import { logWhatsappSent } from "@/lib/activityClient";
-import { TIER_INFO, followupMessage, tierForDays } from "@/lib/followup";
+import { logWhatsappOpened } from "@/lib/activityClient";
+import {
+  QUEUE_SECTION_INFO,
+  RESPONSE_TYPE_INFO,
+  TIER_INFO,
+  classificationUpdate,
+  followupMessage,
+  messageCompanyMismatch,
+  nextActionAfterInbound,
+  nextActionAfterOutbound,
+  queueSectionForDeal,
+  tierForDays,
+  type QueueSection,
+  type ResponseType,
+} from "@/lib/followup";
+import { normalizeWhatsappPhone } from "@/lib/whatsappPhone";
 import type { Deal } from "@/lib/crmRecords";
 
 function cleanPhone(value?: string) {
-  return value?.replace(/\D/g, "") ?? "";
+  return normalizeWhatsappPhone(value);
 }
 
 function whatsappLink(phone: string, message: string) {
@@ -17,19 +31,30 @@ function whatsappLink(phone: string, message: string) {
 // Janelas e mensagens da sequencia (docs/funil-whatsapp-sequencia.md) vivem em
 // src/lib/followup.ts, compartilhadas com a Sala de Comando.
 
-type WhatsappSummary = Record<number, { last: string; count: number }>;
+type WhatsappSummary = Record<
+  number,
+  {
+    last: string;
+    count: number;
+    lastOutbound: string;
+    lastOutboundText: string;
+    lastInbound?: string;
+    lastInboundText?: string;
+    inboundCount: number;
+  }
+>;
 
 export default function DisparoPage() {
   const deals = useCRMStore((state) => state.deals);
   const contacts = useCRMStore((state) => state.contacts);
   const setDeals = useCRMStore((state) => state.setDeals);
   const setContacts = useCRMStore((state) => state.setContacts);
+  const updateDeal = useCRMStore((state) => state.updateDeal);
   const [view, setView] = useState<"disparo" | "followup">("disparo");
   const [filter, setFilter] = useState<"ready" | "phone" | "all">("ready");
   const [query, setQuery] = useState("");
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
   const [waSummary, setWaSummary] = useState<WhatsappSummary>({});
-  const [sentNow, setSentNow] = useState<Record<number, boolean>>({});
   const [loadedAt] = useState(() => Date.now());
 
   useEffect(() => {
@@ -62,7 +87,9 @@ export default function DisparoPage() {
   }, [setContacts, setDeals]);
 
   function phoneFor(deal: Deal) {
-    const contact = contacts.find((item) => item.company === deal.company || item.name === deal.company);
+    const contact =
+      contacts.find((item) => deal.contactId != null && item.id === deal.contactId) ??
+      contacts.find((item) => item.company === deal.company || item.name === deal.company);
     return { phone: cleanPhone(deal.phone || contact?.phone || contact?.whatsapp), contact };
   }
 
@@ -100,13 +127,50 @@ export default function DisparoPage() {
     const now = loadedAt;
 
     return deals
-      .filter((deal) => deal.stage === "abordado" || deal.stage === "followup")
+      .filter((deal) =>
+        ["abordado", "followup", "qualified", "proposal", "negotiation"].includes(
+          deal.stage,
+        ),
+      )
       .map((deal) => {
         const { phone, contact } = phoneFor(deal);
         const wa = waSummary[deal.id];
-        const days = wa ? Math.floor((now - new Date(wa.last).getTime()) / 86400000) : null;
+        const responseType = deal.responseType ?? "sem_resposta";
+        const lastOutbound = deal.lastOutboundAt ?? wa?.lastOutbound ?? wa?.last;
+        const lastInbound = deal.lastInboundAt ?? wa?.lastInbound;
+        const days = lastOutbound
+          ? Math.floor((now - new Date(lastOutbound).getTime()) / 86400000)
+          : null;
         const tier = tierForDays(days);
-        const message = tier === "aguardar" ? "" : followupMessage(tier, deal.company);
+        const recommended =
+          responseType !== "sem_resposta" && lastInbound
+            ? nextActionAfterInbound(responseType, lastInbound)
+            : lastOutbound
+              ? nextActionAfterOutbound({
+                  responseType,
+                  occurredAt: lastOutbound,
+                  outboundCount: wa?.count ?? 1,
+                })
+              : { at: null, type: null, note: "Sem historico de envio recuperavel." };
+        const nextActionAt = deal.nextActionAt ?? recommended.at;
+        const nextActionNote = deal.nextActionNote ?? recommended.note;
+        const section = queueSectionForDeal(
+          {
+            responseType,
+            phone,
+            nextActionAt,
+            nextActionSource: deal.nextActionSource,
+            lastInboundAt: lastInbound,
+            lastOutboundAt: lastOutbound,
+          },
+          new Date(now).toISOString(),
+        );
+        const message =
+          section === "responder_agora" || section === "encaminhamentos"
+            ? ""
+            : tier === "aguardar" && responseType !== "bot"
+              ? ""
+              : followupMessage(tier === "aguardar" ? "M1" : tier, deal.company, responseType);
 
         return {
           id: deal.id,
@@ -116,24 +180,91 @@ export default function DisparoPage() {
           stage: deal.stage,
           days,
           msgCount: wa?.count ?? 0,
+          inboundCount: wa?.inboundCount ?? 0,
+          lastOutbound,
+          lastOutboundText: wa?.lastOutboundText ?? "",
+          lastInbound,
+          lastInboundText: wa?.lastInboundText ?? "",
+          responseType,
+          nextActionAt,
+          nextActionNote,
+          nextActionSource: deal.nextActionSource,
+          section,
+          responseTimeMinutes: deal.responseTimeMinutes,
           tier,
           message,
         };
       })
       .filter((row) => !q || `${row.company} ${row.contact}`.toLowerCase().includes(q))
       .sort((a, b) => {
-        if ((a.tier === "aguardar") !== (b.tier === "aguardar")) return a.tier === "aguardar" ? 1 : -1;
-        return (b.days ?? 0) - (a.days ?? 0);
+        const sectionOrder =
+          QUEUE_SECTION_INFO[a.section].order - QUEUE_SECTION_INFO[b.section].order;
+        if (sectionOrder !== 0) return sectionOrder;
+        return String(a.nextActionAt ?? "").localeCompare(String(b.nextActionAt ?? ""));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contacts, deals, query, waSummary]);
 
   const readyCount = rows.filter((row) => row.ready).length;
-  const dueCount = followupRows.filter((row) => row.tier !== "aguardar").length;
+  const dueCount = followupRows.filter(
+    (row) =>
+      row.section !== "aguardando_cadencia" &&
+      row.section !== "dados_inconsistentes",
+  ).length;
 
-  function handleFollowupClick(row: (typeof followupRows)[number]) {
-    logWhatsappSent(row.id, `Follow-up ${row.tier} enviado`);
-    setSentNow((prev) => ({ ...prev, [row.id]: true }));
+  const sectionedFollowups = useMemo(
+    () =>
+      (Object.keys(QUEUE_SECTION_INFO) as QueueSection[])
+        .sort((a, b) => QUEUE_SECTION_INFO[a].order - QUEUE_SECTION_INFO[b].order)
+        .map((section) => ({
+          section,
+          rows: followupRows.filter((row) => row.section === section),
+        }))
+        .filter((group) => group.rows.length > 0),
+    [followupRows],
+  );
+
+  async function handleClassification(
+    row: (typeof followupRows)[number],
+    responseType: ResponseType,
+  ) {
+    await updateDeal(
+      row.id,
+      classificationUpdate(
+        responseType,
+        new Date().toISOString(),
+        row.nextActionSource,
+      ),
+    );
+  }
+
+  async function handleSchedule(dealId: number, value: string) {
+    if (!value) return;
+    const date = new Date(`${value}T09:00:00`);
+    if (Number.isNaN(date.getTime())) return;
+    await updateDeal(dealId, {
+      nextActionAt: date.toISOString(),
+      nextActionType: "followup_silencio",
+      nextActionNote: "Proxima acao agendada manualmente.",
+      nextActionSource: "manual",
+    });
+  }
+
+  function guardCompanyMessage(
+    event: MouseEvent<HTMLAnchorElement>,
+    company: string,
+    message: string,
+  ) {
+    const mismatch = messageCompanyMismatch(
+      message,
+      company,
+      deals.map((deal) => deal.company),
+    );
+    if (!mismatch) return;
+    event.preventDefault();
+    window.alert(
+      `Revise a mensagem: ela menciona ${mismatch}, mas este card e da ${company}.`,
+    );
   }
 
   return (
@@ -144,7 +275,7 @@ export default function DisparoPage() {
           <div className="subtitle">
             {view === "disparo"
               ? "Central de WhatsApp. A fila combina deals, contatos, telefone e copy pronta."
-              : "Follow-up por janela: M1 (D+2), M2 com prova (D+5), M3 breakup (D+10). Enviar move o card no kanban."}
+              : "Cockpit de proxima acao: respostas humanas, encaminhamentos, bots D+7 e silencio D+2/D+5/D+10."}
           </div>
         </div>
         <div className="page-header-right">
@@ -248,7 +379,10 @@ export default function DisparoPage() {
                           href={whatsappLink(row.phone, row.message)}
                           rel="noreferrer"
                           target="_blank"
-                          onClick={() => logWhatsappSent(row.id)}
+                          onClick={(event) => {
+                            guardCompanyMessage(event, row.company, row.message);
+                            if (!event.defaultPrevented) logWhatsappOpened(row.id);
+                          }}
                         >
                           WhatsApp
                         </a>
@@ -268,22 +402,22 @@ export default function DisparoPage() {
             <article className="kpi-card">
               <div className="kpi-label">Devidos hoje</div>
               <div className="kpi-value">{dueCount}</div>
-              <div className="kpi-trend up">M1 + M2 + M3</div>
+              <div className="kpi-trend up">Responder + encaminhar + retomar</div>
             </article>
             <article className="kpi-card">
               <div className="kpi-label">Aguardando janela</div>
-              <div className="kpi-value">{followupRows.length - dueCount}</div>
-              <div className="kpi-trend">Menos de D+2</div>
+              <div className="kpi-value">{followupRows.filter((row) => row.section === "aguardando_cadencia").length}</div>
+              <div className="kpi-trend">Cadencia futura</div>
             </article>
             <article className="kpi-card">
-              <div className="kpi-label">Em follow-up</div>
-              <div className="kpi-value">{followupRows.filter((r) => r.stage === "followup").length}</div>
-              <div className="kpi-trend">2a+ mensagem enviada</div>
+              <div className="kpi-label">Bots D+7</div>
+              <div className="kpi-value">{followupRows.filter((row) => row.section === "bots_d7").length}</div>
+              <div className="kpi-trend">Canal confirmado</div>
             </article>
             <article className="kpi-card">
-              <div className="kpi-label">Abordados</div>
-              <div className="kpi-value">{followupRows.filter((r) => r.stage === "abordado").length}</div>
-              <div className="kpi-trend">1 mensagem enviada</div>
+              <div className="kpi-label">Problemas de dados</div>
+              <div className="kpi-value">{followupRows.filter((row) => row.section === "dados_inconsistentes").length}</div>
+              <div className="kpi-trend down">Corrigir cadastro ou historico</div>
             </article>
           </div>
 
@@ -292,56 +426,115 @@ export default function DisparoPage() {
               <thead>
                 <tr>
                   <th>Empresa</th>
-                  <th>Ultimo contato</th>
-                  <th>Proxima mensagem</th>
-                  <th>Telefone</th>
-                  <th>Mensagem sugerida</th>
-                  <th>Acao</th>
+                  <th>Resposta</th>
+                  <th>Ultima interacao</th>
+                  <th>Proxima acao</th>
+                  <th>Contexto</th>
+                  <th>Acoes</th>
                 </tr>
               </thead>
               <tbody>
-                {followupRows.map((row) => (
-                  <tr key={row.id} style={sentNow[row.id] ? { opacity: 0.45 } : undefined}>
-                    <td>
-                      <div>{row.company}</div>
-                      <span className={`status-pill ${row.stage}`}>{row.stage}</span>
-                    </td>
-                    <td>
-                      {row.days === null ? "Sem registro" : row.days === 0 ? "Hoje" : `D+${row.days}`}
-                      <div className="muted-copy" style={{ fontSize: "11px" }}>{row.msgCount} msg enviada(s)</div>
-                    </td>
-                    <td>
-                      {row.tier === "aguardar" ? (
-                        <span className="status-pill">Aguardar D+2</span>
-                      ) : (
-                        <div>
-                          <strong style={{ fontSize: "12px" }}>{TIER_INFO[row.tier].label}</strong>
-                          <div className="muted-copy" style={{ fontSize: "11px" }}>{TIER_INFO[row.tier].window}</div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="font-mono">{row.phone ? `+${row.phone}` : "Sem telefone"}</td>
-                    <td style={{ maxWidth: "420px" }}>{row.message || "Janela de follow-up ainda nao abriu."}</td>
-                    <td>
-                      {sentNow[row.id] ? (
-                        <span className="status-pill">Enviado agora</span>
-                      ) : row.tier === "aguardar" ? (
-                        <span className="muted-copy" style={{ fontSize: "12px" }}>Aguardar</span>
-                      ) : row.phone ? (
-                        <a
-                          className="topbar-btn primary"
-                          href={whatsappLink(row.phone, row.message)}
-                          rel="noreferrer"
-                          target="_blank"
-                          onClick={() => handleFollowupClick(row)}
-                        >
-                          Enviar {row.tier}
-                        </a>
-                      ) : (
-                        <span className="portfolio-status warning">Sem telefone</span>
-                      )}
-                    </td>
-                  </tr>
+                {sectionedFollowups.map(({ section, rows: sectionRows }) => (
+                  <Fragment key={section}>
+                    <tr className="queue-section-row">
+                      <td colSpan={6}>
+                        <strong>{QUEUE_SECTION_INFO[section].label}</strong>
+                        <span>{sectionRows.length}</span>
+                      </td>
+                    </tr>
+                    {sectionRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>
+                          <div><strong>{row.company}</strong></div>
+                          <span className={`status-pill ${row.stage}`}>{row.stage}</span>
+                          <div className="font-mono muted-copy" style={{ fontSize: "10px", marginTop: "4px" }}>
+                            {row.phone ? `+${row.phone}` : "Sem telefone"}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`response-pill ${RESPONSE_TYPE_INFO[row.responseType].tone}`}>
+                            {RESPONSE_TYPE_INFO[row.responseType].label}
+                          </span>
+                          <select
+                            aria-label={`Classificar resposta de ${row.company}`}
+                            className="queue-compact-select"
+                            onChange={(event) => void handleClassification(row, event.target.value as ResponseType)}
+                            value={row.responseType}
+                          >
+                            {(Object.keys(RESPONSE_TYPE_INFO) as ResponseType[]).map((type) => (
+                              <option key={type} value={type}>{RESPONSE_TYPE_INFO[type].label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <div>{row.days === null ? "Sem saida" : row.days === 0 ? "Saida hoje" : `Ultima saida D+${row.days}`}</div>
+                          <div className="muted-copy" style={{ fontSize: "11px" }}>
+                            {row.lastInbound ? `Entrada: ${new Date(row.lastInbound).toLocaleString("pt-BR")}` : "Sem entrada"}
+                          </div>
+                          {row.responseTimeMinutes != null ? (
+                            <div className="muted-copy" style={{ fontSize: "11px" }}>
+                              Respondeu em {row.responseTimeMinutes} min
+                            </div>
+                          ) : null}
+                        </td>
+                        <td>
+                          <div>{row.nextActionAt ? new Date(row.nextActionAt).toLocaleString("pt-BR") : "Sem agenda"}</div>
+                          <div className="muted-copy" style={{ fontSize: "11px" }}>{row.nextActionNote}</div>
+                          <input
+                            aria-label={`Agendar ${row.company}`}
+                            className="queue-date-input"
+                            onChange={(event) => void handleSchedule(row.id, event.target.value)}
+                            type="date"
+                            value={row.nextActionAt?.slice(0, 10) ?? ""}
+                          />
+                        </td>
+                        <td style={{ maxWidth: "390px" }}>
+                          {row.lastInboundText ? (
+                            <div className="queue-message-preview">{row.lastInboundText}</div>
+                          ) : null}
+                          <div className="muted-copy" style={{ fontSize: "11px", marginTop: "6px" }}>
+                            {row.message || (section === "responder_agora" ? "Responder com contexto no card." : section === "encaminhamentos" ? "Contatar o responsavel indicado." : `${TIER_INFO[row.tier === "aguardar" ? "M1" : row.tier].label}`)}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="queue-actions">
+                            {row.phone ? (
+                              <a
+                                className="topbar-btn primary"
+                                href={row.message ? whatsappLink(row.phone, row.message) : `https://wa.me/${row.phone}`}
+                                rel="noreferrer"
+                                target="_blank"
+                                onClick={(event) => {
+                                  if (row.message) guardCompanyMessage(event, row.company, row.message);
+                                  if (!event.defaultPrevented) {
+                                    logWhatsappOpened(
+                                      row.id,
+                                      row.message
+                                        ? `WhatsApp aberto para follow-up ${row.tier}`
+                                        : "Conversa do WhatsApp aberta",
+                                    );
+                                  }
+                                }}
+                              >
+                                {row.message ? "Enviar" : "Abrir conversa"}
+                              </a>
+                            ) : (
+                              <span className="portfolio-status warning">Sem telefone</span>
+                            )}
+                            {row.message ? (
+                              <button
+                                className="topbar-btn"
+                                onClick={() => navigator.clipboard?.writeText(row.message)}
+                                type="button"
+                              >
+                                Copiar
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

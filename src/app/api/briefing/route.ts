@@ -38,7 +38,7 @@ export async function GET() {
       getCompanySignals(supabase, now).catch(() => new Map<string, CompanySignal>()),
       supabase.from("deals").select("id, company, name, stage, points, phone, whatsapp, contact_id").in("stage", ["prospect", "abordado", "followup", "qualified"]).limit(2000),
       supabase.from("contacts").select("id, phone, whatsapp"),
-      supabase.from("activities").select("deal_id, created_at").eq("type", "whatsapp_sent").order("created_at", { ascending: false }).limit(5000),
+      supabase.from("activities").select("deal_id, created_at").in("type", ["whatsapp_sent", "whatsapp_sent_sync"]).order("created_at", { ascending: false }).limit(5000),
       supabase.from("calendar_events").select("id, title, kind, starts_at, location, deal_id, done").gte("starts_at", new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()).lte("starts_at", new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString()).order("starts_at", { ascending: true }),
     ]);
 

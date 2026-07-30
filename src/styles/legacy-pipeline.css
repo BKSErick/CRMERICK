@@ -2251,3 +2251,47 @@
   .topbar-search-btn kbd { display: none; }
   .topbar-search-btn { padding: 6px 10px; }
 }
+
+.card-next-action {
+  margin-top: 7px;
+  color: #58677a;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.operational-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+  padding: 10px;
+  border: 1px solid #dfe5ee;
+  border-radius: 10px;
+  background: #f7f9fc;
+}
+.operational-strip > div {
+  min-width: 0;
+}
+.operational-strip span {
+  display: block;
+  margin-bottom: 3px;
+  color: #748196;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.operational-strip strong {
+  display: block;
+  overflow: hidden;
+  color: #1e2938;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .operational-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

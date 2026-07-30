@@ -1,15 +1,14 @@
-// Helper client-side para registrar o clique em "Enviar WhatsApp" como atividade real
-// (activities.type = whatsapp_sent) via rota server-side. Best-effort: nunca bloqueia o
-// disparo (o link wa.me abre normalmente mesmo se o log falhar). Story 016.
+// Registra somente a abertura do WhatsApp. O envio real e confirmado exclusivamente
+// pelo webhook Uazapi como whatsapp_sent_sync.
 
-export async function logWhatsappSent(dealId: number, description = "Disparo de WhatsApp") {
+export async function logWhatsappOpened(dealId: number, description = "WhatsApp aberto") {
   try {
     await fetch("/api/activities", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dealId, type: "whatsapp_sent", description }),
+      body: JSON.stringify({ dealId, type: "whatsapp_opened", description }),
     });
   } catch {
-    // silencioso de proposito: o disparo manual nao pode depender do log
+    // silencioso de proposito: abrir o WhatsApp nao depende do log
   }
 }

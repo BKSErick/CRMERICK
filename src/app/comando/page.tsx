@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { logWhatsappSent } from "@/lib/activityClient";
+import { logWhatsappOpened } from "@/lib/activityClient";
 
 // Sala de Comando = cockpit de cobranca diaria. Placar do dia (disparos/follow-ups/calls/deals
 // movidos), fila priorizada e alertas das regras (7 dias, dia 20), tudo da rota server-side
@@ -203,24 +203,12 @@ export default function ComandoPage() {
     };
   }, []);
 
-  async function reload() {
-    try {
-      const response = await fetch("/api/comando");
-      const body = await response.json();
-      if (response.ok && body.ok) setData(body as Comando);
-    } catch {
-      // mantem o estado atual
-    }
+  function handleWhatsapp(item: QueueItem) {
+    void logWhatsappOpened(item.id);
   }
 
-  async function handleWhatsapp(item: QueueItem) {
-    await logWhatsappSent(item.id);
-    reload();
-  }
-
-  async function handleFollowup(item: FollowupItem) {
-    await logWhatsappSent(item.id, `Follow-up ${item.tier} enviado`);
-    reload();
+  function handleFollowup(item: FollowupItem) {
+    void logWhatsappOpened(item.id, `WhatsApp aberto para follow-up ${item.tier}`);
   }
 
   return (
@@ -377,7 +365,7 @@ export default function ComandoPage() {
                           target="_blank"
                           onClick={() => handleFollowup(item)}
                         >
-                          Enviar {item.tier}
+                          Abrir {item.tier}
                         </a>
                       </td>
                     </tr>
@@ -428,7 +416,7 @@ export default function ComandoPage() {
                             target="_blank"
                             onClick={() => handleWhatsapp(item)}
                           >
-                            WhatsApp
+                            Abrir WhatsApp
                           </a>
                           <button
                             className="topbar-btn"
