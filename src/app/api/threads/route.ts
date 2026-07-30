@@ -36,7 +36,7 @@ export async function GET() {
     );
   }
 
-  const { accessToken, accountId } = await refreshIfNeeded(token);
+  const { accessToken } = await refreshIfNeeded(token);
   const agora = Math.floor(Date.now() / 1000);
   const desde = agora - 30 * 86400;
 
@@ -55,14 +55,16 @@ export async function GET() {
   postsUrl.searchParams.set("limit", "15");
   postsUrl.searchParams.set("access_token", accessToken);
 
-  // Metricas da conta em 30 dias. followers_count e lifetime, por isso vai separado.
-  const contaUrl = new URL(`${THREADS_API}/${accountId}/threads_insights`);
+  // Metricas da conta em 30 dias. IMPORTANTE: usar /me, nao o user_id do OAuth.
+  // O id devolvido no OAuth (ex: 27480482318247090) NAO e aceito por threads_insights
+  // ("Object with ID does not exist", subcode 33); o id interno de insights e outro.
+  const contaUrl = new URL(`${THREADS_API}/me/threads_insights`);
   contaUrl.searchParams.set("metric", "views,likes,replies,reposts,quotes");
   contaUrl.searchParams.set("since", String(desde));
   contaUrl.searchParams.set("until", String(agora));
   contaUrl.searchParams.set("access_token", accessToken);
 
-  const seguidoresUrl = new URL(`${THREADS_API}/${accountId}/threads_insights`);
+  const seguidoresUrl = new URL(`${THREADS_API}/me/threads_insights`);
   seguidoresUrl.searchParams.set("metric", "followers_count");
   seguidoresUrl.searchParams.set("access_token", accessToken);
 
