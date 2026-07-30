@@ -486,7 +486,11 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [activities, setActivities] = useState<DealActivity[]>([]);
   const [activitiesStatus, setActivitiesStatus] = useState<"loading" | "ready" | "error">("loading");
   const updateDeal = useCRMStore((state) => state.updateDeal);
-  const knownCompanies = useCRMStore((state) => state.deals.map((item) => item.company));
+  const storeDeals = useCRMStore((state) => state.deals);
+  const knownCompanies = useMemo(
+    () => storeDeals.map((item) => item.company),
+    [storeDeals],
+  );
   const updateDealStage = useCRMStore((state) => state.updateDealStage);
   const [valueInput, setValueInput] = useState(String(deal.value ?? 0));
   const [recurring, setRecurring] = useState(Boolean(deal.recurring));
