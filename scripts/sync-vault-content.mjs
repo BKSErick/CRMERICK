@@ -63,16 +63,52 @@ function parseCopies(md) {
   }
   return items;
 }
-const copies = parseCopies(read(path.join(ERICK_DIR, "copies_instagram.md")));
+// Threads: texto puro, numerado dentro de cada secao "## ". Canal separado do Instagram.
+function parseThreads(md) {
+  const items = [];
+  let secao = "";
+  let n = 0;
+  for (const linha of md.split(/\r?\n/)) {
+    const head = linha.match(/^##\s+(.+)/);
+    if (head) {
+      secao = head[1].replace(/[^\p{L}\p{N}\s/()-]/gu, "").trim();
+      continue;
+    }
+    const item = linha.match(/^\s*\d+\.\s+(.+)/);
+    if (!item || !secao) continue;
+    const texto = item[1].trim();
+    items.push({
+      n: ++n,
+      canal: "threads",
+      type: "Thread",
+      title: secao,
+      hook: texto.split(/(?<=[.!?])\s/)[0].slice(0, 120),
+      excerpt: texto.slice(0, 400),
+      status: "Planejado",
+    });
+  }
+  return items;
+}
+
+const copies = parseCopies(read(path.join(ERICK_DIR, "copies_instagram.md"))).map((i) => ({
+  ...i,
+  canal: "instagram",
+}));
+const threads = parseThreads(read(path.join(ERICK_DIR, "Threads_Posts_Prontos.md")));
 write("conteudo.json", {
   generatedAt: new Date().toISOString(),
-  source: "vault: SaaS/CRM ERICK/Erick Sena/copies_instagram.md",
+  source:
+    "vault: SaaS/CRM ERICK/Erick Sena/copies_instagram.md + Threads_Posts_Prontos.md",
   counts: {
-    total: copies.length,
+    total: copies.length + threads.length,
     posts: copies.filter((i) => i.type === "Post").length,
     stories: copies.filter((i) => i.type === "Story").length,
+    threads: threads.length,
   },
-  items: copies.sort((a, b) => (a.type === b.type ? a.n - b.n : a.type === "Post" ? -1 : 1)),
+  items: [
+    ...copies.sort((a, b) => (a.type === b.type ? a.n - b.n : a.type === "Post" ? -1 : 1)),
+    ...threads,
+  ],
 });
 
 // ============ 2) BRAIN (indice de docs estrategicos ATUAIS) ============
@@ -134,6 +170,6 @@ write("carteira.json", {
 });
 
 console.log(`✅ content/ gerado:`);
-console.log(`   conteudo.json — ${copies.length} itens`);
+console.log(`   conteudo.json — ${copies.length} itens Instagram + ${threads.length} Threads`);
 console.log(`   brain.json    — ${brain.length} docs estrategicos`);
 console.log(`   carteira.json — ${carteira.length} clientes ativos`);

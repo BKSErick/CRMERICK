@@ -8,7 +8,8 @@ import { InstagramPublishedKpi } from "./InstagramPublishedKpi";
 
 type ContentItem = {
   n: number;
-  type: "Post" | "Story";
+  canal?: "instagram" | "threads";
+  type: "Post" | "Story" | "Thread";
   title: string;
   hook: string;
   excerpt: string;
@@ -18,7 +19,7 @@ type ContentItem = {
 type ContentPlan = {
   generatedAt: string;
   source: string;
-  counts: { total: number; posts: number; stories: number };
+  counts: { total: number; posts: number; stories: number; threads?: number };
   items: ContentItem[];
 };
 
@@ -31,8 +32,41 @@ function loadPlan(): ContentPlan {
   }
 }
 
+function ContentTable({ items, textoLabel }: { items: ContentItem[]; textoLabel: string }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tipo</th>
+            <th>Titulo</th>
+            <th>{textoLabel}</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={`${item.canal || "instagram"}-${item.type}-${item.n}`}>
+              <td>{item.n}</td>
+              <td>{item.type}</td>
+              <td>{item.title}</td>
+              <td>{item.excerpt || item.hook}</td>
+              <td>
+                <span className="status-pill active">{item.status}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function ConteudoPage() {
   const plan = loadPlan();
+  const instagram = plan.items.filter((i) => (i.canal || "instagram") === "instagram");
+  const threads = plan.items.filter((i) => i.canal === "threads");
 
   return (
     <section>
@@ -65,6 +99,11 @@ export default function ConteudoPage() {
           <div className="kpi-value">{plan.counts.stories}</div>
           <div className="kpi-trend up">Funil</div>
         </article>
+        <article className="kpi-card">
+          <div className="kpi-label">Threads</div>
+          <div className="kpi-value">{plan.counts.threads ?? 0}</div>
+          <div className="kpi-trend up">Texto</div>
+        </article>
         <InstagramPublishedKpi />
       </div>
 
@@ -73,32 +112,19 @@ export default function ConteudoPage() {
           content/conteudo.json vazio. Rode: node scripts/sync-vault-content.mjs
         </div>
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Tipo</th>
-                <th>Titulo</th>
-                <th>Gancho</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plan.items.map((item) => (
-                <tr key={`${item.type}-${item.n}`}>
-                  <td>{item.n}</td>
-                  <td>{item.type}</td>
-                  <td>{item.title}</td>
-                  <td>{item.hook || item.excerpt}</td>
-                  <td>
-                    <span className="status-pill active">{item.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <h2 className="section-title">Instagram ({instagram.length})</h2>
+          <ContentTable items={instagram} textoLabel="Gancho" />
+
+          <h2 className="section-title">Threads ({threads.length})</h2>
+          {threads.length === 0 ? (
+            <div className="connection-status fallback">
+              Nenhum post de Threads no vault (Erick Sena/Threads_Posts_Prontos.md).
+            </div>
+          ) : (
+            <ContentTable items={threads} textoLabel="Texto do post" />
+          )}
+        </>
       )}
     </section>
   );

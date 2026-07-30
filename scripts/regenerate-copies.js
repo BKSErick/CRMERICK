@@ -102,8 +102,14 @@ function extrairCidade(html) {
  * - Prova antes de pitch (nome, cidade, reputacao Maps)
  * - UM problema, nunca lista
  * - Max ~80 palavras, SEM link na mensagem 1 (link vai apos resposta)
- * - Fecha com pergunta de baixo custo ("posso te mandar?")
+ * - Fecha SEMPRE com o CTA canonico (CTA_FINAL): nomeia o que chega na msg 2
+ *   (o exemplo de cliente real) e pede so um "quer ver?" — nunca "pode ser?"
  */
+// CTA canonico da mensagem 1 (decidido por Erick 2026-07-30). Nomeia o que chega
+// depois do "sim" (exemplo de cliente real, ex.: sitejotta.vercel.app) e pede um
+// sim barato. NAO usar "pode ser?" — soa hesitante e nao diz o que o lead recebe.
+const CTA_FINAL = 'Separei um exemplo de página que faz isso pra uma empresa do mesmo ramo. Quer ver?';
+
 function gerarCopy({ empresa, temSite, mapsInfo, cidade }) {
   const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
 
@@ -116,7 +122,7 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade }) {
       'O ponto é: hoje até quem chega por indicação pesquisa a empresa antes de ligar. Quando o comprador só encontra o Maps, a conversa esfria antes do primeiro contato.',
       'O ponto é: o comprador industrial valida a empresa no Google antes de pedir orçamento. Se ele não encontra nada além do Maps, ele segue pro próximo da lista.',
     ];
-    return `Oi, tudo bem? Erick aqui.\n\n${prova}\n\n${pontos[seed % pontos.length]}\n\nPosso te mandar um exemplo rápido de como uma página simples muda esse cenário? Sem compromisso.`;
+    return `Oi, tudo bem? Erick aqui.\n\n${prova}\n\n${pontos[seed % pontos.length]}\n\n${CTA_FINAL}`;
   }
 
   // Template D - site_auditar: valida a decisao do dono, aponta UM ponto,
@@ -126,7 +132,7 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade }) {
     'o comprador que já quer orçamento precisa de um caminho direto pra pedir, sem ter que procurar contato pela página',
     'a reputação que vocês têm no mercado ainda não aparece ali como prova comercial pra quem nunca ouviu falar de vocês',
   ];
-  return `Oi, tudo bem? Erick aqui.\n\nDei uma olhada no site da ${empresa}, do jeito que um comprador industrial olha antes de pedir orçamento. O site cobre o básico. O ponto de atenção é um só: ${problemas[seed % problemas.length]}.\n\nEm industrial, o comprador decide em poucos segundos se liga ou segue pro próximo resultado.\n\nPosso te mandar um diagnóstico visual rápido do que eu ajustaria? Leitura de 2 minutos.`;
+  return `Oi, tudo bem? Erick aqui.\n\nDei uma olhada no site da ${empresa}, do jeito que um comprador industrial olha antes de pedir orçamento. O site cobre o básico. O ponto de atenção é um só: ${problemas[seed % problemas.length]}.\n\nEm industrial, o comprador decide em poucos segundos se liga ou segue pro próximo resultado.\n\n${CTA_FINAL}`;
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────

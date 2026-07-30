@@ -33,3 +33,6 @@ lista-de-ataque.html
 scripts/email/email_queue.json
 scripts/email/sent_log.json
 preview-emails.html
+
+# Reconciliacao WhatsApp x CRM (PII: telefones e transcricao de conversa)
+reconciliacao-whatsapp.md

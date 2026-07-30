@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-07-06T23:13:22.812Z",
-  "source": "vault: SaaS/CRM ERICK/Erick Sena/copies_instagram.md",
+  "generatedAt": "2026-07-30T20:13:53.503Z",
+  "source": "vault: SaaS/CRM ERICK/Erick Sena/copies_instagram.md + Threads_Posts_Prontos.md",
   "counts": {
-    "total": 27,
+    "total": 54,
     "posts": 18,
-    "stories": 9
+    "stories": 9,
+    "threads": 27
   },
   "items": [
     {
@@ -13,7 +14,8 @@
       "title": "O Manifesto (A Máquina dos Bastidores)",
       "hook": "Eu passei anos nos bastidores. Por escolha. É lá que o motor real é construído.",
       "excerpt": "Enquanto a maioria dos donos de negócios focava no palco e em aparecer, eu estava focado em desenhar processos, criar automações e fazer a engrenagem de grandes plataformas B2B rod",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 2,
@@ -21,7 +23,8 @@
       "title": "O Sarcasmo do Hacker (Planilhas são uma Piada)",
       "hook": "Engraçado você se chamar de CEO e passar 4 horas do dia colando dados em Excel.",
       "excerpt": "Muitos donos de negócios adoram a pose de \"produtividade\". Lotam a agenda de reuniões, compram ferramentas caras e mantêm funcionários caros copiando leads manualmente de um lado p",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 3,
@@ -29,7 +32,8 @@
       "title": "A Definição de Ativo (Por que criei o OsTrack)",
       "hook": "O negócio que depende de você para funcionar não é um ativo. É um emprego.",
       "excerpt": "Eu crio sistemas e automações para os outros, mas a maior regra de negócios que aprendi é: o Criador precisa ter seus próprios ativos.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 4,
@@ -37,7 +41,8 @@
       "title": "O Custo da Inércia Operacional (Escalar sem Contratar)",
       "hook": "Escalar não significa contratar mais funcionários. Significa construir sistemas melhores.",
       "excerpt": "A mentalidade tradicional de negócios diz que para crescer você precisa de mais pessoas. Mais gerentes, mais suporte, mais braços digitando dados.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 5,
@@ -45,7 +50,8 @@
       "title": "A Ilusão da Prospecção (Antiprospecção e Autoridade)",
       "hook": "Se você precisa implorar por clientes, o seu posicionamento já nasceu quebrado.",
       "excerpt": "Eu vejo o desespero de empresários e agências entupindo o direct de estranhos com prospecção ativa fria e mensagens genéricas que ninguém lê.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 6,
@@ -53,7 +59,8 @@
       "title": "A Soberania do Criador (Produtos vs. Serviço)",
       "hook": "Quem vende horas trabalha para o relógio. Quem cria sistemas faz o relógio trabalhar para si.",
       "excerpt": "A maioria dos prestadores de serviço comuns está presa na gaiola de ouro: trocam tempo por dinheiro. Se não estão trabalhando no teclado, o faturamento é zero.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 7,
@@ -61,7 +68,8 @@
       "title": "O Dono Refém do ClickUp (A Falsa Liderança)",
       "hook": "Líderes de verdade gerenciam números, não tarefas manuais.",
       "excerpt": "Muitos empresários acreditam que \"gerenciar\" é passar o dia cobrando funcionários no ClickUp ou conferindo se a tarefa foi feita.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 8,
@@ -69,7 +77,8 @@
       "title": "O Estilo de Vida de quem tem Ativos (Liberdade de Nuvem)",
       "hook": "A verdadeira liberdade é quando a sua infraestrutura lucra mais que o seu esforço.",
       "excerpt": "A maioria dos prestadores de serviço comuns está cansada porque a sua receita é proporcional às horas de digitação. Se eles param por uma semana, a receita cai para zero.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 9,
@@ -77,7 +86,8 @@
       "title": "O Fim da Página Institucional (Máquinas de Atração)",
       "hook": "Seu site institucional de R$ 1.000 é um túmulo digital. Ele não vende.",
       "excerpt": "A maioria das empresas tradicionais gasta fortunas com agências para fazer sites bonitinhos com a página \"Quem Somos\" e um formulário que ninguém preenche.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 10,
@@ -85,7 +95,8 @@
       "title": "O Mito do Suporte 100% Humano (Escala Inteligente)",
       "hook": "Seu suporte é lento porque você insiste em depender da digitação manual humana.",
       "excerpt": "Empresários dizem que fazem questão de ter suporte \"humanizado\" para justificar o atraso de 4 horas para responder uma dúvida simples de um cliente.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 11,
@@ -93,7 +104,8 @@
       "title": "Faturamento vs. Margem de Lucro (A Piada dos Milhões)",
       "hook": "Faturamento é vaidade. Lucro é sanidade. Fluxo de caixa é realidade.",
       "excerpt": "O mercado digital adora ostentar prints de faturamentos brutos gigantescos de 7 dígitos.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 12,
@@ -101,7 +113,8 @@
       "title": "A Lei da Seleção Natural nos Negócios (Complacência Tecnológica)",
       "hook": "Sua empresa tradicional não vai falir por falta de mercado. Vai falir por complacência operacional.",
       "excerpt": "Muitas empresas consolidadas acreditam que estão seguras porque têm 10 anos de mercado e clientes fiéis.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 13,
@@ -109,7 +122,8 @@
       "title": "O Arquiteto vs. O Programador de Código (Diferença de Valor)",
       "hook": "O programador escreve código. O Arquiteto desenha o futuro do seu negócio.",
       "excerpt": "Se você contrata um programador para fazer um site ou sistema sem uma visão estratégica de processos, você está jogando dinheiro no lixo.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 14,
@@ -117,7 +131,8 @@
       "title": "A Ilusão da \"Falsa Escala\" em Vendas",
       "hook": "Colocar tráfego em um funil ineficiente é o jeito mais rápido de queimar caixa.",
       "excerpt": "Empresários acreditam que para vender mais basta colocar R$ 20k a mais em anúncios de tráfego pago.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 15,
@@ -125,7 +140,8 @@
       "title": "Por que eu Licencio e não Alugo meu Tempo (A Escada de Ativos)",
       "hook": "Alugar tempo gera receita. Licenciar sistemas gera equity.",
       "excerpt": "Se eu ficasse preso a consultorias por hora, eu estaria limitando meu próprio crescimento ao relógio.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 16,
@@ -133,7 +149,8 @@
       "title": "O Manifesto Final (A Escolha da Soberania)",
       "hook": "A complacência operacional é a decisão consciente de encolher.",
       "excerpt": "Passamos os últimos dois meses falando sobre escala, sistemas operacionais inteligentes e a ineficiência de planilhas e processos manuais.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 17,
@@ -141,7 +158,8 @@
       "title": "O Fim do \"Empresário Torcedor\"",
       "hook": "POR QUE VOCÊ GERENCIA SUA EMPRESA COMO UM TORCEDOR NA ARQUIBANCADA?",
       "excerpt": "Futebol é sobre sentar na arquibancada, cruzar os dedos e rezar para o resultado vir. O problema é que 90% dos empresários gerenciam suas empresas exatamente com a mesma mentalidad",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 18,
@@ -149,7 +167,8 @@
       "title": "O Roubo Passivo de Leads",
       "hook": "MÊS DE COPA É O MÊS MAIS FÁCIL PARA DEVORAR OS CLIENTES DO SEU CONCORRENTE.",
       "excerpt": "Sabe o que acontece quando um cliente manda mensagem para a sua empresa bem no meio do jogo do Brasil?",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 1,
@@ -157,7 +176,8 @@
       "title": "O Gancho (A Provocação Irônica)",
       "hook": "",
       "excerpt": "\"Tem empresário que confunde trabalhar muito com ter um negócio inteligente.\"",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 1,
@@ -165,7 +185,8 @@
       "title": "O Gancho (A Planilha Mediocre)",
       "hook": "",
       "excerpt": "\"O concorrente (SmartQuestion) cobra caro para te cuspir isso aqui:",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 2,
@@ -173,7 +194,8 @@
       "title": "Expondo a Ilusão (O Truth-Teller)",
       "hook": "",
       "excerpt": "\"Sua planilha de Excel de 2024 não é um sinal de controle. É um atestado de que você é o funcionário mais caro da sua própria empresa.\"",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 2,
@@ -181,7 +203,8 @@
       "title": "O Duelo de Interface (A Experiência do OsTrack)",
       "hook": "",
       "excerpt": "\"Isso aqui é o OsTrack.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 3,
@@ -189,7 +212,8 @@
       "title": "O Mecanismo Único (A Solução do Arquiteto)",
       "hook": "",
       "excerpt": "\"Enquanto você passa raiva gerenciando pessoas para fazer trabalho braçal...",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 3,
@@ -197,7 +221,8 @@
       "title": "O Truth-Teller (Ironizando o Ego)",
       "hook": "",
       "excerpt": "\"A maioria dos desenvolvedores e agências comuns ama a complexidade porque ela justifica a hora cobrada.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 4,
@@ -205,7 +230,8 @@
       "title": "A Prova de Ativo (Autoridade do Criador)",
       "hook": "",
       "excerpt": "\"Eu não vendo teoria. Eu crio meus próprios ativos.",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 4,
@@ -213,7 +239,8 @@
       "title": "A CTA do Diagnóstico (O Filtro Final)",
       "hook": "",
       "excerpt": "\"Quer que eu analise a sua operação e te mostre onde você está perdendo margem por excesso de planilhas manuais?",
-      "status": "Planejado"
+      "status": "Planejado",
+      "canal": "instagram"
     },
     {
       "n": 5,
@@ -221,6 +248,250 @@
       "title": "A Chamada Soberana (Tensão Competitiva / CTA)",
       "hook": "",
       "excerpt": "\"Eu tenho espaço para estruturar a arquitetura de apenas 2 operações este mês.",
+      "status": "Planejado",
+      "canal": "instagram"
+    },
+    {
+      "n": 1,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Hot takes (statement que divide)",
+      "hook": "Site bonito não paga conta.",
+      "excerpt": "Site bonito não paga conta. Site que joga o cliente no teu WhatsApp paga.",
+      "status": "Planejado"
+    },
+    {
+      "n": 2,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Hot takes (statement que divide)",
+      "hook": "A maioria das PME não tem problema de cliente.",
+      "excerpt": "A maioria das PME não tem problema de cliente. Tem problema de site que esconde o botão de WhatsApp no rodapé.",
+      "status": "Planejado"
+    },
+    {
+      "n": 3,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Hot takes (statement que divide)",
+      "hook": "Contratar mais gente pra fazer trabalho repetitivo não é crescer.",
+      "excerpt": "Contratar mais gente pra fazer trabalho repetitivo não é crescer. É encarecer o mesmo gargalo.",
+      "status": "Planejado"
+    },
+    {
+      "n": 4,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Hot takes (statement que divide)",
+      "hook": "Todo mundo quer IA.",
+      "excerpt": "Todo mundo quer IA. Ninguém quer arrumar o processo manual que a IA ia automatizar.",
+      "status": "Planejado"
+    },
+    {
+      "n": 5,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Hot takes (statement que divide)",
+      "hook": "Empresa que só funciona se você estiver dentro dela não é empresa.",
+      "excerpt": "Empresa que só funciona se você estiver dentro dela não é empresa. É um emprego que você mesmo criou.",
+      "status": "Planejado"
+    },
+    {
+      "n": 6,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Hot takes (statement que divide)",
+      "hook": "Vibe code fica lindo no vídeo.",
+      "excerpt": "Vibe code fica lindo no vídeo. Sistema que roda em produção sem quebrar é outro esporte.",
+      "status": "Planejado"
+    },
+    {
+      "n": 7,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Hot takes (statement que divide)",
+      "hook": "\"Presença digital\" não vende nada.",
+      "excerpt": "\"Presença digital\" não vende nada. Caminho pro cliente falar com você vende.",
+      "status": "Planejado"
+    },
+    {
+      "n": 8,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Pergunta / engajamento (puxa resposta)",
+      "hook": "Pergunta séria pra quem tem empresa: teu site já te trouxe UM cliente esse mês?",
+      "excerpt": "Pergunta séria pra quem tem empresa: teu site já te trouxe UM cliente esse mês? Ou é só cartão de visita caro?",
+      "status": "Planejado"
+    },
+    {
+      "n": 9,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Pergunta / engajamento (puxa resposta)",
+      "hook": "Me conta: qual tarefa manual você ainda faz toda semana que já sabe que dava pra automatizar?",
+      "excerpt": "Me conta: qual tarefa manual você ainda faz toda semana que já sabe que dava pra automatizar?",
+      "status": "Planejado"
+    },
+    {
+      "n": 10,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Pergunta / engajamento (puxa resposta)",
+      "hook": "Qual decisão no teu negócio você tá adiando com a desculpa de que \"não é a hora\"?",
+      "excerpt": "Qual decisão no teu negócio você tá adiando com a desculpa de que \"não é a hora\"?",
+      "status": "Planejado"
+    },
+    {
+      "n": 11,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Pergunta / engajamento (puxa resposta)",
+      "hook": "Empreendedor, responde rápido: você trabalha NA empresa ou PELA empresa?",
+      "excerpt": "Empreendedor, responde rápido: você trabalha NA empresa ou PELA empresa? Sabe a diferença?",
+      "status": "Planejado"
+    },
+    {
+      "n": 12,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Pergunta / engajamento (puxa resposta)",
+      "hook": "Marketing na era da IA: o que você acha que piorou?",
+      "excerpt": "Marketing na era da IA: o que você acha que piorou?",
+      "status": "Planejado"
+    },
+    {
+      "n": 13,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Pergunta / engajamento (puxa resposta)",
+      "hook": "Se amanhã você sumisse por 30 dias, teu negócio continuava faturando?",
+      "excerpt": "Se amanhã você sumisse por 30 dias, teu negócio continuava faturando? Responde honesto.",
+      "status": "Planejado"
+    },
+    {
+      "n": 14,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Bastidor / build in public",
+      "hook": "Peguei 50 empresas da minha cidade e olhei o site de cada uma.",
+      "excerpt": "Peguei 50 empresas da minha cidade e olhei o site de cada uma. 9 em cada 10 perdem cliente no mesmo ponto: não tem como falar no WhatsApp. É dinheiro escorrendo todo dia e ninguém percebe.",
+      "status": "Planejado"
+    },
+    {
+      "n": 15,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Bastidor / build in public",
+      "hook": "Montei um sistema que acha a empresa, vê o que tá errado no site dela e já escreve a primeira mensagem.",
+      "excerpt": "Montei um sistema que acha a empresa, vê o que tá errado no site dela e já escreve a primeira mensagem. O que eu levava uma semana pra fazer na mão, roda em minutos. Não é mágica, é estrutura.",
+      "status": "Planejado"
+    },
+    {
+      "n": 16,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Bastidor / build in public",
+      "hook": "Passei anos construindo o sistema dos outros nos bastidores.",
+      "excerpt": "Passei anos construindo o sistema dos outros nos bastidores. Hoje construo os meus. A virada não foi técnica. Foi decidir parar de fazer o motor pro barco dos outros.",
+      "status": "Planejado"
+    },
+    {
+      "n": 17,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Bastidor / build in public",
+      "hook": "Antes: site parado, zero conversa.",
+      "excerpt": "Antes: site parado, zero conversa. Depois: a pessoa acha no Google e em dois toques tá no WhatsApp. Mudei o que o site faz, não como ele parece. A régua é conversa gerada, não elogio de design.",
+      "status": "Planejado"
+    },
+    {
+      "n": 18,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Oferta leve (sem hype)",
+      "hook": "Vou olhar 3 sites de graça hoje e te falar o que tá fazendo perder cliente.",
+      "excerpt": "Vou olhar 3 sites de graça hoje e te falar o que tá fazendo perder cliente. Comenta SITE que eu te chamo.",
+      "status": "Planejado"
+    },
+    {
+      "n": 19,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Oferta leve (sem hype)",
+      "hook": "Tenho espaço pra desenhar 1 sistema de operação esse mês.",
+      "excerpt": "Tenho espaço pra desenhar 1 sistema de operação esse mês. Se tua empresa vive travada em planilha, me chama no direct.",
+      "status": "Planejado"
+    },
+    {
+      "n": 20,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "Perguntei pro ChatGPT quem faz laudo NR10 em Santo André.",
+      "excerpt": "Perguntei pro ChatGPT quem faz laudo NR10 em Santo André. A empresa que eu tava analisando não apareceu. O site dela é ótimo, melhor que o dos concorrentes. Só que ninguém escreveu nada do jeito que uma pessoa pergunta. Site bonito era 2020. Agora o jogo é ser citável.",
+      "status": "Planejado"
+    },
+    {
+      "n": 21,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "Todo mundo otimizando pro Google enquanto o cliente já pergunta pro ChatGPT.",
+      "excerpt": "Todo mundo otimizando pro Google enquanto o cliente já pergunta pro ChatGPT. O Google te dá 10 links. A IA te dá 1 resposta. Ser o segundo lugar agora significa não existir.",
+      "status": "Planejado"
+    },
+    {
+      "n": 22,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "A IA de atendimento de uma empresa me pediu pra listar de graça os erros do site deles.",
+      "excerpt": "A IA de atendimento de uma empresa me pediu pra listar de graça os erros do site deles. Antes disso quis meu nome completo e perguntou se eu tava alugando pra uma empresa. Eu tinha acabado de avisar que o telefone do site não completa ligação no celular. Instalaram um robô que filtra cliente e afasta quem quer ajudar.",
+      "status": "Planejado"
+    },
+    {
+      "n": 23,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "Mandei 125 mensagens de prospecção essa semana.",
+      "excerpt": "Mandei 125 mensagens de prospecção essa semana. 8 respostas humanas e 6 robôs de saudação. Quase metade do meu engajamento era software falando com software.",
+      "status": "Planejado"
+    },
+    {
+      "n": 24,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "539 dos meus 942 leads não têm WhatsApp, é telefone fixo.",
+      "excerpt": "539 dos meus 942 leads não têm WhatsApp, é telefone fixo. Passei semanas achando que tinha uma base de 942 e tenho uma de 328. Antes de escalar, conte de novo. Quase todo gargalo é um número que ninguém conferiu.",
+      "status": "Planejado"
+    },
+    {
+      "n": 25,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "Um lead abriu minha proposta 15 vezes e não respondeu nenhuma mensagem.",
+      "excerpt": "Um lead abriu minha proposta 15 vezes e não respondeu nenhuma mensagem. Silêncio não é desinteresse. Às vezes é a pessoa lendo pela quarta vez pra decidir. Parei de perguntar o que ele achou e passei a perguntar se ele prefere prazo e valor por escrito ou 10 minutos no telefone.",
+      "status": "Planejado"
+    },
+    {
+      "n": 26,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "Troquei duas palavras no fim de 942 mensagens.",
+      "excerpt": "Troquei duas palavras no fim de 942 mensagens. Saiu \"pode ser?\", entrou \"quer ver?\". A primeira pede permissão. A segunda promete alguma coisa.",
+      "status": "Planejado"
+    },
+    {
+      "n": 27,
+      "canal": "threads",
+      "type": "Thread",
+      "title": "Busca por IA e prospecção real (30/07/2026)",
+      "hook": "Meu WhatsApp virou entrada do meu CRM ontem.",
+      "excerpt": "Meu WhatsApp virou entrada do meu CRM ontem. Lead responde, a mensagem cai no card, o cartão anda de coluna sozinho e a IA escreve o que aprendeu com a conversa. Não contratei ninguém, não comprei ferramenta, levei uma tarde.",
       "status": "Planejado"
     }
   ]

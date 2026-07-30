@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-06T23:13:22.838Z",
+  "generatedAt": "2026-07-30T20:13:54.326Z",
   "source": "vault: SaaS/CRM ERICK/** + thinking/*Erick Sena*",
-  "count": 16,
+  "count": 25,
   "items": [
     {
       "title": "Diagnóstico Geral do Sistema: CRM Erick",
@@ -58,6 +58,12 @@
       "file": "SaaS/CRM ERICK/Erick Sena/Contraponto_Finch_Trafego_e_Timing.md"
     },
     {
+      "title": "Playbook de Busca de Leads + Scripts Webson",
+      "description": "",
+      "category": "Erick Sena",
+      "file": "SaaS/CRM ERICK/Erick Sena/Playbook_Busca_Leads_Webson_2026-07-07.md"
+    },
+    {
       "title": "🎙️ Plano de Escala e Oferta Grand Slam: Erick Sena",
       "description": "",
       "category": "Posicionamento",
@@ -74,6 +80,54 @@
       "description": "",
       "category": "Posicionamento",
       "file": "SaaS/CRM ERICK/Posicionamento/posicionamento_estrategico.md"
+    },
+    {
+      "title": "Framework da Mensagem de Abordagem: Diagnostico sem Ativar o Ego",
+      "description": "",
+      "category": "Posicionamento",
+      "file": "SaaS/CRM ERICK/Posicionamento/Framework_Mensagem_Abordagem_Hormozi.md"
+    },
+    {
+      "title": "Parecer de Execucao e Cadencia: Erick Sena",
+      "description": "",
+      "category": "Posicionamento",
+      "file": "SaaS/CRM ERICK/Posicionamento/Parecer_Tallis_Execucao_Cadencia.md"
+    },
+    {
+      "title": "Parecer Finch: Funil, Canais e Plano OStrack",
+      "description": "",
+      "category": "Posicionamento",
+      "file": "SaaS/CRM ERICK/Posicionamento/Parecer_Finch_Funil_SaaS.md"
+    },
+    {
+      "title": "Parecer Hormozi: Matematica da Meta R$15k",
+      "description": "",
+      "category": "Posicionamento",
+      "file": "SaaS/CRM ERICK/Posicionamento/Parecer_Hormozi_Metas_15k.md"
+    },
+    {
+      "title": "Plano de Metas: R$15k/mes em 4 meses (e +10%/mes depois)",
+      "description": "",
+      "category": "Posicionamento",
+      "file": "SaaS/CRM ERICK/Posicionamento/Plano_Metas_15k_2026-07-07.md"
+    },
+    {
+      "title": "Revisao do Quiz de Diagnostico - Linkbio Erick Sena",
+      "description": "",
+      "category": "Posicionamento",
+      "file": "SaaS/CRM ERICK/Posicionamento/Revisao_Quiz_Linkbio_Finch.md"
+    },
+    {
+      "title": "Pre-Vistoria Tecnica: CRM ERICK",
+      "description": "",
+      "category": "Pre-Vistoria_CRM_2026-07-07",
+      "file": "SaaS/CRM ERICK/Pre-Vistoria_CRM_2026-07-07.md"
+    },
+    {
+      "title": "Re-Vistoria QA: CRM ERICK (pos stories 006-008)",
+      "description": "",
+      "category": "Re-Vistoria_CRM_2026-07-07",
+      "file": "SaaS/CRM ERICK/Re-Vistoria_CRM_2026-07-07.md"
     },
     {
       "title": "⚔️ Debate de Experts: Alex Hormozi vs. Thiago Finch (Erick Sena & OsTrack)",
