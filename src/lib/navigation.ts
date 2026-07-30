@@ -25,6 +25,7 @@ export const navItems: NavItem[] = [
   { label: "Reunioes", href: "/reunioes", module: "reunioes", group: "Gestao", status: "migrated" },
   { label: "Configuracoes", href: "/configuracoes", module: "configuracoes", group: "Gestao", status: "migrated" },
   { label: "Instagram", href: "/instagram", module: "instagram", group: "Gestao", status: "migrated" },
+  { label: "Threads", href: "/threads", module: "threads", group: "Gestao", status: "migrated" },
 ];
 
 export function getNavItem(module: string) {
