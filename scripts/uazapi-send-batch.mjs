@@ -110,13 +110,27 @@ async function enviar(fone, texto) {
   return { ok: r.ok, status: r.status, corpo };
 }
 
+// Grava direto no banco, NAO via /api/activities: aquela rota normaliza qualquer tipo
+// vindo do cliente para "whatsapp_opened" (o desenho antigo so aceitava confirmacao de
+// envio pelo webhook, que ignora o que sai pela API). Com isso o card nunca saia de
+// prospect. Aqui o envio ja foi confirmado pela resposta da Uazapi, entao vale sent.
 async function registrar(dealId, empresa) {
-  const r = await fetch(`${CRM}/api/activities`, {
+  const a = await supa("activities", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ dealId, type: "whatsapp_sent", description: `Disparo automatico para ${empresa}` }),
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      deal_id: dealId,
+      type: "whatsapp_sent",
+      description: `Disparo automatico para ${empresa}`,
+    }),
   });
-  return r.ok;
+  // prospect -> abordado. O .eq no filtro impede rebaixar quem ja avancou.
+  await supa(`deals?id=eq.${dealId}&stage=eq.prospect`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ stage: "abordado" }),
+  });
+  return a.ok;
 }
 
 (async () => {
