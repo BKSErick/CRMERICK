@@ -43,8 +43,12 @@ function extrairSabotadores(html) {
  */
 function extrairMapsInfo(html) {
   const m = html.match(/Google Maps \(([^)]+)\)/i);
-  // A pagina de auditoria grava "avaliacoes" sem acento; na mensagem sai com acento.
-  return m ? m[1].trim().replace(/avaliacoes/gi, 'avaliações') : null;
+  // A pagina de auditoria grava "avaliacoes" sem acento; na mensagem sai com acento
+  // e no singular quando for uma so ("com 1 avaliações" denuncia texto automatico).
+  if (!m) return null;
+  return m[1].trim()
+    .replace(/avaliacoes/gi, 'avaliações')
+    .replace(/\b1 avaliações\b/, '1 avaliação');
 }
 
 /**
@@ -111,6 +115,30 @@ function extrairCidade(html) {
 // sim barato. NAO usar "pode ser?" — soa hesitante e nao diz o que o lead recebe.
 const CTA_FINAL = 'Separei um exemplo de página que faz isso pra uma empresa do mesmo ramo. Quer ver?';
 
+// Prova por segmento. REGRA ANTI-INVENCAO: o texto tem que descrever o case que sera
+// REALMENTE enviado na msg 2, senao o lead abre o link e ve outra coisa.
+//   Jotta     = manutencao industrial (sitejotta.vercel.app)
+//   Metalthec = fabricacao e usinagem de precisao (site-metalthec.vercel.app)
+const CASE_POR_SEGMENTO = {
+  usinagem: 'pra uma metalúrgica de usinagem de precisão',
+  caldeiraria: 'pra uma metalúrgica de fabricação e caldeiraria',
+  manutencao: 'pra uma empresa de manutenção industrial',
+  automacao: 'pra uma empresa de manutenção e automação industrial',
+  climatizacao: 'pra uma empresa de manutenção predial',
+  geral: 'pra uma empresa do mesmo ramo',
+};
+
+function ctaDoSegmento(seg) {
+  return `Separei um exemplo de página que faz isso ${CASE_POR_SEGMENTO[seg.nome] || CASE_POR_SEGMENTO.geral}. Quer ver?`;
+}
+
+// Teste A/B da abertura (31/07). A = saudacao atual, ja com 1 resposta em 7 disparos.
+// B = sem "tudo bem?", mais direto, mas mantendo o nome: numero desconhecido sem
+// identificacao aumenta denuncia. Alterna por empresa para dar leitura comparavel.
+function abertura(variante) {
+  return variante === 'B' ? 'Fala! Erick aqui.' : 'Oi, tudo bem? Erick aqui.';
+}
+
 // Segmento pelo nome da empresa. Serve para elogiar com a palavra certa e para
 // calibrar a promessa: industria de componente nao se convence com "mais cliente
 // no WhatsApp", ela se convence com cotacao chegando pronta.
@@ -138,9 +166,12 @@ function promessa(seg) {
     : 'o cliente chama no WhatsApp já dizendo o que precisa';
 }
 
-function gerarCopy({ empresa, temSite, mapsInfo, cidade }) {
+function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
   const seg = detectarSegmento(empresa);
+  const ab = variante || (seed % 2 === 0 ? 'A' : 'B');
+  const OI = abertura(ab);
+  const CTA = ctaDoSegmento(seg);
   // Nome curto: nome comercial gigante repetido inteiro soa robotico.
   const nomeCurto = empresa.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(' ');
   const ondeLocal = cidade ? `, em ${cidade}` : '';
@@ -157,10 +188,10 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade }) {
       `Hoje quem precisa de ${seg.prova} pesquisa antes de ligar, e quem aparece nessa hora entra na cotação.`,
       `Hoje o comprador pesquisa antes de ligar. Uma página simples põe vocês na frente dele nessa hora.`,
     ][seed % 2];
-    return `Oi, tudo bem? Erick aqui.\n\n${prova}\n\n${ponte} E ${promessa(seg)}.\n\n${CTA_FINAL}`;
+    return `${OI}\n\n${prova}\n\n${ponte} E ${promessa(seg)}.\n\n${CTA}`;
   }
 
-  return `Oi, tudo bem? Erick aqui.\n\nPassei pelo site da ${nomeCurto}${ondeLocal} e dá pra ver o tamanho do trabalho de vocês em ${seg.prova}.\n\nA prova que vocês já têm está espalhada. Reunida numa página, ela trabalha na hora em que o comprador decide, e ${promessa(seg)}.\n\n${CTA_FINAL}`;
+  return `${OI}\n\nPassei pelo site da ${nomeCurto}${ondeLocal} e dá pra ver o tamanho do trabalho de vocês em ${seg.prova}.\n\nA prova que vocês já têm está espalhada. Reunida numa página, ela trabalha na hora em que o comprador decide, e ${promessa(seg)}.\n\n${CTA}`;
 }
 
 function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {
