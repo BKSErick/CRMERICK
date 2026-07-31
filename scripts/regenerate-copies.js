@@ -43,7 +43,8 @@ function extrairSabotadores(html) {
  */
 function extrairMapsInfo(html) {
   const m = html.match(/Google Maps \(([^)]+)\)/i);
-  return m ? m[1].trim() : null;
+  // A pagina de auditoria grava "avaliacoes" sem acento; na mensagem sai com acento.
+  return m ? m[1].trim().replace(/avaliacoes/gi, 'avaliações') : null;
 }
 
 /**
@@ -110,7 +111,59 @@ function extrairCidade(html) {
 // sim barato. NAO usar "pode ser?" — soa hesitante e nao diz o que o lead recebe.
 const CTA_FINAL = 'Separei um exemplo de página que faz isso pra uma empresa do mesmo ramo. Quer ver?';
 
+// Segmento pelo nome da empresa. Serve para elogiar com a palavra certa e para
+// calibrar a promessa: industria de componente nao se convence com "mais cliente
+// no WhatsApp", ela se convence com cotacao chegando pronta.
+const SEGMENTOS = [
+  { re: /usinagem|torno|ferramentaria|precis[aã]o|cnc/i, nome: 'usinagem', b2b: true,
+    prova: 'peça usinada sob desenho' },
+  { re: /caldeiraria|estrutura|solda|metal[uú]rgic|serralheria/i, nome: 'caldeiraria', b2b: true,
+    prova: 'caldeiraria e estrutura' },
+  { re: /manuten[cç][aã]o|industrial|mec[aâ]nic/i, nome: 'manutencao', b2b: true,
+    prova: 'manutenção industrial' },
+  { re: /autom[aç]|el[eé]tric|painel|comando/i, nome: 'automacao', b2b: true,
+    prova: 'automação e elétrica industrial' },
+  { re: /refrigera|climatiza|ar.condicionado|exaust/i, nome: 'climatizacao', b2b: false,
+    prova: 'climatização e refrigeração' },
+];
+
+function detectarSegmento(empresa) {
+  return SEGMENTOS.find((s) => s.re.test(empresa)) || { nome: 'geral', b2b: true, prova: 'o serviço de vocês' };
+}
+
+// Promessa calibrada. B2B industrial fala de processo comercial; local fala de contato.
+function promessa(seg) {
+  return seg.b2b
+    ? 'o pedido chega com o escopo já definido, em vez de virar troca de mensagem'
+    : 'o cliente chama no WhatsApp já dizendo o que precisa';
+}
+
 function gerarCopy({ empresa, temSite, mapsInfo, cidade }) {
+  const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const seg = detectarSegmento(empresa);
+  // Nome curto: nome comercial gigante repetido inteiro soa robotico.
+  const nomeCurto = empresa.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(' ');
+  const ondeLocal = cidade ? `, em ${cidade}` : '';
+
+  // FORMATO CANONICO (decidido 30/07): 4 blocos curtos.
+  // 1) elogio ancorado em fato verificavel  2) o que da pra somar, sempre positivo
+  // 3) promessa calibrada pelo porte        4) CTA que nomeia o que chega depois do sim
+  // PROIBIDO: apontar o que falta no site do lead. Isso pega o ego do dono na hora.
+  if (!temSite) {
+    const prova = mapsInfo
+      ? `Vi a ${nomeCurto} no Google${ondeLocal}. ${mapsInfo} no Maps é operação de verdade, com cliente que volta.`
+      : `Vi a ${nomeCurto} no Google${ondeLocal}, e dá pra ver que é operação de verdade.`;
+    const ponte = [
+      `Hoje quem precisa de ${seg.prova} pesquisa antes de ligar, e quem aparece nessa hora entra na cotação.`,
+      `Hoje o comprador pesquisa antes de ligar. Uma página simples põe vocês na frente dele nessa hora.`,
+    ][seed % 2];
+    return `Oi, tudo bem? Erick aqui.\n\n${prova}\n\n${ponte} E ${promessa(seg)}.\n\n${CTA_FINAL}`;
+  }
+
+  return `Oi, tudo bem? Erick aqui.\n\nPassei pelo site da ${nomeCurto}${ondeLocal} e dá pra ver o tamanho do trabalho de vocês em ${seg.prova}.\n\nA prova que vocês já têm está espalhada. Reunida numa página, ela trabalha na hora em que o comprador decide, e ${promessa(seg)}.\n\n${CTA_FINAL}`;
+}
+
+function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {
   const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
 
   if (!temSite) {

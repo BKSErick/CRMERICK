@@ -61,6 +61,23 @@ async function findOrCreateContact(supabase: SupabaseAdmin, message: UazapiMessa
   }
   if (matches[0]) return matches[0] as ContactRef;
 
+  // A busca acima compara digitos com o valor GRAVADO, e a base guarda telefone
+  // formatado ("(31) 97118-8838"). Sem esta varredura o webhook nunca casava e criava
+  // card fantasma a cada resposta (aconteceu com Pressmix, Manuttech e HM Usinagem).
+  const alvo = phone.replace(/\D/g, "").replace(/^55/, "").slice(-8);
+  if (alvo.length === 8) {
+    const todos = await supabase.from("contacts").select("id, name, company, phone, whatsapp");
+    if (todos.error) throw todos.error;
+    const porSufixo = (todos.data ?? []).filter((c) => {
+      const campos = [c.phone, c.whatsapp].filter(Boolean).join(" ");
+      return (campos.match(/\d{8,}/g) ?? []).some((n) => n.replace(/^55/, "").slice(-8) === alvo);
+    });
+    if (porSufixo.length === 1) {
+      const { id, name, company } = porSufixo[0];
+      return { id, name, company } as ContactRef;
+    }
+  }
+
   const name = fallbackContactName(message);
   const created = await supabase
     .from("contacts")
