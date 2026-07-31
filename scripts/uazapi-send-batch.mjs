@@ -6,14 +6,14 @@
  * DEFAULT E DRY-RUN: sem --go ele so mostra quem receberia e o texto.
  *
  * USO:
- *   node scripts/uazapi-send-batch.mjs                 # dry-run, 7 leads
- *   node scripts/uazapi-send-batch.mjs --limit=7 --go  # dispara de verdade
+ *   node scripts/uazapi-send-batch.mjs                 # dry-run, 10 leads da fila curada
+ *   node scripts/uazapi-send-batch.mjs --go            # dispara de verdade (10)
  *   node scripts/uazapi-send-batch.mjs --ids=491,900   # escolhe os leads na mao
  *   node scripts/uazapi-send-batch.mjs --go --force-hora  # ignora a janela de horario
  *
  * REGRAS ANTI-BLOQUEIO (decididas com o Erick em 31/07/2026):
  * - intervalo sorteado entre 90 e 240s, nunca fixo (cadencia fixa e digital de robo)
- * - pausa maior entre sub-blocos, em vez de 7 mensagens seguidas
+ * - pausa maior entre sub-blocos (5 + 5), em vez de 10 mensagens seguidas
  * - so em horario comercial de dia util
  * - para na hora se duas mensagens seguidas falharem (primeiro sinal de bloqueio)
  * - texto ja e personalizado por lead na origem (copy_text)
@@ -39,18 +39,19 @@ const arg = (nome, padrao) => {
 };
 const GO = process.argv.includes("--go");
 const FORCE_HORA = process.argv.includes("--force-hora");
-const LIMITE = Number(arg("limit", 7));
+// 10 por leva: duas levas automaticas (manha e tarde) mais o que o Erick manda na
+// mao fecham a meta de 30 a 35 por dia. Bloco de 5 = duas metades com pausa no meio.
+const LIMITE = Number(arg("limit", 10));
 const IDS = arg("ids", "").split(",").map(Number).filter(Boolean);
 const MIN_S = Number(arg("min", 90));
 const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
-const TAM_BLOCO = Number(arg("bloco", 3));
+const TAM_BLOCO = Number(arg("bloco", 5));
 
 const BASE = process.env.UAZAPI_BASE_URL;
 const TOKEN = process.env.UAZAPI_INSTANCE_TOKEN;
 const SUPA = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const CRM = process.env.CRM_BASE_URL || "https://crmerick.vercel.app";
 
 if (!BASE || !TOKEN || !SUPA || !KEY) {
   console.error("Faltam variaveis: UAZAPI_BASE_URL, UAZAPI_INSTANCE_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY");
@@ -78,8 +79,16 @@ const supa = async (rota, init = {}) =>
     headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", ...(init.headers || {}) },
   });
 
+// So dispara para a fila CURADA: deals com segment preenchido (usinagem, caldeiraria,
+// manutencao, automacao, climatizacao). Sem isso o script pegava qualquer prospect com
+// copy, inclusive eletricista autonomo e MEI que o filtro tinha descartado, e ainda com
+// a copy antiga. Marcar o segmento no card e o que separa quem entra do que nao entra.
+const SEGMENTOS_VALIDOS = "usinagem,caldeiraria,manutencao,automacao,climatizacao";
+
 async function carregarFila() {
-  const filtro = IDS.length ? `id=in.(${IDS.join(",")})` : "stage=eq.prospect";
+  const filtro = IDS.length
+    ? `id=in.(${IDS.join(",")})`
+    : `stage=eq.prospect&segment=in.(${SEGMENTOS_VALIDOS})`;
   const deals = await (await supa(`deals?${filtro}&select=id,company,stage,copy_text`, { headers: { Range: "0-9999" } })).json();
   const contatos = await (await supa("contacts?select=id,phone", { headers: { Range: "0-9999" } })).json();
   const fone = Object.fromEntries(contatos.map((c) => [c.id, c.phone]));
