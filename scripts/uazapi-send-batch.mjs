@@ -85,20 +85,30 @@ const supa = async (rota, init = {}) =>
 // a copy antiga. Marcar o segmento no card e o que separa quem entra do que nao entra.
 const SEGMENTOS_VALIDOS = "usinagem,caldeiraria,manutencao,automacao,climatizacao";
 
+// Ordem de confianca do canal:
+//   1) whatsapp_jid  -> confirmado pela propria Uazapi
+//   2) whatsapp_site -> numero que a empresa publica no site, ou seja, o que ela escolheu atender
+//   3) phone celular -> veio do Google Maps, costuma ser o fixo do escritorio
+// Exigir so o item 3 descartava 73% da base. O scraper de sites recuperou 169 numeros,
+// 117 deles diferentes do que estava cadastrado.
+export function canalDoContato(c) {
+  if (c?.whatsapp_jid) return String(c.whatsapp_jid).split("@")[0];
+  if (c?.whatsapp_site) return String(c.whatsapp_site).replace(/\D/g, "");
+  const dig = String(c?.phone || "").replace(/\D/g, "");
+  return dig.length === 11 && dig[2] === "9" ? `55${dig}` : null;
+}
+
 async function carregarFila() {
   const filtro = IDS.length
     ? `id=in.(${IDS.join(",")})`
     : `stage=eq.prospect&segment=in.(${SEGMENTOS_VALIDOS})`;
   const deals = await (await supa(`deals?${filtro}&select=id,company,stage,copy_text`, { headers: { Range: "0-9999" } })).json();
-  const contatos = await (await supa("contacts?select=id,phone", { headers: { Range: "0-9999" } })).json();
-  const fone = Object.fromEntries(contatos.map((c) => [c.id, c.phone]));
+  const contatos = await (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid", { headers: { Range: "0-9999" } })).json();
+  const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
 
   return deals
     .filter((d) => d.copy_text)
-    .map((d) => {
-      const dig = String(fone[d.id] || "").replace(/\D/g, "");
-      return { ...d, fone: dig.length === 11 && dig[2] === "9" ? `55${dig}` : null };
-    })
+    .map((d) => ({ ...d, fone: canalDoContato(porId[d.id]) }))
     .filter((d) => d.fone)
     .filter((d) => IDS.length === 0 || IDS.includes(d.id));
 }

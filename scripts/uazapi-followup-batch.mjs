@@ -101,14 +101,21 @@ const AUTORESPONDER = /agradece|obrigado (por|pelo)|seja bem-vind|responderemos|
 async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
     (await supa("deals?stage=in.(abordado,followup)&select=id,company,segment", { headers: { Range: "0-9999" } })).json(),
-    (await supa("contacts?select=id,phone", { headers: { Range: "0-9999" } })).json(),
+    (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid", { headers: { Range: "0-9999" } })).json(),
     (await supa(
       "activities?type=in.(whatsapp_sent,whatsapp_sent_sync,whatsapp_received)&select=deal_id,type,description,created_at&order=created_at.asc",
       { headers: { Range: "0-9999" } },
     )).json(),
   ]);
 
-  const fone = Object.fromEntries(contatos.map((c) => [c.id, c.phone]));
+  const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
+  // Mesma ordem do disparo: jid confirmado > numero publicado no site > celular do Maps.
+  const canal = (c) => {
+    if (c?.whatsapp_jid) return String(c.whatsapp_jid).split("@")[0];
+    if (c?.whatsapp_site) return String(c.whatsapp_site).replace(/\D/g, "");
+    const d = String(c?.phone || "").replace(/\D/g, "");
+    return d.length === 11 && d[2] === "9" ? `55${d}` : null;
+  };
   const hist = {};
   for (const a of acts) {
     if (!a.deal_id) continue;
@@ -126,8 +133,7 @@ async function carregarFila() {
   return deals
     .map((d) => {
       const h = hist[d.id];
-      const dig = String(fone[d.id] || "").replace(/\D/g, "");
-      const celular = dig.length === 11 && dig[2] === "9" ? `55${dig}` : null;
+      const celular = canal(porId[d.id]);
       if (!h || !h.ultimaSaida || !celular) return null;
       if (h.humanas > 0) return null; // conversa viva: responder na mao, nunca automatizar
       const dias = Math.floor((agora - Date.parse(h.ultimaSaida)) / 86400000);
