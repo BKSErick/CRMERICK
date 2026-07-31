@@ -336,19 +336,37 @@ export function tierForDays(days: number | null): FollowupTier {
   return "M3";
 }
 
+// Case real por segmento. Mesma regra da msg 1: so citar o que sera REALMENTE enviado.
+// Usinagem e caldeiraria -> Metalthec (fabricacao e usinagem). Resto -> Jotta (manutencao).
+// Nome comercial gigante repetido inteiro soa robotico ("USYTEC Servicos de Usinagem,
+// Ferramentaria e Tornearia em Santo Andre, SP"). Corta no primeiro separador.
+export function nomeCurto(company: string) {
+  return company.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(" ") || company;
+}
+
+export function casoDoSegmento(segment?: string | null) {
+  return segment === "usinagem" || segment === "caldeiraria"
+    ? "uma metalúrgica de usinagem de precisão"
+    : "uma empresa de manutenção industrial";
+}
+
+// Textos alinhados a copy aprovada em 31/07: sem "diagnostico" e sem "leitura de 2
+// minutos", zero apontamento de falha, e o CTA sempre nomeia o que chega depois do sim.
 export function followupMessage(
   tier: Exclude<FollowupTier, "aguardar">,
-  company: string,
+  companyRaw: string,
   responseType: ResponseType = "sem_resposta",
+  segment?: string | null,
 ) {
+  const company = nomeCurto(companyRaw);
   if (responseType === "bot") {
-    return `Oi! Retomando por aqui porque imagino que a primeira mensagem tenha caido no atendimento automatico. Preparei uma analise rapida da presenca digital da ${company}, focada em como compradores encontram e avaliam voces. Com quem posso falar sobre isso?`;
+    return `Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da ${company} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.`;
   }
   if (tier === "M1") {
-    return `Oi, Erick de novo. Te mandei uma analise rapida sobre a ${company} esses dias. Sei que a rotina ai nao para, entao vou direto: e uma leitura de 2 minutos mostrando o que um comprador industrial ve quando pesquisa voces antes de pedir orcamento. Quer que eu mande?`;
+    return `Oi, Erick de novo. Te escrevi sobre a ${company} esses dias e imagino que tenha passado batido na correria. Só retomando: separei um exemplo de página que faz o comprador chegar já com o pedido definido. Quer que eu mande?`;
   }
   if (tier === "M2") {
-    return `Um contexto rapido: fiz esse mesmo trabalho pra Jotta Manutencoes e pra Metalthec, que atendem industria como voces. O problema era o mesmo: servico bom, mas o comprador nao achava prova disso na internet. Se fizer sentido, te mostro o diagnostico da ${company} sem compromisso.`;
+    return `Oi! Um contexto rápido: fiz isso pra ${casoDoSegmento(segment)}, que atende indústria como vocês. O ponto era o mesmo, serviço bom e o comprador sem achar prova disso na internet. Te mando como ficou?`;
   }
-  return `Vou parar de te chamar pra nao virar incomodo. Fica so o registro: o diagnostico da ${company} esta pronto aqui comigo. Se em algum momento presenca digital virar prioridade, me responde essa mensagem que eu te envio na hora.`;
+  return `Oi! Vou parar de te escrever pra não virar chateação. Fica o registro: se um dia fizer sentido olhar como a ${company} aparece pra quem procura antes de pedir orçamento, é só me chamar aqui. Sucesso aí!`;
 }
