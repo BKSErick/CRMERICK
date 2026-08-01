@@ -173,6 +173,21 @@ async function serperMaps(corpo) {
     console.log(`  ${q.padEnd(34)} +${achadosNaQuery}`);
   }
 
+  // Uma cidade, uma grafia. Quando o Maps nao traz cidade caimos no argumento da linha
+  // de comando, que costuma vir sem acento: gravar "Joao Monlevade" e "Joao Monlevade"
+  // como coisas diferentes racharia a medicao por cidade em duas linhas.
+  const grafias = {};
+  for (const l of porCid.values()) {
+    if (!l.city) continue;
+    const k = normalize(l.city);
+    grafias[k] = grafias[k] || {};
+    grafias[k][l.city] = (grafias[k][l.city] || 0) + 1;
+  }
+  for (const l of porCid.values()) {
+    const contagem = grafias[normalize(l.city || "")];
+    if (contagem) l.city = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0][0];
+  }
+
   const candidatos = [...porCid.values()].filter((l) => l.name).filter((l) => !isExcluded(l));
   console.log(`\nLugares unicos em ${CIDADE}: ${candidatos.length}`);
 
