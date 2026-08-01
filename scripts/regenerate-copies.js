@@ -132,6 +132,34 @@ function ctaDoSegmento(seg) {
   return `Separei um exemplo de página que faz isso ${CASE_POR_SEGMENTO[seg.nome] || CASE_POR_SEGMENTO.geral}. Quer ver?`;
 }
 
+// ─── VARIANTE LOCAL (mesma cidade que o Erick) ───────────────────────────────
+// Jotta e Metalthec sao os DOIS cases reais e ficam em Joao Monlevade, a cidade do
+// Erick. Prospectando na propria cidade da para nomear o cliente e a cidade, o que e
+// prova muito mais forte que "uma empresa do mesmo ramo": o dono conhece a empresa
+// citada, ou conhece alguem que conhece.
+// ANTI-INVENCAO: so nomear case que existe e cuja pagina sera realmente enviada.
+const MINHA_CIDADE = 'joao monlevade';
+const CASE_LOCAL = {
+  usinagem: 'a página da Metalthec, aqui de Monlevade',
+  caldeiraria: 'a página da Metalthec, aqui de Monlevade',
+  manutencao: 'a página da Jotta Manutenções, aqui de Monlevade',
+  automacao: 'a página da Jotta Manutenções, aqui de Monlevade',
+  climatizacao: 'a página da Jotta Manutenções, aqui de Monlevade',
+  geral: 'a página da Jotta Manutenções, aqui de Monlevade',
+};
+
+const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const ehLocal = (cidade) => semAcento(cidade).includes(MINHA_CIDADE);
+
+function ctaLocal(seg) {
+  return `Fiz ${CASE_LOCAL[seg.nome] || CASE_LOCAL.geral}. Quer ver como ficou?`;
+}
+
+// Vizinho fala com vizinho: a abertura diz de onde ele e antes de qualquer pedido.
+function aberturaLocal(variante) {
+  return variante === 'B' ? 'Fala! Erick aqui, de Monlevade mesmo.' : 'Oi, tudo bem? Erick aqui, de Monlevade mesmo.';
+}
+
 // Teste A/B da abertura (31/07). A = saudacao atual, ja com 1 resposta em 7 disparos.
 // B = sem "tudo bem?", mais direto, mas mantendo o nome: numero desconhecido sem
 // identificacao aumenta denuncia. Alterna por empresa para dar leitura comparavel.
@@ -173,11 +201,15 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
   const seg = detectarSegmento(empresa);
   const ab = variante || (seed % 2 === 0 ? 'A' : 'B');
-  const OI = abertura(ab);
-  const CTA = ctaDoSegmento(seg);
+  // Lead da mesma cidade recebe a versao com nome e cidade do case. Prova local
+  // e mais forte que prova generica, e nao custa nada: os dois cases sao daqui.
+  const local = ehLocal(cidade);
+  const OI = local ? aberturaLocal(ab) : abertura(ab);
+  const CTA = local ? ctaLocal(seg) : ctaDoSegmento(seg);
   // Nome curto: nome comercial gigante repetido inteiro soa robotico.
   const nomeCurto = empresa.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(' ');
-  const ondeLocal = cidade ? `, em ${cidade}` : '';
+  // Se a abertura ja disse "de Monlevade mesmo", repetir a cidade no elogio soa robotico.
+  const ondeLocal = cidade && !local ? `, em ${cidade}` : '';
 
   // FORMATO CANONICO (decidido 30/07): 4 blocos curtos.
   // 1) elogio ancorado em fato verificavel  2) o que da pra somar, sempre positivo
@@ -222,7 +254,14 @@ function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {
   return `Oi, tudo bem? Erick aqui.\n\nDei uma olhada no site da ${empresa}, do jeito que um comprador industrial olha antes de pedir orçamento. O site cobre o básico. O ponto de atenção é um só: ${problemas[seed % problemas.length]}.\n\nEm industrial, o comprador decide em poucos segundos se liga ou segue pro próximo resultado.\n\n${CTA_FINAL}`;
 }
 
+// Reaproveitado por scripts/generate-copies-db.mjs, que gera copy para lead que entrou
+// pela puxada por cidade e por isso NAO tem pagina de auditoria em huberick-temp.
+module.exports = { gerarCopy, detectarSegmento, ehLocal, SEGMENTOS };
+
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
+// So roda a varredura de arquivos quando chamado direto na linha de comando.
+if (require.main !== module) return;
+
 const arquivos = fs.readdirSync(LEADS_DIR)
   .filter(f => f.endsWith('.html') && f.toLowerCase() !== 'index.html')
   .slice(0, LIMIT);
