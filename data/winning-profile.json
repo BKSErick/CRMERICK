@@ -1,0 +1,133 @@
+{
+  "geradoEm": "2026-08-01T00:05:35.834Z",
+  "amostra": 129,
+  "quentes": 16,
+  "taxaGeral": 0.12403100775193798,
+  "priorPeso": 12,
+  "minAmostra": 5,
+  "dimensoes": {
+    "segment": {
+      "usinagem": {
+        "total": 36,
+        "quentes": 5,
+        "taxa": 0.1352,
+        "lift": 1.09
+      },
+      "caldeiraria": {
+        "total": 14,
+        "quentes": 2,
+        "taxa": 0.1342,
+        "lift": 1.082
+      },
+      "automacao": {
+        "total": 15,
+        "quentes": 2,
+        "taxa": 0.1292,
+        "lift": 1.042
+      },
+      "manutencao": {
+        "total": 33,
+        "quentes": 4,
+        "taxa": 0.122,
+        "lift": 0.983
+      },
+      "climatizacao": {
+        "total": 3,
+        "quentes": 0,
+        "taxa": 0.0992,
+        "lift": 0.8
+      }
+    },
+    "ddd": {
+      "11": {
+        "total": 39,
+        "quentes": 3,
+        "taxa": 0.088,
+        "lift": 0.71
+      },
+      "19": {
+        "total": 1,
+        "quentes": 0,
+        "taxa": 0.1145,
+        "lift": 0.923
+      },
+      "31": {
+        "total": 32,
+        "quentes": 4,
+        "taxa": 0.1247,
+        "lift": 1.006
+      },
+      "33": {
+        "total": 2,
+        "quentes": 0,
+        "taxa": 0.1063,
+        "lift": 0.857
+      },
+      "35": {
+        "total": 15,
+        "quentes": 2,
+        "taxa": 0.1292,
+        "lift": 1.042
+      },
+      "47": {
+        "total": 18,
+        "quentes": 4,
+        "taxa": 0.1829,
+        "lift": 1.475
+      },
+      "48": {
+        "total": 1,
+        "quentes": 0,
+        "taxa": 0.1145,
+        "lift": 0.923
+      },
+      "54": {
+        "total": 16,
+        "quentes": 2,
+        "taxa": 0.1246,
+        "lift": 1.004
+      }
+    },
+    "tem_site": {
+      "sem_site": {
+        "total": 5,
+        "quentes": 1,
+        "taxa": 0.1464,
+        "lift": 1.18
+      },
+      "com_site": {
+        "total": 124,
+        "quentes": 15,
+        "taxa": 0.1212,
+        "lift": 0.977
+      }
+    },
+    "variante": {
+      "A": {
+        "total": 112,
+        "quentes": 14,
+        "taxa": 0.1249,
+        "lift": 1.007
+      },
+      "B": {
+        "total": 12,
+        "quentes": 1,
+        "taxa": 0.1037,
+        "lift": 0.836
+      }
+    }
+  },
+  "buscarMais": {
+    "segmentos": [
+      "usinagem",
+      "caldeiraria",
+      "automacao"
+    ],
+    "ddds": [
+      "31",
+      "35",
+      "47",
+      "54"
+    ]
+  }
+}

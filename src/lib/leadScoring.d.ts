@@ -18,6 +18,43 @@ export interface LeadInput {
   content_signals?: Record<string, boolean> | null;
   replied?: boolean;
   interested?: boolean;
+  /** JID confirmado pela Uazapi (contacts.whatsapp_jid). Melhor canal possivel. */
+  whatsapp_jid?: string | null;
+  /** WhatsApp publicado no site do proprio lead (coletado por leadEnrich). */
+  site_whatsapp?: string | null;
+  /** Mesmo dado vindo do banco (contacts.whatsapp_site). */
+  whatsapp_site?: string | null;
+  /** Telefones em tel: no site - candidatos a verificar, sem prova de WhatsApp. */
+  site_phones?: string[];
+}
+
+export type PhoneKind = "celular" | "fixo" | "invalido" | "nenhum";
+export type PhoneSource = "confirmado" | "site" | "maps" | null;
+
+export interface PhoneProfile {
+  number: string | null;
+  kind: PhoneKind;
+  ddd: string | null;
+  source: PhoneSource;
+}
+
+/** Celula de uma dimensao do perfil de conversao (data/winning-profile.json). */
+export interface WinningCell {
+  total: number;
+  quentes: number;
+  taxa: number;
+  lift: number;
+}
+
+export interface WinningProfile {
+  geradoEm: string;
+  amostra: number;
+  quentes: number;
+  taxaGeral: number;
+  priorPeso: number;
+  minAmostra: number;
+  dimensoes: Record<string, Record<string, WinningCell>>;
+  buscarMais?: { segmentos: string[]; ddds: string[] };
 }
 
 export interface LeadDiagnosis {
@@ -44,8 +81,16 @@ export interface LeadDiagnosis {
   content_signals: Record<string, boolean> | null;
   needs_email_research: boolean;
   priority_score_v1: number;
+  /** Score antes do lookalike. */
+  priority_score_base: number;
+  /** Ajuste por semelhanca com quem ja respondeu (limitado a +/-12). */
+  lookalike_bonus: number;
+  lookalike_reasons: string[];
   priority_score: number;
   excluded: boolean;
+  phone_e164: string | null;
+  phone_kind: PhoneKind;
+  phone_source: PhoneSource;
 }
 
 export const RECOMMENDED_APPROACHES: string[];
@@ -56,6 +101,9 @@ export function isExcluded(lead: LeadInput): boolean;
 export function detectBuilderByUrl(website?: string): string | null;
 export function opportunityType(lead: LeadInput): string;
 export function liveSignals(lead: LeadInput): number;
+export function classifyPhone(value: unknown): { number: string | null; kind: PhoneKind; ddd: string | null };
+export function phoneProfile(lead: LeadInput): PhoneProfile;
+export function phoneScore(p: PhoneProfile): number;
 export function scoreV1(lead: LeadInput): number;
-export function diagnoseLead(lead: LeadInput): LeadDiagnosis;
+export function diagnoseLead(lead: LeadInput, profile?: WinningProfile | null): LeadDiagnosis;
 export function dedupeLeads(leads: LeadInput[]): LeadInput[];

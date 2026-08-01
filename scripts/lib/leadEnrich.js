@@ -11,7 +11,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { detectBuilderByUrl } = require("../../src/lib/leadScoring.js");
+const { detectBuilderByUrl, classifyPhone } = require("../../src/lib/leadScoring.js");
 
 const CACHE_DIR = path.join(process.cwd(), ".cache", "lead-html");
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -136,6 +136,47 @@ function computeContentScore(lead, html) {
   return { score, max: Object.keys(signals).length, signals };
 }
 
+// O numero que a empresa publica no proprio site e o canal que ELA escolheu atender.
+// Antes o enriquecimento so marcava whatsapp: true/false no content_score e jogava o
+// numero fora - depois foi preciso um script separado (scrape-site-whatsapp.mjs) para
+// recuperar 169 numeros que ja tinham passado por aqui. Agora sai junto na coleta.
+//
+// Links do Google vem percent-encoded (%2Fsend%3Fphone%3D), por isso decodifica antes.
+// classifyPhone descarta 0800/4004 e valida o DDD - a primeira varredura gravou um 0800.
+function extractSiteWhatsapp(html) {
+  let texto = html;
+  try {
+    texto = decodeURIComponent(html);
+  } catch {
+    /* html com % solto: segue com o original */
+  }
+
+  const vistos = new Set();
+  const encontrados = [];
+  const push = (bruto) => {
+    const { number } = classifyPhone(bruto);
+    if (!number || vistos.has(number)) return;
+    vistos.add(number);
+    encontrados.push(number);
+  };
+
+  // wa.me e api.whatsapp sao PROVA de que o numero atende no WhatsApp.
+  for (const re of [/wa\.me\/(\d{10,15})/gi, /whatsapp[^"'<>\s]{0,40}?phone=(\d{10,15})/gi, /api\.whatsapp\.com\/send\?phone=(\d{10,15})/gi]) {
+    for (const m of texto.matchAll(re)) push(m[1]);
+  }
+  const whatsapp = encontrados[0] || null;
+
+  // tel: nao prova WhatsApp, mas costuma trazer numero melhor que o do Maps (que
+  // devolve o fixo da recepcao). Fica separado, como candidato a verificar na Uazapi.
+  const tels = [];
+  for (const m of texto.matchAll(/tel:\+?([\d\s().-]{8,20})/gi)) {
+    const { number } = classifyPhone(m[1]);
+    if (number && number !== whatsapp && !tels.includes(number)) tels.push(number);
+  }
+
+  return { site_whatsapp: whatsapp, site_phones: tels.slice(0, 3) };
+}
+
 function extractEmail(html) {
   const mailto = html.match(/mailto:([a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})/i);
   if (mailto) return mailto[1].toLowerCase();
@@ -158,8 +199,11 @@ function analyzeHtml(lead, html) {
   const content = computeContentScore(lead, html);
   const email = lead.email || extractEmail(html) || undefined;
   const builder = builderUrl || builderHtml || lead.builder || null;
+  const { site_whatsapp, site_phones } = extractSiteWhatsapp(html);
   return {
     ...lead,
+    site_whatsapp: lead.site_whatsapp || site_whatsapp || null,
+    site_phones,
     builder,
     builder_source: builder ? (builderUrl ? "url" : "html") : null,
     competitor_built: competitor.built,
@@ -179,4 +223,5 @@ module.exports = {
   detectCompetitor,
   computeContentScore,
   extractEmail,
+  extractSiteWhatsapp,
 };

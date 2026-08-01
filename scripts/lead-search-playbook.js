@@ -34,6 +34,18 @@ const ENRICH_LIMIT = Number(arg("enrich-limit", 40));
 const COMPARE = process.argv.some((x) => x === "--compare" || x.startsWith("--compare="));
 const COMPARE_N = Number(arg("compare", 10));
 
+// Perfil do que ja deu certo (gerado por scripts/lead-winning-profile.mjs a partir das
+// respostas reais no CRM). Se nao existir, o scoring roda igual a antes - sem lookalike.
+function loadWinningProfile() {
+  if (process.argv.includes("--no-lookalike")) return null;
+  const file = path.join(__dirname, "..", "data", "winning-profile.json");
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 function loadLeads() {
   const file = DATA_CANDIDATES.find((p) => fs.existsSync(p));
   if (!file) {
@@ -46,15 +58,16 @@ function loadLeads() {
 
 async function run() {
   const leads = loadLeads();
+  const profile = loadWinningProfile();
   const unique = dedupeLeads(leads);
-  const items = unique.map((lead) => ({ lead, diag: diagnoseLead(lead) }));
+  const items = unique.map((lead) => ({ lead, diag: diagnoseLead(lead, profile) }));
   items.sort((a, b) => b.diag.priority_score - a.diag.priority_score);
 
   if (ENRICH) {
     for (const item of items.slice(0, ENRICH_LIMIT)) {
       if (!item.diag.website) continue;
       const html = await fetchLeadHtml(item.diag.website);
-      if (html) item.diag = diagnoseLead(analyzeHtml(item.lead, html));
+      if (html) item.diag = diagnoseLead(analyzeHtml(item.lead, html), profile);
     }
     items.sort((a, b) => b.diag.priority_score - a.diag.priority_score);
   }
