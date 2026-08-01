@@ -43,6 +43,7 @@ const MIN_S = Number(arg("min", 90));
 const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
 const TAM_BLOCO = Number(arg("bloco", 5));
+const TETO_DIA = Number(arg("teto-dia", 40));
 
 const BASE = process.env.UAZAPI_BASE_URL;
 const TOKEN = process.env.UAZAPI_INSTANCE_TOKEN;
@@ -182,9 +183,25 @@ async function registrar(dealId, empresa, tier) {
     process.exit(1);
   }
 
+  // O teto diario e do NUMERO, nao do script: primeira mensagem e follow-up saem do
+  // mesmo WhatsApp, entao os dois contam no mesmo orcamento do dia.
+  const inicio = new Date();
+  inicio.setHours(0, 0, 0, 0);
+  const hoje = await (await supa(
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=id`,
+    { headers: { Range: "0-9999" } },
+  )).json();
+  const jaHoje = Array.isArray(hoje) ? hoje.length : 0;
+  const restaHoje = Math.max(0, TETO_DIA - jaHoje);
+  if (GO && restaHoje === 0) {
+    console.log(`\nTeto do dia atingido (${jaHoje}/${TETO_DIA}), somando disparo e follow-up. Nada a enviar.`);
+    return;
+  }
+
   const fila = await carregarFila();
   const porTier = fila.reduce((a, d) => ({ ...a, [d.tier]: (a[d.tier] || 0) + 1 }), {});
-  const lote = fila.slice(0, LIMITE);
+  const lote = fila.slice(0, Math.min(LIMITE, restaHoje));
+  console.log(`Enviados hoje (disparo + follow-up): ${jaHoje}/${TETO_DIA}`);
 
   console.log(`\nFila de follow-up: ${fila.length} ${JSON.stringify(porTier)} | lote: ${lote.length} | modo: ${GO ? "ENVIO REAL" : "dry-run"}\n`);
   lote.forEach((l, i) => {

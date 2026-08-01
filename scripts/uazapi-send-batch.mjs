@@ -8,6 +8,7 @@
  * USO:
  *   node scripts/uazapi-send-batch.mjs                 # dry-run, 10 leads da fila curada
  *   node scripts/uazapi-send-batch.mjs --go            # dispara de verdade (10)
+ *   node scripts/uazapi-send-batch.mjs --go --dia-inteiro  # espalha o dia todo (inst. paga)
  *   node scripts/uazapi-send-batch.mjs --ids=491,900   # escolhe os leads na mao
  *   node scripts/uazapi-send-batch.mjs --go --force-hora  # ignora a janela de horario
  *
@@ -47,6 +48,19 @@ const MIN_S = Number(arg("min", 90));
 const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
 const TAM_BLOCO = Number(arg("bloco", 5));
+
+// --- Modo dia inteiro (instancia paga) --------------------------------------
+// Com a instancia gratis o envio tinha que ser em rajada, porque a conexao caia em
+// poucas horas. Pagando, da para diluir: 40 mensagens espalhadas por 7 horas parecem
+// uso humano, 40 em duas rajadas de 20 parecem robo. O padrao de tempo pesa mais que
+// o total do dia.
+const DIA_INTEIRO = process.argv.includes("--dia-inteiro");
+const TETO_DIA = Number(arg("teto-dia", 40));
+const TETO_HORA = Number(arg("teto-hora", 7));
+// Espacamento alvo no modo dia inteiro. Sorteado entre os dois a cada envio, e nao
+// um valor fixo: cadencia regular e a assinatura mais obvia de automacao.
+const DIA_MIN_S = Number(arg("dia-min", 240));
+const DIA_MAX_S = Number(arg("dia-max", 900));
 
 const BASE = process.env.UAZAPI_BASE_URL;
 const TOKEN = process.env.UAZAPI_INSTANCE_TOKEN;
@@ -106,17 +120,63 @@ async function carregarFila() {
   const contatos = await (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid", { headers: { Range: "0-9999" } })).json();
   const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
 
+  const fora = await carregarOptOuts();
+
   return deals
     .filter((d) => d.copy_text)
-    .map((d) => ({ ...d, fone: canalDoContato(porId[d.id]) }))
+    .filter((d) => !fora.has(d.id))
+    .map((d) => {
+      const c = porId[d.id];
+      // Numero confirmado primeiro. Disparar para numero que NAO existe no WhatsApp e
+      // um dos sinais mais fortes de spam para a plataforma, porque usuario de verdade
+      // nao fica escrevendo para numero inexistente.
+      const confianca = c?.whatsapp_jid ? 3 : c?.whatsapp_site ? 2 : 1;
+      return { ...d, fone: canalDoContato(c), confianca };
+    })
     .filter((d) => d.fone)
-    .filter((d) => IDS.length === 0 || IDS.includes(d.id));
+    .filter((d) => IDS.length === 0 || IDS.includes(d.id))
+    .sort((a, b) => b.confianca - a.confianca);
 }
 
 async function jaDisparado(dealId) {
   const r = await supa(`activities?deal_id=eq.${dealId}&type=in.(whatsapp_sent,whatsapp_sent_sync)&select=id&limit=1`);
   const j = await r.json();
   return Array.isArray(j) && j.length > 0;
+}
+
+// Quem pediu para parar NUNCA mais recebe mensagem. Isso nao e cortesia: denuncia de
+// usuario e o que mais derruba numero, muito mais que volume. Insistir com quem ja
+// recusou e a forma mais rapida de virar "spam" no botao do WhatsApp.
+const OPT_OUT = /\b(n[aã]o (quero|tenho interesse|me interessa|insista)|pare de|para de me|sai(r)? da lista|remove|remover|descadastr|me tira|nao perturbe|n[aã]o envie|bloquear|spam|denunc)/i;
+
+async function carregarOptOuts() {
+  const acts = await (await supa(
+    "activities?type=eq.whatsapp_received&select=deal_id,description",
+    { headers: { Range: "0-9999" } },
+  )).json();
+  const fora = new Set();
+  for (const a of Array.isArray(acts) ? acts : []) {
+    if (a.deal_id && OPT_OUT.test(a.description || "")) fora.add(a.deal_id);
+  }
+  return fora;
+}
+
+// Conta no BANCO, nao na memoria do processo: se o script cair e for rodado de novo,
+// o teto do dia continua valendo e ele nao recomeca do zero.
+async function enviadosHoje() {
+  const inicio = new Date();
+  inicio.setHours(0, 0, 0, 0);
+  const r = await supa(
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at`,
+    { headers: { Range: "0-9999" } },
+  );
+  const j = await r.json();
+  return Array.isArray(j) ? j : [];
+}
+
+function naUltimaHora(lista) {
+  const limite = Date.now() - 3600000;
+  return lista.filter((a) => Date.parse(a.created_at) >= limite).length;
 }
 
 async function enviar(fone, texto) {
@@ -168,14 +228,30 @@ async function registrar(dealId, empresa) {
   }
 
   const fila = await carregarFila();
+
+  // Teto do dia: no modo dia inteiro ele manda; no modo lote ele so impede estourar.
+  const hoje = await enviadosHoje();
+  const restaHoje = Math.max(0, TETO_DIA - hoje.length);
+  // No dry-run o teto so avisa: da para conferir a fila de amanha depois de ter batido
+  // o teto de hoje. Com --go ele barra de verdade.
+  if (restaHoje === 0) {
+    console.log(`\nTeto do dia atingido (${hoje.length}/${TETO_DIA}).`);
+    if (GO) return;
+    console.log("Dry-run segue so para voce conferir a fila; com --go nada seria enviado.\n");
+  }
+  const disponivel = restaHoje || LIMITE;
+  const alvo = DIA_INTEIRO ? disponivel : Math.min(LIMITE, disponivel);
+
   const lote = [];
   for (const lead of fila) {
-    if (lote.length >= LIMITE) break;
+    if (lote.length >= alvo) break;
     if (await jaDisparado(lead.id)) continue;
     lote.push(lead);
   }
 
-  console.log(`\nFila elegivel: ${fila.length} | lote: ${lote.length} | modo: ${GO ? "ENVIO REAL" : "dry-run"}\n`);
+  const confirmados = lote.filter((l) => l.confianca === 3).length;
+  console.log(`\nFila elegivel: ${fila.length} | ja enviados hoje: ${hoje.length}/${TETO_DIA} | lote: ${lote.length}`);
+  console.log(`Numeros confirmados no lote: ${confirmados}/${lote.length} | modo: ${DIA_INTEIRO ? "DIA INTEIRO" : "lote"} ${GO ? "(ENVIO REAL)" : "(dry-run)"}\n`);
   lote.forEach((l, i) => {
     console.log(`[${i + 1}] #${l.id} ${l.company} -> ${l.fone}`);
     if (!GO) console.log(l.copy_text.split("\n").map((x) => "    " + x).join("\n") + "\n");
@@ -206,10 +282,29 @@ async function registrar(dealId, empresa) {
     }
 
     if (i < lote.length - 1) {
-      const fimDoBloco = (i + 1) % TAM_BLOCO === 0;
-      const espera = fimDoBloco ? PAUSA_BLOCO_S : sorteio(MIN_S, MAX_S);
-      console.log(`     aguardando ${espera}s${fimDoBloco ? " (pausa entre blocos)" : ""}...`);
-      await dormir(espera * 1000);
+      if (DIA_INTEIRO) {
+        // Teto por hora: se ja bateu, espera virar a hora em vez de continuar. Rajada
+        // concentrada e o que a plataforma enxerga, nao o total do dia.
+        const daHora = naUltimaHora(await enviadosHoje());
+        if (daHora >= TETO_HORA) {
+          console.log(`     teto da hora (${daHora}/${TETO_HORA}). Pausa de 20min.`);
+          await dormir(20 * 60 * 1000);
+        }
+        // Fora da janela comercial, dorme ate ela voltar em vez de encerrar: o processo
+        // fica de pe o dia todo e retoma sozinho a tarde.
+        while (!janelaOk().ok && !FORCE_HORA) {
+          console.log(`     ${hhmm()} fora da janela, aguardando 15min...`);
+          await dormir(15 * 60 * 1000);
+        }
+        const espera = sorteio(DIA_MIN_S, DIA_MAX_S);
+        console.log(`     proximo em ${Math.round(espera / 60)}min...`);
+        await dormir(espera * 1000);
+      } else {
+        const fimDoBloco = (i + 1) % TAM_BLOCO === 0;
+        const espera = fimDoBloco ? PAUSA_BLOCO_S : sorteio(MIN_S, MAX_S);
+        console.log(`     aguardando ${espera}s${fimDoBloco ? " (pausa entre blocos)" : ""}...`);
+        await dormir(espera * 1000);
+      }
     }
   }
 

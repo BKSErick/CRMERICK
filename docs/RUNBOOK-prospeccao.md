@@ -49,13 +49,30 @@ Para os leads antigos, que têm página em `huberick-temp`, o gerador é o `rege
 ## 4. Disparar
 
 ```bash
-node scripts/uazapi-send-batch.mjs            # ver o lote e a copy de cada um
-node scripts/uazapi-send-batch.mjs --go       # disparar 10
+node scripts/uazapi-send-batch.mjs                  # ver o lote e a copy de cada um
+node scripts/uazapi-send-batch.mjs --go             # disparar 10 (modo lote)
+node scripts/uazapi-send-batch.mjs --go --dia-inteiro   # espalhar pelo dia (instância paga)
 ```
 
-Regras embutidas: 10 por leva em dois blocos de 5, intervalo sorteado de 90 a 240s, pausa de 7min entre blocos, só em dia útil das 9h às 11h30 e das 14h às 17h, e **para na hora se duas mensagens seguidas falharem** (primeiro sinal de bloqueio).
+**Modo lote:** 10 por leva em dois blocos de 5, intervalo sorteado de 90 a 240s, pausa de 7min entre blocos.
 
-A instância grátis da Uazapi cai a cada poucas horas e gera token novo. **Confirmar que está conectada antes de cada lote** e atualizar `UAZAPI_INSTANCE_TOKEN` no `.env`.
+**Modo dia inteiro:** processo fica de pé, manda 1 mensagem a cada 4 a 15min sorteados, respeita teto de 7 por hora e dorme sozinho fora da janela, retomando à tarde. Só faz sentido com instância paga, que não cai.
+
+Nos dois: só dia útil das 9h às 11h30 e das 14h às 17h, **teto de 40 por dia** somando disparo e follow-up (contado no banco, então reiniciar o script não zera), e **parada imediata se duas mensagens seguidas falharem**.
+
+Ajustes: `--teto-dia=N`, `--teto-hora=N`, `--dia-min=240 --dia-max=900` (segundos entre mensagens).
+
+### O que protege o número de verdade
+
+Volume não é o principal fator de bloqueio: **denúncia de usuário é**. Por isso:
+
+- **Quem pede pra parar sai da fila para sempre.** O script detecta opt-out ("não quero", "pare", "remove", "spam", "denunciar") nas respostas e nunca mais escreve para esse lead. Insistir com quem recusou é o caminho mais rápido pro botão de denúncia.
+- **Número confirmado tem prioridade na fila.** Disparar para número que não existe no WhatsApp é sinal forte de spam, porque pessoa real não escreve para número inexistente. Rodar o `uazapi-check-numbers.mjs` antes é proteção, não só higiene.
+- **Responder rápido quem responde.** Conversa de mão dupla é o sinal mais forte de que o número é legítimo. A taxa de resposta atual (12,4%) protege o número.
+- **Perfil completo** (foto, nome comercial, descrição). Número sem identidade é o perfil clássico de spam.
+- **Nunca link na primeira mensagem.** O link vai só depois do "quer ver?".
+
+A instância grátis cai a cada poucas horas e gera token novo: **confirmar a conexão antes de cada lote** e atualizar `UAZAPI_INSTANCE_TOKEN` no `.env`. A instância paga resolve a queda, mas **não protege contra bloqueio**: o risco é do número, não do plano.
 
 Follow-up de quem não respondeu:
 
