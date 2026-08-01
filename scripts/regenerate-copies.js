@@ -147,9 +147,12 @@ const SEGMENTOS = [
     prova: 'peça usinada sob desenho' },
   { re: /caldeiraria|estrutura|solda|metal[uú]rgic|serralheria/i, nome: 'caldeiraria', b2b: true,
     prova: 'caldeiraria e estrutura' },
-  { re: /manuten[cç][aã]o|industrial|mec[aâ]nic/i, nome: 'manutencao', b2b: true,
+  // Radical curto de proposito: "manuten[cç][aã]o" casava "manutenção" e perdia
+  // "manutenções", que e como boa parte das empresas se chama. Lead sem segmento
+  // canonico entra no CRM mas fica invisivel para a fila de disparo.
+  { re: /manuten|industrial|mec[aâ]nic/i, nome: 'manutencao', b2b: true,
     prova: 'manutenção industrial' },
-  { re: /autom[aç]|el[eé]tric|painel|comando/i, nome: 'automacao', b2b: true,
+  { re: /automa|el[eé]tric|painel|comando/i, nome: 'automacao', b2b: true,
     prova: 'automação e elétrica industrial' },
   { re: /refrigera|climatiza|ar.condicionado|exaust/i, nome: 'climatizacao', b2b: false,
     prova: 'climatização e refrigeração' },

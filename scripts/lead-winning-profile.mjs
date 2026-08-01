@@ -61,8 +61,8 @@ const ESTAGIO_QUENTE = new Set(["qualified", "negotiation", "won"]);
 const SEGMENTOS = [
   [/usinagem|torno|ferramentaria|precis[aã]o|cnc/i, "usinagem"],
   [/caldeiraria|estrutura|solda|metal[uú]rgic|serralheria/i, "caldeiraria"],
-  [/manuten[cç][aã]o|industrial|mec[aâ]nic/i, "manutencao"],
-  [/autom[aç]|el[eé]tric|painel|comando/i, "automacao"],
+  [/manuten|industrial|mec[aâ]nic/i, "manutencao"], // radical curto: pega o plural tambem
+  [/automa|el[eé]tric|painel|comando/i, "automacao"],
   [/refrigera|climatiza|ar.condicionado|exaust/i, "climatizacao"],
 ];
 const CANONICOS = new Set(["usinagem", "caldeiraria", "manutencao", "automacao", "climatizacao"]);
@@ -111,7 +111,7 @@ function tabela(linhas, chave) {
 (async () => {
   const [deals, contatos, acts] = await Promise.all([
     supa("deals?select=id,company,segment,stage,copy_text,site_url,analysis_url"),
-    supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid"),
+    supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid,city,uf,rating,reviews_count"),
     supa("activities?type=in.(whatsapp_sent,whatsapp_sent_sync,whatsapp_received)&select=deal_id,type,description"),
   ]);
 
@@ -135,6 +135,11 @@ function tabela(linhas, chave) {
         segment: segmentoCanonico(d.segment, d.company),
         segment_bruto: d.segment || null,
         ddd: dddDe(c.whatsapp_jid, c.whatsapp_site, c.phone, d.phone),
+        // city so existe para lead importado depois de 31/07/2026. Ate a base virar,
+        // essa dimensao fica quase vazia e o corte por amostra minima a ignora sozinho.
+        city: c.city || null,
+        // Faixa de reputacao: responde mais quem tem muita avaliacao ou quem tem pouca?
+        reputacao: c.reviews_count == null ? null : c.reviews_count >= 50 ? "50+" : c.reviews_count >= 10 ? "10a49" : "0a9",
         tem_site: Boolean(d.site_url || d.analysis_url),
         variante: varianteDaCopy(d.copy_text),
         quente: hist[d.id].humanas > 0 || ESTAGIO_QUENTE.has(d.stage),
@@ -151,6 +156,8 @@ function tabela(linhas, chave) {
   const dimensoes = {
     segment: tabela(linhas, (l) => l.segment),
     ddd: tabela(linhas, (l) => l.ddd),
+    city: tabela(linhas, (l) => l.city),
+    reputacao: tabela(linhas, (l) => l.reputacao),
     tem_site: tabela(linhas, (l) => (l.tem_site ? "com_site" : "sem_site")),
     variante: tabela(linhas, (l) => l.variante),
   };

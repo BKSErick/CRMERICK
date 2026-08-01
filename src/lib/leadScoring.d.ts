@@ -26,6 +26,9 @@ export interface LeadInput {
   whatsapp_site?: string | null;
   /** Telefones em tel: no site - candidatos a verificar, sem prova de WhatsApp. */
   site_phones?: string[];
+  /** Cidade do lead. Alimenta a dimensao city do lookalike. */
+  city?: string | null;
+  uf?: string | null;
 }
 
 export type PhoneKind = "celular" | "fixo" | "invalido" | "nenhum";

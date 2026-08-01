@@ -289,9 +289,12 @@ const LOOKALIKE_PESO = 20; // lift 1.5x em uma dimensao vale ~10 pontos
 function lookalikeBoost(lead, profile, ctx, segment) {
   if (!profile || !profile.dimensoes) return { bonus: 0, reasons: [] };
   const minAmostra = Number(profile.minAmostra || 5);
+  const reviews = Number(lead.reviews_count || 0);
   const chaves = {
     segment: segment.key,
     ddd: ctx.phone.ddd,
+    city: lead.city || null,
+    reputacao: reviews >= 50 ? "50+" : reviews >= 10 ? "10a49" : "0a9",
     tem_site: hasWebsite(lead) ? "com_site" : "sem_site",
   };
 
