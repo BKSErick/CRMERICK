@@ -239,6 +239,59 @@ export function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] ?? nome;
 }
 
+// ---------------------------------------------------------------------------
+// MENSAGEM 2 — a que vai depois do "quer ver?"
+// ---------------------------------------------------------------------------
+//
+// Ate 02/08 essa mensagem NAO existia em lugar nenhum do codigo: era escrita na
+// mao toda vez, e por isso variava a cada lead. E o momento mais importante do
+// funil (o lead ja disse sim e esta prestando atencao) e era o unico sem texto
+// definido.
+//
+// MECANISMO UNICO: "Ficha de Escopo". Nao e o visual da pagina, e a triagem
+// tecnica que acontece ANTES do contato chegar no dono: o cliente informa
+// servico, equipamento, medida e urgencia, e anexa foto ou desenho.
+// Isso resolve a dor real do industrial (hora tecnica virando atendimento,
+// cotacao lenta) e e o que sustenta cobrar mais. O nome fala a lingua de quem
+// compra: "ficha" ja e palavra do dia a dia dele (ficha tecnica, ficha de
+// servico), entao nao soa a marketing.
+//
+// REGRA ANTI-INVENCAO: o link citado tem que ser o que sera REALMENTE enviado.
+
+export const MECANISMO = "Ficha de Escopo";
+
+const CASE_LINK = {
+  usinagem: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de usinagem" },
+  caldeiraria: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de fabricação e caldeiraria" },
+  manutencao: { url: "https://sitejotta.vercel.app/", desc: "uma manutenção industrial aqui de Monlevade" },
+  automacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção e automação industrial" },
+  climatizacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção predial" },
+  geral: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção industrial" },
+} as const;
+
+export function exemploDoSegmento(segment?: string | null) {
+  return CASE_LINK[(segment ?? "geral") as keyof typeof CASE_LINK] ?? CASE_LINK.geral;
+}
+
+/**
+ * Msg 2: entra depois do "quer ver?". Estrutura:
+ *   1. entrega o exemplo prometido (sem enrolar, ele disse sim pra isso)
+ *   2. nomeia o MECANISMO e diz o que ele faz, em coisa concreta na tela
+ *   3. traduz pro ganho operacional dele
+ *   4. pergunta que pede um sim barato e ja projeta o trabalho
+ */
+export function mensagemExemplo(companyRaw: string, segment?: string | null) {
+  const company = nomeCurto(companyRaw);
+  const caso = exemploDoSegmento(segment);
+  return (
+    `Show! Esse é de ${caso.desc}:\n${caso.url}\n\n` +
+    `O que faz diferença ali não é o visual, é a ${MECANISMO}. ` +
+    `Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\n` +
+    `Aí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\n` +
+    `Pra ${company} seria a mesma ideia. Quer que eu monte a ficha com os serviços de vocês?`
+  );
+}
+
 /**
  * Abordagem do decisor indicado. NAO e abordagem fria: citar quem indicou e o
  * ativo mais valioso da mensagem, porque transfere a permissao que o gatekeeper
@@ -451,7 +504,14 @@ export function tierForDays(days: number | null): FollowupTier {
 // Nome comercial gigante repetido inteiro soa robotico ("USYTEC Servicos de Usinagem,
 // Ferramentaria e Tornearia em Santo Andre, SP"). Corta no primeiro separador.
 export function nomeCurto(company: string) {
-  return company.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(" ") || company;
+  // Corta NO primeiro conectivo, nao depois dele: o que vem em seguida e descricao
+  // de servico, nao marca. "Centermaq Manutencao e locacao de Empilhadeiras"
+  // cortado em 4 palavras virava "Centermaq Manutencao e locacao", que le como
+  // frase truncada no meio; cortando no "e" vira "Centermaq Manutencao".
+  const palavras = company.split(/[|\-–,]/)[0].trim().split(/\s+/);
+  const conectivo = palavras.findIndex((p) => /^(e|de|da|do|das|dos|em|com|para|pra|&)$/i.test(p));
+  const fim = conectivo > 0 ? Math.min(conectivo, 4) : 4;
+  return palavras.slice(0, fim).join(" ") || company;
 }
 
 export function casoDoSegmento(segment?: string | null) {
@@ -484,9 +544,11 @@ export function followupMessage(
   if (tier === "M1") {
     return `Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com ${casoDoSegmento(segment).replace(/^uma /, "")}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?`;
   }
-  // M2 = prova nomeada. Aqui o case entra com nome e cidade, nao como categoria.
+  // M2 = prova + mecanismo nomeado. Sem nomear a Ficha de Escopo, "fiz uma pagina
+  // pra uma empresa do ramo" e o que todo mundo diz, e nao da ao lead nenhum
+  // motivo novo pra responder.
   if (tier === "M2") {
-    return `Oi! Contexto rápido: fiz isso pra ${casoDoSegmento(segment)}, que atende indústria como vocês. O serviço já era bom, o que faltava era o comprador achar prova disso antes de decidir pra quem ligar. Te mando como ficou?`;
+    return `Oi! Contexto rápido: fiz isso pra ${casoDoSegmento(segment)}, que atende indústria como vocês. O que resolveu lá foi a ${MECANISMO}: o cliente informa serviço, equipamento e urgência antes de falar com o dono, e a cotação sai sem ida e volta. Te mando como ficou?`;
   }
   // M3 = breakup com porta especifica. "Me chama" generico nao volta; deixar UMA
   // condicao concreta cria gancho pra ele voltar quando ela acontecer.

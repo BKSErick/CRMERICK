@@ -134,13 +134,25 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "💰 Objeção de preço: escopo menor (D+4 travado)",
     text: "[NOME], pensei no que você falou sobre o investimento. Dá pra começar menor: a página principal primeiro, que é o que o comprador vê quando valida vocês, e o resto a gente faz por etapa conforme trazer retorno. Quer que eu te mande esse escopo reduzido?",
   },
+  // MSG 2 — a que vai depois do "quer ver?". Ate 02/08 era escrita na mao toda
+  // vez, e era o unico momento do funil sem texto definido, justamente quando o
+  // lead ja disse sim e esta prestando atencao. Aqui o mecanismo ("Ficha de
+  // Escopo") entra: e ele que separa a oferta de "mais uma landing page".
+  // O link muda por segmento (Metalthec pra usinagem/caldeiraria, Jotta pro resto);
+  // a versao dinamica vive em mensagemExemplo() de src/lib/followup.ts.
+  {
+    title: "🎬 Msg 2: mandar o exemplo (depois do \"quer ver?\")",
+    text: "Show! Esse é de uma manutenção industrial aqui de Monlevade:\nhttps://sitejotta.vercel.app/\n\nO que faz diferença ali não é o visual, é a Ficha de Escopo. Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\nAí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\nPra [EMPRESA] seria a mesma ideia. Quer que eu monte a ficha com os serviços de vocês?",
+  },
   // Objecoes que apareceram na conversa REAL e nao tinham resposta pronta.
   // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?
   // Eu pago uma mensalidade?". Objecao previsivel sem resposta pronta e venda
   // perdida por falha operacional, nao por falta de interesse.
+  // A resposta ancora no MECANISMO: o mensal existe porque a ficha evolui com o
+  // que o cliente pede, nao e taxa de manter no ar.
   {
     title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
-    text: "Boa pergunta. Funciona assim: a construção da página é um valor único, de [VALOR]. Depois disso ela é sua. O que é mensal é só a parte de manter no ar e ir ajustando conforme vocês virem o que o cliente mais pede, que fica [VALOR_MENSAL]. Se você preferir só a construção e tocar sozinho depois, também dá. Quer que eu te mande as duas opções escritas?",
+    text: "Boa pergunta. Funciona assim: a construção da página é um valor único, de [VALOR], e depois disso ela é sua. O que é mensal é a Ficha de Escopo trabalhando: eu acompanho o que o cliente mais pede e vou ajustando as perguntas pra cotação chegar cada vez mais pronta. Isso fica [VALOR_MENSAL]. Se preferir só a construção e tocar sozinho depois, também dá. Quer que eu te mande as duas opções escritas?",
   },
   {
     title: "🤝 \"Já tenho quem faça isso pra mim\"",
