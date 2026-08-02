@@ -148,11 +148,14 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?
   // Eu pago uma mensalidade?". Objecao previsivel sem resposta pronta e venda
   // perdida por falha operacional, nao por falta de interesse.
-  // A resposta ancora no MECANISMO: o mensal existe porque a ficha evolui com o
-  // que o cliente pede, nao e taxa de manter no ar.
+  // Preco definido pelo Erick em 02/08: R$1.000 a pagina + R$150/mes.
+  // O mensal cobre HOSPEDAGEM e troca de texto/foto. Mudanca maior e cobrada a
+  // parte. O texto diz exatamente isso: prometer "a Ficha de Escopo evoluindo"
+  // por 150 criaria expectativa de trabalho ilimitado e viraria atrito na
+  // primeira cobranca extra. Preco de entrada, para subir depois.
   {
     title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
-    text: "Boa pergunta. Funciona assim: a construção da página é um valor único, de [VALOR], e depois disso ela é sua. O que é mensal é a Ficha de Escopo trabalhando: eu acompanho o que o cliente mais pede e vou ajustando as perguntas pra cotação chegar cada vez mais pronta. Isso fica [VALOR_MENSAL]. Se preferir só a construção e tocar sozinho depois, também dá. Quer que eu te mande as duas opções escritas?",
+    text: "Boa pergunta. A página é um valor único de R$ 1.000, e depois disso ela é sua. O mensal são R$ 150 e cobrem a hospedagem e as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer. Quer que eu te mande isso escrito?",
   },
   {
     title: "🤝 \"Já tenho quem faça isso pra mim\"",
