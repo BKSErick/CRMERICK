@@ -54,25 +54,10 @@ const AUTORESPONDER = /agradece|obrigado (por|pelo)|seja bem-vind|responderemos|
 // Interesse real: respondeu como gente OU o card avancou de estagio.
 const ESTAGIO_QUENTE = new Set(["qualified", "negotiation", "won"]);
 
-// Boa parte dos deals tem TEXTO LIVRE no campo segment ("Caldeiraria e peças para
-// indústria") em vez da chave canonica. Esses ficam de fora da fila de disparo, que
-// filtra por segmento - e dois deles ja converteram. Aqui o texto livre e reduzido a
-// chave pelo mesmo criterio do gerador de copy, senao a contagem vira pó.
-const SEGMENTOS = [
-  [/usinagem|torno|ferramentaria|precis[aã]o|cnc/i, "usinagem"],
-  [/caldeiraria|estrutura|solda|metal[uú]rgic|serralheria/i, "caldeiraria"],
-  [/manuten|industrial|mec[aâ]nic/i, "manutencao"], // radical curto: pega o plural tambem
-  [/automa|el[eé]tric|painel|comando/i, "automacao"],
-  [/refrigera|climatiza|ar.condicionado|exaust/i, "climatizacao"],
-];
-const CANONICOS = new Set(["usinagem", "caldeiraria", "manutencao", "automacao", "climatizacao"]);
-
-function segmentoCanonico(segment, empresa) {
-  if (segment && CANONICOS.has(segment)) return segment;
-  const texto = `${segment || ""} ${empresa || ""}`;
-  const achado = SEGMENTOS.find(([re]) => re.test(texto));
-  return achado ? achado[1] : null;
-}
+// A regra de segmento canonico VIVE em lib/analise-comum.mjs, compartilhada com
+// normalize-segments.mjs e analise-conversas.mjs. Estava duplicada aqui; manter as
+// duas copias faria os relatorios discordarem sobre quantos leads sao "usinagem".
+import { segmentoCanonico, taxaSuavizada as suavizar } from "./lib/analise-comum.mjs";
 
 function dddDe(...telefones) {
   for (const t of telefones) {
@@ -90,10 +75,10 @@ function varianteDaCopy(copy) {
 }
 
 // Taxa suavizada: puxa a celula para a media geral conforme ela e pequena.
-// n=0 devolve exatamente a media geral; n grande devolve quase a taxa crua.
-function taxaSuavizada(acertos, total, mediaGeral) {
-  return (acertos + PESO_PRIOR * mediaGeral) / (total + PESO_PRIOR);
-}
+// Implementacao compartilhada em lib/analise-comum.mjs; aqui so fixa o peso que
+// este relatorio usa (configuravel por --prior).
+const taxaSuavizada = (acertos, total, mediaGeral) =>
+  suavizar(acertos, total, mediaGeral, PESO_PRIOR);
 
 function tabela(linhas, chave) {
   const mapa = new Map();

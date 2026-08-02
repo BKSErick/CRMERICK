@@ -155,16 +155,32 @@ function ctaLocal(seg) {
   return `Fiz ${CASE_LOCAL[seg.nome] || CASE_LOCAL.geral}. Quer ver como ficou?`;
 }
 
+// DECLARACAO DE PAPEL (02/08) — a correcao mais cara que o funil pediu.
+//
+// Motivo concreto: a Alpina Torres respondeu "Qual seria sua demanda?" e depois
+// "Aqui e vendas", e mandou o contato pro orcamentos@. Ela achou que o Erick era
+// COMPRADOR pedindo cotacao. E o desfecho logico do formato antigo: a mensagem
+// abria com "Vi a X no Google" (elogio ao que ELES fabricam) e so no terceiro
+// bloco aparecia que isso e sobre pagina. No WhatsApp de industria, elogio ao
+// produto do outro le como cliente entrando em contato.
+//
+// A correcao NAO e cortar o elogio: ele existe porque listar defeito do site pega
+// o ego do dono e fecha a porta. E dizer QUEM FALA antes de dizer o que se viu.
+const PAPEL = 'faço página de vendas pra indústria';
+
 // Vizinho fala com vizinho: a abertura diz de onde ele e antes de qualquer pedido.
 function aberturaLocal(variante) {
-  return variante === 'B' ? 'Fala! Erick aqui, de Monlevade mesmo.' : 'Oi, tudo bem? Erick aqui, de Monlevade mesmo.';
+  return variante === 'B'
+    ? `Fala! Erick aqui, de Monlevade mesmo, ${PAPEL}.`
+    : `Oi, tudo bem? Erick aqui, de Monlevade mesmo, ${PAPEL}.`;
 }
 
 // Teste A/B da abertura (31/07). A = saudacao atual, ja com 1 resposta em 7 disparos.
 // B = sem "tudo bem?", mais direto, mas mantendo o nome: numero desconhecido sem
 // identificacao aumenta denuncia. Alterna por empresa para dar leitura comparavel.
+// A declaracao de papel entra nas DUAS variantes, para nao contaminar o teste.
 function abertura(variante) {
-  return variante === 'B' ? 'Fala! Erick aqui.' : 'Oi, tudo bem? Erick aqui.';
+  return variante === 'B' ? `Fala! Erick aqui, ${PAPEL}.` : `Oi, tudo bem? Erick aqui, ${PAPEL}.`;
 }
 
 // Segmento pelo nome da empresa. Serve para elogiar com a palavra certa e para
@@ -210,6 +226,13 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   const nomeCurto = empresa.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(' ');
   // Se a abertura ja disse "de Monlevade mesmo", repetir a cidade no elogio soa robotico.
   const ondeLocal = cidade && !local ? `, em ${cidade}` : '';
+  // Aposto tem que FECHAR com virgula: sem isso sai "site da X, em Joinville e da
+  // pra ver", que le como frase truncada.
+  const fechaAposto = ondeLocal ? ',' : '';
+  // Segmento 'geral' tem prova = "o servico de voces", que nao encaixa depois de
+  // "em": sairia "o tamanho do trabalho de voces em o servico de voces". Erro de
+  // portugues indo pro lead, justamente vendendo pagina.
+  const emProva = seg.nome === 'geral' ? '' : ` em ${seg.prova}`;
 
   // FORMATO CANONICO (decidido 30/07): 4 blocos curtos.
   // 1) elogio ancorado em fato verificavel  2) o que da pra somar, sempre positivo
@@ -226,7 +249,7 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
     return `${OI}\n\n${prova}\n\n${ponte} E ${promessa(seg)}.\n\n${CTA}`;
   }
 
-  return `${OI}\n\nPassei pelo site da ${nomeCurto}${ondeLocal} e dá pra ver o tamanho do trabalho de vocês em ${seg.prova}.\n\nA prova que vocês já têm está espalhada. Reunida numa página, ela trabalha na hora em que o comprador decide, e ${promessa(seg)}.\n\n${CTA}`;
+  return `${OI}\n\nPassei pelo site da ${nomeCurto}${ondeLocal}${fechaAposto} e dá pra ver o tamanho do trabalho de vocês${emProva}.\n\nA prova que vocês já têm está espalhada. Reunida numa página, ela trabalha na hora em que o comprador decide, e ${promessa(seg)}.\n\n${CTA}`;
 }
 
 function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {

@@ -134,6 +134,22 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "💰 Objeção de preço: escopo menor (D+4 travado)",
     text: "[NOME], pensei no que você falou sobre o investimento. Dá pra começar menor: a página principal primeiro, que é o que o comprador vê quando valida vocês, e o resto a gente faz por etapa conforme trazer retorno. Quer que eu te mande esse escopo reduzido?",
   },
+  // Objecoes que apareceram na conversa REAL e nao tinham resposta pronta.
+  // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?
+  // Eu pago uma mensalidade?". Objecao previsivel sem resposta pronta e venda
+  // perdida por falha operacional, nao por falta de interesse.
+  {
+    title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
+    text: "Boa pergunta. Funciona assim: a construção da página é um valor único, de [VALOR]. Depois disso ela é sua. O que é mensal é só a parte de manter no ar e ir ajustando conforme vocês virem o que o cliente mais pede, que fica [VALOR_MENSAL]. Se você preferir só a construção e tocar sozinho depois, também dá. Quer que eu te mande as duas opções escritas?",
+  },
+  {
+    title: "🤝 \"Já tenho quem faça isso pra mim\"",
+    text: "Faz todo sentido manter quem já atende bem vocês, e não é minha intenção mexer nisso. Só te deixo um ponto pra quando for útil: o que eu faço não é trocar o site, é a página que recebe quem está decidindo pra quem ligar. Se um dia quiser comparar, é só me chamar. Sucesso aí!",
+  },
+  {
+    title: "🎯 Decisor indicado (te passaram o contato dele)",
+    text: "Oi, [NOME]! Erick aqui. [QUEM_INDICOU] me passou seu contato. Eu faço página de vendas para indústria: o comprador chega já sabendo o que vocês atendem e manda o pedido pelo WhatsApp com o serviço definido. Separei um exemplo de uma empresa do mesmo ramo. Quer ver?",
+  },
   {
     title: "🔥 Re-engajamento 45d (lead frio / perdido)",
     text: "[NOME], faz um tempo que a gente conversou sobre a [EMPRESA]. Nesse meio tempo, todo orçamento que foi pro concorrente com site mais forte não aparece em relatório nenhum, e é aí que mora o custo de deixar pra depois. Refiz o diagnóstico de vocês atualizado. Quer dar uma olhada?",

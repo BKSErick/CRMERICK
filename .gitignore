@@ -36,3 +36,6 @@ preview-emails.html
 
 # Reconciliacao WhatsApp x CRM (PII: telefones e transcricao de conversa)
 reconciliacao-whatsapp.md
+
+# Relatorio gerado por scripts/analise-conversas.mjs --md (cita conversa de lead)
+data/analise-conversas.md

@@ -59,7 +59,15 @@ function mapsInfoDe(rating, reviews) {
 
 (async () => {
   const [deals, contatos] = await Promise.all([
-    ingest.buscarTudo(crm, "deals?stage=eq.prospect&select=id,company,segment,copy_text,site_url,analysis_url"),
+    // is_prospect=false NAO entra: sao clientes atuais (Jotta, Metalthec), contatos
+    // pessoais e os deals orfaos "WhatsApp NNNN" que o webhook cria quando a resposta
+    // nao acha o deal de origem. Sem esse filtro o gerador produzia copy do tipo
+    // "Vi a WhatsApp 6346 no Google, e da pra ver que e operacao de verdade" — que,
+    // disparada, queima o numero e o lead.
+    ingest.buscarTudo(
+      crm,
+      "deals?stage=eq.prospect&is_prospect=not.is.false&select=id,company,segment,copy_text,site_url,analysis_url",
+    ),
     ingest.buscarTudo(crm, "contacts?select=id,city,uf,rating,reviews_count,site_url"),
   ]);
   const C = Object.fromEntries(contatos.map((c) => [c.id, c]));

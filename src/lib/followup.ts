@@ -147,19 +147,129 @@ export function classifyInboundResponse(content: string): ResponseType {
   ];
   if (botPatterns.some((pattern) => text.includes(pattern))) return "bot";
 
+  // AMPLIADO em 02/08 depois de conferir os encaminhamentos REAIS da base: a lista
+  // anterior nao pegava NENHUM dos quatro. "poderia entrar em contato com o meu
+  // superior" nao casa com "entre em contato com" (flexao diferente), e "vou te
+  // passar o contato da nossa diretora" nao existia na lista. Encaminhamento e a
+  // resposta mais comum do funil (4 de 11): errar aqui e perder o melhor lead que
+  // se tem, o que ja passou pelo gatekeeper.
   const referralPatterns = [
     "responsavel por compras",
     "responsavel pelas compras",
     "responsavel por novos materiais",
+    "responsavel por questoes como compras",
     "entre em contato com",
+    "entrar em contato com",
     "fale com meu superior",
     "falar com meu superior",
+    "meu superior",
     "encaminhar seu contato",
     "vou encaminhar",
+    "vou te passar o contato",
+    "te passar o contato",
+    "passar o contato",
+    "quem cuida disso e",
+    "quem responde por isso",
+    "ela que e responsavel",
+    "ele que e responsavel",
+    "segue o contato",
+    "esse e o contato",
   ];
   if (referralPatterns.some((pattern) => text.includes(pattern))) return "encaminhamento";
 
   return "humana";
+}
+
+// vCard do WhatsApp: "Nome[ Sobrenome] Phone[ (Celular)]: +55 DD NNNNN-NNNN".
+// Quando o lead compartilha um contato, a mensagem chega nesse formato (e o
+// message_type vem como ContactMessage). E o sinal mais confiavel de repasse de
+// decisor que existe na base: deterministico, sem depender de IA nem de regex de
+// linguagem natural.
+const VCARD = /^(.*?)\s*Phone(?:\s*\([^)]*\))?\s*:\s*(\+?[\d\s().-]{10,})$/i;
+
+// Palavras de funcao que vem coladas no nome do contato no vCard e nao sao nome.
+const RUIDO_NOME = /\b(comercial|vendas|financeiro|compras|diretoria|adm|administrativo|suporte|atendimento|contato|orcamento|orcamentos)\b/gi;
+
+export type ContatoIndicado = { nome: string; telefone: string };
+
+/**
+ * Extrai nome e telefone de um contato repassado pelo lead.
+ * `empresa` serve para limpar o nome: o vCard costuma trazer o nome da empresa
+ * grudado no da pessoa ("Tiele comercial VEMATECH Vematech"), e sem tirar isso o
+ * "Oi, [NOME]" da abordagem sai ridiculo.
+ * Devolve null quando nao da pra afirmar — melhor nao ter do que ter errado.
+ */
+export function extrairContatoIndicado(
+  content: string,
+  empresa?: string | null,
+): ContatoIndicado | null {
+  const match = content.trim().match(VCARD);
+  if (!match) return null;
+
+  const telefone = match[2].replace(/\D/g, "");
+  if (telefone.length < 10) return null;
+
+  // Tokens do nome da empresa saem do nome da pessoa (o vCard repete os dois).
+  // A pontuacao e removida antes de comparar: sem isso "PROVITH-" nao casa com
+  // "Provith" e o contato vira "Andre Provith", com o nome da empresa de sobrenome.
+  const limpaToken = (t: string) => foldText(t).replace(/[^\w]/g, "");
+  const tokensEmpresa = new Set(
+    foldText(empresa ?? "")
+      .split(/\s+/)
+      .map(limpaToken)
+      .filter((t) => t.length >= 3),
+  );
+
+  const nome = match[1]
+    .replace(/\s*[-–|]\s*.*$/, "") // corta " - Empresa" depois do nome
+    .replace(RUIDO_NOME, " ")
+    .replace(/[\p{Extended_Pictographic}‍️]/gu, " ") // emoji no nome do WhatsApp
+    .split(/\s+/)
+    .filter((palavra) => palavra && !tokensEmpresa.has(limpaToken(palavra)))
+    .slice(0, 3)
+    .join(" ")
+    .trim();
+
+  if (!nome) return null;
+  return { nome, telefone };
+}
+
+/** Primeiro nome, para o vocativo. "Oi, Cristiane Resende!" soa formal demais. */
+export function primeiroNome(nome: string) {
+  return nome.trim().split(/\s+/)[0] ?? nome;
+}
+
+/**
+ * Abordagem do decisor indicado. NAO e abordagem fria: citar quem indicou e o
+ * ativo mais valioso da mensagem, porque transfere a permissao que o gatekeeper
+ * ja deu. Sem link (mesma regra da msg 1) e com pergunta no fim, senao nao ha o
+ * que responder.
+ */
+export function mensagemDecisorIndicado(input: {
+  nomeDecisor: string;
+  empresa: string;
+  quemIndicou?: string | null;
+}) {
+  const empresa = nomeCurto(input.empresa);
+
+  // quemIndicou vem do nome do WhatsApp de quem mandou o vCard. Costuma vir com
+  // emoji ("Lurdinha🥰") ou ser o proprio nome da empresa ("Pressmix"). Nos dois
+  // casos citar a PESSOA nao funciona, e a ponte vira impessoal.
+  const indicou = (input.quemIndicou ?? "")
+    .replace(/[\p{Extended_Pictographic}‍️]/gu, "")
+    .trim();
+  const indicouEhEmpresa =
+    !indicou || foldText(empresa).includes(foldText(indicou)) || foldText(indicou).includes(foldText(empresa));
+
+  const ponte = indicouEhEmpresa
+    ? `Me passaram seu contato aí na ${empresa}`
+    : `${primeiroNome(indicou)} me passou seu contato`;
+
+  return (
+    `Oi, ${primeiroNome(input.nomeDecisor)}! Erick aqui. ${ponte}. ` +
+    `Eu faço página de vendas para indústria: o comprador chega já sabendo o que vocês atendem e manda o pedido pelo WhatsApp com o serviço definido. ` +
+    `Separei um exemplo de uma empresa do mesmo ramo. Quer ver?`
+  );
 }
 
 export function nextActionAfterInbound(
@@ -362,11 +472,23 @@ export function followupMessage(
   if (responseType === "bot") {
     return `Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da ${company} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.`;
   }
+  // CADA TOQUE LEVA ANGULO NOVO, nunca lembrete (revisto em 02/08).
+  // O M1 antigo era "te escrevi esses dias e imagino que tenha passado batido na
+  // correria, so retomando". Isso nao acrescenta motivo nenhum pra ele responder
+  // agora — e so cobranca, e cobranca de desconhecido se ignora. O dado sustenta:
+  // o follow-up resgatou 1 lead em 37. Cada tier agora carrega uma dor ou prova
+  // que a mensagem anterior nao tinha.
+
+  // M1 = dor do PROCESSO comercial, que e a que o industrial sente no bolso:
+  // orcamento chegando incompleto e o tecnico virando atendente.
   if (tier === "M1") {
-    return `Oi, Erick de novo. Te escrevi sobre a ${company} esses dias e imagino que tenha passado batido na correria. Só retomando: separei um exemplo de página que faz o comprador chegar já com o pedido definido. Quer que eu mande?`;
+    return `Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com ${casoDoSegmento(segment).replace(/^uma /, "")}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?`;
   }
+  // M2 = prova nomeada. Aqui o case entra com nome e cidade, nao como categoria.
   if (tier === "M2") {
-    return `Oi! Um contexto rápido: fiz isso pra ${casoDoSegmento(segment)}, que atende indústria como vocês. O ponto era o mesmo, serviço bom e o comprador sem achar prova disso na internet. Te mando como ficou?`;
+    return `Oi! Contexto rápido: fiz isso pra ${casoDoSegmento(segment)}, que atende indústria como vocês. O serviço já era bom, o que faltava era o comprador achar prova disso antes de decidir pra quem ligar. Te mando como ficou?`;
   }
-  return `Oi! Vou parar de te escrever pra não virar chateação. Fica o registro: se um dia fizer sentido olhar como a ${company} aparece pra quem procura antes de pedir orçamento, é só me chamar aqui. Sucesso aí!`;
+  // M3 = breakup com porta especifica. "Me chama" generico nao volta; deixar UMA
+  // condicao concreta cria gancho pra ele voltar quando ela acontecer.
+  return `Oi! Vou parar de te escrever pra não virar chateação. Fica o registro: quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. É só me chamar aqui. Sucesso aí!`;
 }
