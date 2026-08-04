@@ -26,20 +26,37 @@ async function openPage() {
 const page = await openPage();
 const socket = new WebSocket(page.webSocketDebuggerUrl);
 const pending = new Map();
+const browserDiagnostics = [];
 let sequence = 0;
 
-socket.onmessage = (event) => {
-  const message = JSON.parse(event.data);
+socket.addEventListener("message", async (event) => {
+  const rawMessage = typeof event.data === "string" ? event.data : await event.data.text();
+  const message = JSON.parse(rawMessage);
+  if (message.method === "Runtime.exceptionThrown") {
+    browserDiagnostics.push(message.params?.exceptionDetails?.exception?.description || message.params?.exceptionDetails?.text || "Runtime exception");
+  }
+  if (message.method === "Log.entryAdded" && message.params?.entry?.level === "error") {
+    browserDiagnostics.push(message.params.entry.text);
+  }
   const request = pending.get(message.id);
   if (!request) return;
   pending.delete(message.id);
   if (message.error) request.reject(new Error(message.error.message));
   else request.resolve(message.result);
-};
+});
+
+socket.addEventListener("close", () => {
+  for (const request of pending.values()) request.reject(new Error("Conexao CDP encerrada antes da resposta."));
+  pending.clear();
+});
 
 await new Promise((resolve, reject) => {
-  socket.onopen = resolve;
-  socket.onerror = reject;
+  if (socket.readyState === WebSocket.OPEN) {
+    resolve();
+    return;
+  }
+  socket.addEventListener("open", resolve, { once: true });
+  socket.addEventListener("error", reject, { once: true });
 });
 
 function send(method, params = {}) {
@@ -51,6 +68,8 @@ function send(method, params = {}) {
 }
 
 await send("Network.enable");
+await send("Runtime.enable");
+await send("Log.enable");
 const token = await createAdminSession({ email: smokeEmail, secret: smokeSecret });
 await send("Network.setCookie", {
   name: "crm_admin_session",
@@ -62,12 +81,79 @@ await send("Network.setCookie", {
 await send("Page.navigate", { url: `${appUrl}/instagram` });
 await sleep(2500);
 
-for (const [name, tabIndex] of [["overview", null], ["prospecting", 1], ["followups", 2]]) {
-  if (tabIndex !== null) {
-    await send("Runtime.evaluate", {
-      expression: `document.querySelectorAll(".ig-tabs button")[${tabIndex}].click()`,
+for (const [name, label] of [
+  ["overview", "Visão geral"],
+  ["prospecting", "Achados"],
+  ["followups", "Leads e follow-ups"],
+]) {
+  const clickTarget = await send("Runtime.evaluate", {
+    expression: `(() => {
+      const expected = ${JSON.stringify(label)};
+      const button = [...document.querySelectorAll(".ig-tabs button")]
+        .find((item) => item.textContent.trim() === expected);
+      if (!button) return { ok: false, reason: "tab_not_found", expected };
+      const rect = button.getBoundingClientRect();
+      return { ok: true, expected, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })()`,
+    returnByValue: true,
+  });
+  if (!clickTarget.result.value?.ok) throw new Error(`Aba ${label} nao encontrada no smoke visual.`);
+  await send("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: clickTarget.result.value.x,
+    y: clickTarget.result.value.y,
+    button: "left",
+    clickCount: 1,
+  });
+  await send("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x: clickTarget.result.value.x,
+    y: clickTarget.result.value.y,
+    button: "left",
+    clickCount: 1,
+  });
+  await sleep(1200);
+  const active = await send("Runtime.evaluate", {
+    expression: `document.querySelector(".ig-tabs button.active")?.textContent.trim() || ""`,
+    returnByValue: true,
+  });
+  if (active.result.value !== label) {
+    const diagnostic = await send("Runtime.evaluate", {
+      expression: `(() => {
+        const expected = ${JSON.stringify(label)};
+        const button = [...document.querySelectorAll(".ig-tabs button")]
+          .find((item) => item.textContent.trim() === expected);
+        const reactPropsKey = button ? Object.keys(button).find((key) => key.startsWith("__reactProps")) : null;
+        return {
+          readyState: document.readyState,
+          nextError: document.querySelector("nextjs-portal")?.shadowRoot?.textContent?.trim().slice(0, 500) || "",
+          reactPropsKey: reactPropsKey || "",
+          hasOnClick: Boolean(reactPropsKey && button?.[reactPropsKey]?.onClick),
+          scripts: [...document.scripts].map((script) => script.src).filter(Boolean).length,
+          browserDiagnostics: ${JSON.stringify(browserDiagnostics)}.slice(-8),
+        };
+      })()`,
+      returnByValue: true,
     });
-    await sleep(name === "followups" ? 4000 : 1200);
+    throw new Error(`Smoke permaneceu em ${active.result.value || "nenhuma aba"}; esperado ${label}. Diagnostico: ${JSON.stringify(diagnostic.result.value)}`);
+  }
+  if (name === "followups") {
+    let queueState = { ready: false, error: "" };
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const result = await send("Runtime.evaluate", {
+        expression: `({
+          ready: Boolean(document.querySelector(".ig-kanban-layout")),
+          error: document.querySelector(".ig-notice.error")?.textContent?.trim() || "",
+        })`,
+        returnByValue: true,
+      });
+      queueState = result.result.value;
+      if (queueState.ready || queueState.error) break;
+      await sleep(500);
+    }
+    if (queueState.error) throw new Error(`Fila do Instagram falhou no smoke visual: ${queueState.error}`);
+    if (!queueState.ready) throw new Error("Kanban do Instagram nao carregou a tempo no smoke visual.");
+    await sleep(500);
   }
   const screenshot = await send("Page.captureScreenshot", {
     format: "png",

@@ -11,6 +11,16 @@ export type ChannelStatus =
   | "paused"
   | "opted_out";
 
+export type InstagramKanbanColumn = "to_contact" | "opened" | "followup" | "replied" | "archived";
+
+export function instagramKanbanColumnForStatus(status?: ChannelStatus | string | null): InstagramKanbanColumn {
+  if (status === "opened") return "opened";
+  if (status === "contacted") return "followup";
+  if (status === "replied") return "replied";
+  if (status === "paused" || status === "opted_out") return "archived";
+  return "to_contact";
+}
+
 export type ChannelEvent = {
   channel: ProspectingChannel;
   event: "opened" | "sent" | "received" | "opted_out";

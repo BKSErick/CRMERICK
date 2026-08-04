@@ -3,11 +3,23 @@ import test from "node:test";
 
 import {
   buildSearchQueries,
+  instagramKanbanColumnForStatus,
   nextChannelAction,
   normalizeInstagramIdentity,
   preferredChannelForSegment,
   summarizeChannelHistory,
 } from "../src/lib/prospecting.ts";
+
+test("kanban organiza cada status em uma coluna operacional", () => {
+  assert.equal(instagramKanbanColumnForStatus("review"), "to_contact");
+  assert.equal(instagramKanbanColumnForStatus("ready"), "to_contact");
+  assert.equal(instagramKanbanColumnForStatus("opened"), "opened");
+  assert.equal(instagramKanbanColumnForStatus("contacted"), "followup");
+  assert.equal(instagramKanbanColumnForStatus("replied"), "replied");
+  assert.equal(instagramKanbanColumnForStatus("paused"), "archived");
+  assert.equal(instagramKanbanColumnForStatus("opted_out"), "archived");
+  assert.equal(instagramKanbanColumnForStatus(undefined), "to_contact");
+});
 
 test("busca Instagram aceita somente odontologia e estetica", () => {
   const dental = buildSearchQueries("odontologia", "Belo Horizonte", "MG");
