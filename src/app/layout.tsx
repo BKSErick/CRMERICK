@@ -4,6 +4,7 @@ import "./globals.css";
 import "@/styles/legacy-pipeline.css";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
+import { SupabaseAuthBridge } from "@/components/SupabaseAuthBridge";
 
 export const metadata: Metadata = {
   title: "CRM Erick",
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
+        <SupabaseAuthBridge />
         <Sidebar />
         <Topbar />
         <main className="main">{children}</main>

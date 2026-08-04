@@ -101,6 +101,32 @@ create table if not exists public.activities (
   created_at  timestamptz default now()
 );
 
+-- Estado operacional por oportunidade + canal. O deal continua unico no pipeline;
+-- os relogios de WhatsApp, Instagram, email e LinkedIn nao se contaminam.
+create table if not exists public.prospecting_channels (
+  id bigserial primary key,
+  deal_id integer not null references public.deals(id) on delete cascade,
+  channel text not null check (channel in ('instagram', 'whatsapp', 'email', 'linkedin')),
+  identity text,
+  profile_url text,
+  match_source text,
+  match_confidence text not null default 'low',
+  status text not null default 'review',
+  last_opened_at timestamptz,
+  last_outbound_at timestamptz,
+  last_inbound_at timestamptz,
+  next_action_at timestamptz,
+  next_action_type text,
+  next_action_note text,
+  response_type text not null default 'sem_resposta',
+  response_type_source text not null default 'automatic',
+  opted_out_at timestamptz,
+  evidence jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (deal_id, channel)
+);
+
 -- ─────────────────────────────────────────────
 -- RLS: Habilita Row-Level Security
 -- ─────────────────────────────────────────────
@@ -108,6 +134,7 @@ alter table public.deals      enable row level security;
 alter table public.contacts   enable row level security;
 alter table public.messages   enable row level security;
 alter table public.activities enable row level security;
+alter table public.prospecting_channels enable row level security;
 
 -- Deny-by-default para anon/public.
 -- As rotas Next.js usam service-role server-side e bypassam RLS sem expor segredo ao cliente.
@@ -115,6 +142,7 @@ drop policy if exists "Allow all" on public.deals;
 drop policy if exists "Allow all" on public.contacts;
 drop policy if exists "Allow all" on public.messages;
 drop policy if exists "Allow all" on public.activities;
+drop policy if exists "Allow all" on public.prospecting_channels;
 
 -- ─────────────────────────────────────────────
 -- TRIGGER: updated_at automático

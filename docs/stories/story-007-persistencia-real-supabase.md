@@ -63,7 +63,7 @@ GPT-5 Codex (Dex)
 - `npm run build` (2026-07-29) - passou com Next.js 16.2.12; 40/40 paginas estaticas geradas e `/api/deals` dinamica.
 - `node scripts/apply-migration.mjs scripts/migrations/20260729_fix_deal_deletion.sql` - migration aplicada no Supabase do CRM, HTTP 201.
 - `npm audit --audit-level=moderate` (antes do hardening) - 4 vulnerabilidades high em Next.js/PostCSS/Sharp/brace-expansion.
-- `npm install` + overrides seguros - Next.js e eslint-config-next 16.2.12; PostCSS 8.5.25; Sharp 0.35.3; minimatch 10.2.5; brace-expansion 5.0.8.
+- `npm install` + overrides seguros - Next.js e eslint-config-next 16.2.12; PostCSS 8.5.25; Sharp 0.35.3; minimatch 10.2.5; brace-expansion 5.0.9.
 - `npm audit --audit-level=moderate` (apos hardening) - 0 vulnerabilidades.
 - `node scripts/seed-supabase.js --dry-run --limit=2` - validou parsing de `mock-db.js`, `garimpo-leads.json` e `disparo-data.json` sem gravar.
 - `node scripts/verify-crm-rls.js` - confirmou Supabase ja populado com 942 deals e 942 contacts.

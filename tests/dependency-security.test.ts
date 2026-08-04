@@ -18,7 +18,7 @@ test("mantem o grafo de glob seguro e compativel com o lint", () => {
   assert.equal(minimatch("src/app/api/deals/route.ts", "src/**/*.ts"), true);
 
   assert.deepEqual(packageJson.overrides, {
-    "brace-expansion": "5.0.8",
+    "brace-expansion": "5.0.9",
     minimatch: "10.2.5",
     postcss: "8.5.25",
     sharp: "0.35.3",

@@ -7,6 +7,8 @@ export function Topbar() {
   const pathname = usePathname();
   const currentTitle = getCurrentTitle(pathname);
 
+  if (pathname === "/login") return null;
+
   return (
     <header className="topbar">
       <button

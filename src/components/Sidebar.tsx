@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { navItems } from "@/lib/navigation";
 
 const groups = ["Navegacao", "Gestao"] as const;
@@ -38,6 +39,18 @@ function NavIcon({ module }: { module: string }) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  if (pathname === "/login") return null;
+
+  async function logout() {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.assign("/login");
+    }
+  }
 
   return (
     <aside className="sidebar" id="sidebar">
@@ -75,10 +88,13 @@ export function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="sidebar-avatar">ES</div>
-        <div>
+        <div className="sidebar-user-copy">
           <div className="sidebar-user">Erick Sena</div>
           <div className="sidebar-user-role">Admin</div>
         </div>
+        <button className="sidebar-logout" disabled={loggingOut} onClick={logout} type="button">
+          {loggingOut ? "..." : "Sair"}
+        </button>
       </div>
     </aside>
   );

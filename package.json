@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/uazapi-webhook.test.ts tests/followup-operations.test.ts tests/pipeline-runtime.test.ts tests/deal-deletion.test.ts tests/dependency-security.test.ts",
+    "test": "node --test tests/uazapi-webhook.test.ts tests/followup-operations.test.ts tests/admin-auth.test.ts tests/admin-auth-proxy.test.ts tests/admin-auth-routes.test.ts tests/admin-login-ui.test.ts tests/instagram-prospecting-ui.test.ts tests/prospecting-operations.test.ts tests/prospecting-search.test.ts tests/prospecting-records.test.ts tests/prospecting-actions.test.ts tests/prospecting-api.test.ts tests/prospecting-routes.test.ts tests/serper-client.test.ts tests/pipeline-runtime.test.ts tests/deal-deletion.test.ts tests/dependency-security.test.ts",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",
@@ -43,7 +43,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "brace-expansion": "5.0.8",
+    "brace-expansion": "5.0.9",
     "minimatch": "10.2.5",
     "postcss": "8.5.25",
     "sharp": "0.35.3"

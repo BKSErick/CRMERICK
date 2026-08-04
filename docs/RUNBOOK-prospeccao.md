@@ -114,3 +114,56 @@ Mede quem responde de verdade por segmento, DDD, cidade, reputação e variante 
 | Score e lookalike | `src/lib/leadScoring.js` |
 | Doutrina da copy | `scripts/regenerate-copies.js` |
 | Perfil de conversão | `data/winning-profile.json` |
+
+## Operar prospecção pelo Instagram
+
+Acesse `Instagram > Prospecção`. Escolha apenas `Clínicas odontológicas` ou
+`Clínicas de estética`, informe cidade/UF e revise os perfis encontrados. A busca
+usa Maps, busca pública e o site oficial quando disponível.
+
+Configuração server-side obrigatória:
+
+```env
+SERPER_API_KEYS=chave_1,chave_2
+```
+
+O navegador nunca recebe essas chaves. Resultado com confiança média ou baixa deve
+ser revisado antes da importação. Se a empresa já existe, o Instagram é anexado ao
+mesmo deal. Clientes/cases de `data/nao-prospectar.json` permanecem bloqueados.
+
+Na aba `Leads e follow-ups`:
+
+1. Abra o perfil e revise a empresa.
+2. Copie e envie a mensagem manualmente no Instagram.
+3. Clique em `Confirmar como enviada` apenas depois do envio real.
+4. Registre respostas, classificação, agendamento, pausa ou opt-out na mesma ficha.
+
+Abrir perfil ou copiar texto nunca conta como envio. A confirmação manual cria o
+histórico e agenda a cadência do Instagram em D+2, D+5 e D+10. Essa cadência não
+altera o relógio do WhatsApp e não inclui os leads industriais existentes.
+
+Migration aplicada em 04/08/2026:
+`scripts/migrations/20260804_prospecting_channels.sql`.
+
+## Ativar o acesso administrativo
+
+Configure somente no servidor local/Vercel:
+
+```env
+CRM_ADMIN_EMAIL=seu-email-administrativo
+CRM_AUTH_SECRET=segredo-aleatorio-com-pelo-menos-32-caracteres
+```
+
+O login usa o template nativo **Magic Link** do Supabase, com
+`{{ .ConfirmationURL }}`. Em `Supabase > Authentication > URL Configuration`,
+autorize `http://localhost:3000/auth/callback` para desenvolvimento e a mesma rota
+no domínio de produção. O primeiro pedido válido cria, se necessário, somente o
+usuário definido em `CRM_ADMIN_EMAIL` e solicita o link pelo Supabase Auth.
+
+Ao abrir o link, o cliente remove imediatamente o token da barra de endereço. O
+servidor valida a identidade no Supabase, confere a allowlist e só então emite a
+sessão administrativa em cookie HttpOnly. O token nunca é registrado em log.
+
+O CRM falha fechado se e-mail ou segredo estiverem ausentes. Páginas redirecionam
+para `/login`, APIs privadas retornam 401 e a sessão expira em sete dias. Trocar
+`CRM_AUTH_SECRET` invalida todas as sessões atuais.
