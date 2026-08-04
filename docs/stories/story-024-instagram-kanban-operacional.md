@@ -41,7 +41,7 @@ follow-ups sem perder o card depois de cada acao.
 - [x] Implementar rastreamento visual apos mudanca de status.
 - [x] Aplicar estilos desktop e responsivos.
 - [x] Executar quality gates e smoke visual.
-- [ ] Publicar e validar o alias de producao.
+- [x] Publicar e validar o alias de producao.
 
 ## Fora de Escopo
 
@@ -88,3 +88,4 @@ GPT-5 Codex
 
 - 2026-08-04: Design aprovado para kanban compacto com painel lateral persistente.
 - 2026-08-04: Implementacao concluida e validada com 66 testes, build e smoke visual usando 50 leads reais.
+- 2026-08-04: Commit publicado no `main`; deployment de producao concluido e asset do Kanban confirmado em `crmerick.vercel.app`.
