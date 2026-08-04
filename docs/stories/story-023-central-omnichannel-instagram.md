@@ -73,10 +73,12 @@ GPT-5 Codex
 
 - `npm.cmd run lint`: PASS.
 - `npm.cmd run typecheck`: PASS.
-- `npm.cmd test`: PASS, 62 testes.
+- `npm.cmd test`: PASS, 63 testes.
 - `npm.cmd run build`: PASS, Next.js 16.2.12.
 - Migration via Supabase Management API: HTTP 201; leitura REST da tabela: HTTP 200.
 - Smoke visual: Visao geral, Achados e Leads e follow-ups validados em instancia isolada; nenhum envio externo executado.
+- Testes direcionados da copy: PASS, 8 testes; personalizacao por nome e elogio coberta no gerador e na fila.
+- Backfill Supabase: 50/50 rascunhos atualizados, Dra. Renata validada e 0 mensagens enviadas.
 
 ### Completion Notes List
 
@@ -86,6 +88,8 @@ GPT-5 Codex
 - Abrir perfil e copiar mensagem nao criam envio; somente a confirmacao explicita grava `messages`.
 - Migration aditiva aplicada e confirmada no projeto Supabase do CRM.
 - `SERPER_API_KEYS` ainda precisa ser configurada no ambiente de execucao.
+- A abordagem inicial agora comeca por um elogio ao trabalho, conecta essa percepcao ao site e usa os cases reais do Instagram como prova.
+- Evidencias do lead podem guardar `recipientName` e `compliment`; a fila e os novos rascunhos reaproveitam esses dados sem automatizar o envio.
 
 ### File List
 
@@ -127,3 +131,4 @@ GPT-5 Codex
 - 2026-08-04: Design aprovado para central omnichannel, com nova busca Instagram
   limitada a odontologia e estetica e preservacao do fluxo industrial atual.
 - 2026-08-04: Fluxo ajustado para pesquisa externa curada, aba Achados e smoke visual completo.
+- 2026-08-04: Copy inicial revisada com Webson para elogio primeiro, prova por cases do Instagram e personalizacao por lead; 50 rascunhos atualizados sem envio.

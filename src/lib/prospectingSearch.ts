@@ -129,14 +129,24 @@ export function createInstagramMessage(input: {
   vertical: ProspectingVertical;
   company: string;
   city?: string | null;
+  recipientName?: string | null;
+  compliment?: string | null;
 }) {
-  const company = input.company.trim();
-  const location = input.city?.trim() ? ` em ${input.city.trim()}` : "";
-  const audience = input.vertical === "odontologia" ? "clinicas odontologicas" : "clinicas de estetica";
-  const intent = input.vertical === "odontologia" ? "avaliacao ou procedimento" : "procedimento ou atendimento";
-
+  const cleanFragment = (value?: string | null, maxLength = 72) => {
+    const text = (value ?? "").replace(/https?:\/\/\S+/gi, "").replace(/\s+/g, " ").trim();
+    if (text.length <= maxLength) return text.replace(/[.!?]+$/, "");
+    return `${text.slice(0, maxLength - 3).trim()}...`;
+  };
+  const company = cleanFragment(input.company);
+  const city = cleanFragment(input.city, 40);
+  const location = city ? ` em ${city}` : "";
+  const recipientName = cleanFragment(input.recipientName, 48);
+  const compliment = cleanFragment(input.compliment, 120) || "gostei muito do cuidado que vocês demonstram no trabalho";
   if (input.tier === "initial") {
-    return `Oi! Vi o perfil da ${company}${location}. Eu crio paginas para ${audience} que organizam o interesse por ${intent} antes da conversa chegar no WhatsApp. Posso te mostrar a ideia?`;
+    const greeting = recipientName ? `Oi, ${recipientName}!` : "Oi!";
+    const profile = recipientName ? "seu perfil" : `perfil da ${company}${location}`;
+    const offer = input.vertical === "odontologia" ? "os tratamentos" : "os procedimentos";
+    return `${greeting} Dei uma olhada no ${profile} e ${compliment}. O Instagram já transmite uma imagem profissional e confiável. Pensei que um site poderia ampliar essa percepção, organizar melhor ${offer} e preparar quem chega antes do WhatsApp. Nosso Instagram reúne vários cases reais desse tipo. Posso te mostrar uma ideia rápida?`;
   }
   if (input.tier === "M1") {
     return `Oi! Uma ideia que pode fazer sentido para a ${company}: em vez de cada pessoa chegar perguntando tudo do zero, a pagina identifica o interesse e leva o contato mais organizado para o WhatsApp. Quer que eu te mostre o fluxo?`;

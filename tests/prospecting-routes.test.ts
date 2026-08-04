@@ -18,3 +18,11 @@ test("rota de acao nao possui integracao de envio automatico", () => {
   assert.doesNotMatch(action, /graph\.facebook|instagram.*send|sendMessage/i);
   assert.match(action, /confirm_sent/);
 });
+
+test("fila reaproveita nome e elogio observados na copy personalizada", () => {
+  const repository = source("../src/lib/prospectingRepository.ts");
+  assert.match(repository, /copyPersonalization/);
+  assert.match(repository, /recipientName/);
+  assert.match(repository, /compliment/);
+  assert.match(repository, /channel\.evidence/);
+});

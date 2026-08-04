@@ -78,3 +78,32 @@ test("copy Instagram e curta, sem link e sem linguagem industrial", () => {
     }
   }
 });
+
+test("abordagem inicial elogia o trabalho, posiciona o site e usa os cases como prova", () => {
+  const generic = createInstagramMessage({
+    tier: "initial",
+    vertical: "odontologia",
+    company: "Clinica Sorriso",
+    city: "Belo Horizonte",
+  });
+  assert.match(generic, /dei uma olhada no perfil/i);
+  assert.match(generic, /gostei muito|cuidado/i);
+  assert.match(generic, /site/i);
+  assert.match(generic, /nosso instagram.*cases reais/i);
+  assert.match(generic, /posso te mostrar/i);
+  assert.doesNotMatch(generic, /nao tem site|perfil fraco|falha/i);
+
+  const personalized = createInstagramMessage({
+    tier: "initial",
+    vertical: "odontologia",
+    company: "Grupo Odontologico Especializado",
+    city: "Belo Horizonte",
+    recipientName: "Dra. Renata",
+    compliment: "gostei muito de como você comunica rejuvenescimento com naturalidade",
+  });
+  assert.match(personalized, /^Oi, Dra\. Renata!/);
+  assert.match(personalized, /rejuvenescimento com naturalidade/i);
+  assert.match(personalized, /site/i);
+  assert.match(personalized, /cases reais/i);
+  assert.ok(personalized.length <= 420);
+});

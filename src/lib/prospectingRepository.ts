@@ -6,6 +6,15 @@ import { mapProspectingChannelFromRow, mapProspectingChannelToRow } from "./pros
 import { planProspectingAction, type ProspectingAction } from "./prospectingActions";
 import type { ProspectingChannel, ProspectingVertical } from "./prospecting";
 
+function copyPersonalization(evidence?: Record<string, unknown> | null) {
+  return {
+    recipientName:
+      typeof evidence?.recipientName === "string" ? evidence.recipientName : null,
+    compliment:
+      typeof evidence?.compliment === "string" ? evidence.compliment : null,
+  };
+}
+
 type ImportCandidate = {
   name: string;
   city: string | null;
@@ -133,7 +142,13 @@ export async function importInstagramProspect(candidate: ImportCandidate, vertic
     const draft = await supabase.from("messages").insert({
       deal_id: dealId,
       channel: "instagram",
-      content: createInstagramMessage({ tier: "initial", vertical, company: candidate.name, city: candidate.city }),
+      content: createInstagramMessage({
+        tier: "initial",
+        vertical,
+        company: candidate.name,
+        city: candidate.city,
+        ...copyPersonalization(candidate.evidence),
+      }),
       status: "draft",
       provider: "manual",
       direction: "draft",
@@ -222,6 +237,7 @@ export async function getProspectingQueue(channel: ProspectingChannel = "instagr
         vertical,
         company: String(deal?.company || deal?.name || channel.identity || "empresa"),
         city: typeof channel.evidence?.city === "string" ? channel.evidence.city : null,
+        ...copyPersonalization(channel.evidence),
       }),
     };
   });
