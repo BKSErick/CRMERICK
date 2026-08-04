@@ -161,6 +161,20 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "🤝 \"Já tenho quem faça isso pra mim\"",
     text: "Faz todo sentido manter quem já atende bem vocês, e não é minha intenção mexer nisso. Só te deixo um ponto pra quando for útil: o que eu faço não é trocar o site, é a página que recebe quem está decidindo pra quem ligar. Se um dia quiser comparar, é só me chamar. Sucesso aí!",
   },
+  // Objecao real da JOHN REFRIGERACAO (04/08). Dono de operacao de uma pessoa
+  // so olha o case (que tem equipe atras) e entende que pagina e um projeto que
+  // ELE teria que tocar e manter. Nao e objecao de preco, e de esforco e de
+  // tamanho. A resposta destravou em um minuto: veio pedido de orcamento logo
+  // depois.
+  //
+  // PRECO NAO ENTRA AQUI DE PROPOSITO. Decisao do Erick em 04/08: o valor varia
+  // com o porte do cliente (Esmetal e Metaltech pagam 1,5k+), e fechar barato
+  // com dono-sozinho agora cria objecao de preco futura, enquanto o nome dele
+  // ainda esta se firmando. Se for quotar, e caso a caso, em mensagem separada.
+  {
+    title: "🔧 \"Minha estrutura é muito pequena / trabalho sozinho\"",
+    text: "Entendi, e é justo. Mas a sua não precisa ser igual a do exemplo que te mandei. A página é do tamanho da operação: aquela tem mais coisa porque tem equipe atendendo mais frente. A sua seria simples, com os serviços que você atende e o WhatsApp direto.\n\nE o trabalho é meu, não seu. Você me passa o que atende e eu volto com ela pronta pra você olhar. Você não mexe em nada.\n\nQuem trabalha sozinho perde menos com falta de cliente e mais com tempo. Boa parte da conversa de WhatsApp é gente que só queria preço. A página faz essa triagem antes de chegar em você.",
+  },
   {
     title: "🎯 Decisor indicado (te passaram o contato dele)",
     text: "Oi, [NOME]! Erick aqui. [QUEM_INDICOU] me passou seu contato. Eu faço página de vendas para indústria: o comprador chega já sabendo o que vocês atendem e manda o pedido pelo WhatsApp com o serviço definido. Separei um exemplo de uma empresa do mesmo ramo. Quer ver?",
