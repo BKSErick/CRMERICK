@@ -156,3 +156,16 @@ export function createInstagramMessage(input: {
   }
   return `Oi! Vou encerrar por aqui para nao virar insistencia. Se em algum momento quiser organizar melhor os contatos que chegam pelo Instagram e WhatsApp, pode me chamar. Sucesso para a ${company}!`;
 }
+
+export function selectInstagramSuggestedMessage(
+  messages: Array<{ content?: unknown; direction?: unknown; status?: unknown }>,
+  generatedMessage: string,
+) {
+  const persistedDraft = messages.find((message) => (
+    message.direction === "draft" &&
+    message.status === "draft" &&
+    typeof message.content === "string" &&
+    message.content.trim()
+  ));
+  return typeof persistedDraft?.content === "string" ? persistedDraft.content : generatedMessage;
+}

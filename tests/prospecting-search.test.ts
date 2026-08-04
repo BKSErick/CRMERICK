@@ -5,6 +5,7 @@ import {
   classifyCandidateAgainstCrm,
   createInstagramMessage,
   rankInstagramEvidence,
+  selectInstagramSuggestedMessage,
 } from "../src/lib/prospectingSearch.ts";
 
 const candidate = {
@@ -106,4 +107,23 @@ test("abordagem inicial elogia o trabalho, posiciona o site e usa os cases como 
   assert.match(personalized, /site/i);
   assert.match(personalized, /cases reais/i);
   assert.ok(personalized.length <= 420);
+});
+
+test("fila prioriza o rascunho persistido em vez de recalcular outra copy", () => {
+  const persisted = "Copy revisada e salva no CRM.";
+  const generated = "Copy recalculada pelo gerador.";
+
+  assert.equal(
+    selectInstagramSuggestedMessage([
+      { content: "Mensagem enviada.", direction: "sent", status: "sent" },
+      { content: persisted, direction: "draft", status: "draft" },
+    ], generated),
+    persisted,
+  );
+  assert.equal(
+    selectInstagramSuggestedMessage([
+      { content: "Mensagem enviada.", direction: "sent", status: "sent" },
+    ], generated),
+    generated,
+  );
 });

@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { getCrmSupabaseAdmin } from "./crmSupabase";
-import { classifyCandidateAgainstCrm, createInstagramMessage } from "./prospectingSearch";
+import {
+  classifyCandidateAgainstCrm,
+  createInstagramMessage,
+  selectInstagramSuggestedMessage,
+} from "./prospectingSearch";
 import { mapProspectingChannelFromRow, mapProspectingChannelToRow } from "./prospectingRecords";
 import { planProspectingAction, type ProspectingAction } from "./prospectingActions";
 import type { ProspectingChannel, ProspectingVertical } from "./prospecting";
@@ -228,17 +232,18 @@ export async function getProspectingQueue(channel: ProspectingChannel = "instagr
     const outboundCount = dealMessages.filter((message) => message.direction === "sent").length;
     const tiers = ["initial", "M1", "M2", "M3"] as const;
     const vertical = deal?.segment === "odontologia" ? "odontologia" : "estetica";
+    const generatedMessage = createInstagramMessage({
+      tier: tiers[Math.min(outboundCount, tiers.length - 1)],
+      vertical,
+      company: String(deal?.company || deal?.name || channel.identity || "empresa"),
+      city: typeof channel.evidence?.city === "string" ? channel.evidence.city : null,
+      ...copyPersonalization(channel.evidence),
+    });
     return {
       channel,
       deal,
       messages: dealMessages,
-      suggestedMessage: createInstagramMessage({
-        tier: tiers[Math.min(outboundCount, tiers.length - 1)],
-        vertical,
-        company: String(deal?.company || deal?.name || channel.identity || "empresa"),
-        city: typeof channel.evidence?.city === "string" ? channel.evidence.city : null,
-        ...copyPersonalization(channel.evidence),
-      }),
+      suggestedMessage: selectInstagramSuggestedMessage(dealMessages, generatedMessage),
     };
   });
 }
