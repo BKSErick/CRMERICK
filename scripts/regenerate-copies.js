@@ -242,10 +242,15 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
     const prova = mapsInfo
       ? `Vi a ${nomeCurto} no Google${ondeLocal}. ${mapsInfo} no Maps é operação de verdade, com cliente que volta.`
       : `Vi a ${nomeCurto} no Google${ondeLocal}, e dá pra ver que é operação de verdade.`;
-    const ponte = [
-      `Hoje quem precisa de ${seg.prova} pesquisa antes de ligar, e quem aparece nessa hora entra na cotação.`,
-      `Hoje o comprador pesquisa antes de ligar. Uma página simples põe vocês na frente dele nessa hora.`,
-    ][seed % 2];
+    // Mesma armadilha do emProva acima, do outro lado do gerador: 'geral' nao tem
+    // substantivo que encaixe depois de "precisa de", sairia "quem precisa de o
+    // servico de voces". Sem segmento nomeavel, vai a ponte que nao nomeia nada.
+    const ponte = seg.nome === 'geral'
+      ? `Hoje o comprador pesquisa antes de ligar. Uma página simples põe vocês na frente dele nessa hora.`
+      : [
+          `Hoje quem precisa de ${seg.prova} pesquisa antes de ligar, e quem aparece nessa hora entra na cotação.`,
+          `Hoje o comprador pesquisa antes de ligar. Uma página simples põe vocês na frente dele nessa hora.`,
+        ][seed % 2];
     return `${OI}\n\n${prova}\n\n${ponte} E ${promessa(seg)}.\n\n${CTA}`;
   }
 
