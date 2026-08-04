@@ -23,7 +23,7 @@ Todo script é **dry-run por padrão**. Só grava ou dispara com `--go`.
 ## Coisas que economizam busca
 
 - **Chaves do Serper ficam no Garimpo** (`D:\001Gravity\Garimpo SAAS NOVO\.env.local`, `SERPER_API_KEYS`), não no `.env` daqui. Os scripts leem de lá sozinhos.
-- **Uazapi**: instância grátis cai a cada poucas horas e gera token novo. Conferir a conexão antes de cada lote e atualizar `UAZAPI_INSTANCE_TOKEN` no `.env`.
+- **Uazapi**: servidor pago dedicado (`mydrion.uazapi.com`) desde 04/08/2026, token de instância fixo. Trocar de instância obriga a rodar `npm run whatsapp:webhook:configure` de novo, senão as respostas param de entrar no CRM.
 - `contacts.id` e `deals.id` são o **mesmo número** para o mesmo lead, sem foreign key.
 - Lead sem `deals.segment` canônico entra no CRM mas fica invisível para a fila de disparo.
 

@@ -72,7 +72,7 @@ Volume não é o principal fator de bloqueio: **denúncia de usuário é**. Por 
 - **Perfil completo** (foto, nome comercial, descrição). Número sem identidade é o perfil clássico de spam.
 - **Nunca link na primeira mensagem.** O link vai só depois do "quer ver?".
 
-A instância grátis cai a cada poucas horas e gera token novo: **confirmar a conexão antes de cada lote** e atualizar `UAZAPI_INSTANCE_TOKEN` no `.env`. A instância paga resolve a queda, mas **não protege contra bloqueio**: o risco é do número, não do plano.
+Desde 04/08/2026 o disparo roda no **servidor pago dedicado** (`https://mydrion.uazapi.com`, instância `rae3132aeb9759a`, número 553191072407). O token da instância é fixo e não expira a cada poucas horas como no `free.uazapi.com`, então o modo dia inteiro passa a fazer sentido. A instância paga **não protege contra bloqueio**: o risco é do número, não do plano. Se precisar recriar a instância, quem cria/lista no servidor é o `UAZAPI_ADMIN_TOKEN` do `.env`, e depois de recriar é obrigatório rodar `npm run whatsapp:webhook:configure` de novo, senão as respostas param de entrar no CRM.
 
 Follow-up de quem não respondeu:
 

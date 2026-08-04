@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const dryRun = process.argv.includes("--dry-run");
 
-const baseUrl = process.env.UAZAPI_BASE_URL || "https://free.uazapi.com";
+const baseUrl = process.env.UAZAPI_BASE_URL;
 const instanceToken = process.env.UAZAPI_INSTANCE_TOKEN;
 const webhookUrl =
   process.env.UAZAPI_WEBHOOK_URL || "https://crmerick.vercel.app/api/webhooks/uazapi";
@@ -11,6 +11,7 @@ const webhookSecret =
   process.env.UAZAPI_WEBHOOK_SECRET || randomBytes(32).toString("base64url");
 
 const missing = [
+  ["UAZAPI_BASE_URL", baseUrl],
   ["UAZAPI_INSTANCE_TOKEN", instanceToken],
   ...(dryRun
     ? []
