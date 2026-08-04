@@ -64,15 +64,22 @@ GPT-5 Codex
 - Smoke visual desktop de `/login`: PASS.
 - Regressao do magic link: 6 testes direcionados e suite completa com 62 testes: PASS.
 - Smoke em `localhost:3000`: `/login` HTTP 200 e solicitacao real do link HTTP 202.
+- Regressao do login por senha: 5 testes direcionados: PASS.
+- Suite completa do login por senha: lint, typecheck, build e 61 testes: PASS.
+- Smoke real: credencial Supabase HTTP 200, cookie emitido e API autenticada HTTP 200.
 
 ### Completion Notes List
 
 - Login passwordless por OTP do Supabase Auth, limitado a um e-mail server-side.
 - Fluxo ajustado para o magic link nativo do Supabase: token removido da URL e
   validado no servidor antes da emissao do cookie administrativo.
+- Fluxo simplificado por solicitacao do usuario para e-mail e senha validados pelo
+  Supabase, sem armazenamento da senha no CRM.
 - Cookie HMAC HttpOnly com sete dias de validade e falha fechada sem configuracao.
 - Excecoes publicas limitadas a assets, auth e integracoes externas autenticadas pelo proprio provedor.
 - Ativacao aguarda definir `CRM_ADMIN_EMAIL` e `CRM_AUTH_SECRET` no ambiente.
+- Senha administrativa atualizada no Supabase e copiada diretamente para o clipboard,
+  sem persistencia em arquivo ou log.
 
 ### File List
 
@@ -82,13 +89,10 @@ GPT-5 Codex
 - `docs/RUNBOOK-prospeccao.md`
 - `.env.example`
 - `src/app/api/auth/logout/route.ts`
-- `src/app/api/auth/link/route.ts`
-- `src/app/api/auth/request/route.ts`
+- `src/app/api/auth/login/route.ts`
 - `src/app/login/LoginForm.tsx`
 - `src/app/login/login.css`
 - `src/app/login/page.tsx`
-- `src/app/auth/callback/page.tsx`
-- `src/components/SupabaseAuthBridge.tsx`
 - `src/components/Sidebar.tsx`
 - `src/components/Topbar.tsx`
 - `src/lib/adminAuth.ts`
@@ -103,3 +107,4 @@ GPT-5 Codex
 
 - 2026-08-04: Story criada apos aprovacao explicita de login administrativo para o CRM.
 - 2026-08-04: Login alinhado ao magic link nativo do Supabase e ao callback seguro na porta 3000.
+- 2026-08-04: Magic link removido e substituido por login direto com senha no Supabase.

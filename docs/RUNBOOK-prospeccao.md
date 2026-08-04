@@ -154,15 +154,11 @@ CRM_ADMIN_EMAIL=seu-email-administrativo
 CRM_AUTH_SECRET=segredo-aleatorio-com-pelo-menos-32-caracteres
 ```
 
-O login usa o template nativo **Magic Link** do Supabase, com
-`{{ .ConfirmationURL }}`. Em `Supabase > Authentication > URL Configuration`,
-autorize `http://localhost:3000/auth/callback` para desenvolvimento e a mesma rota
-no domínio de produção. O primeiro pedido válido cria, se necessário, somente o
-usuário definido em `CRM_ADMIN_EMAIL` e solicita o link pelo Supabase Auth.
-
-Ao abrir o link, o cliente remove imediatamente o token da barra de endereço. O
-servidor valida a identidade no Supabase, confere a allowlist e só então emite a
-sessão administrativa em cookie HttpOnly. O token nunca é registrado em log.
+Crie o usuário de `CRM_ADMIN_EMAIL` em `Supabase > Authentication > Users` e defina
+uma senha forte. A tela `/login` envia a credencial somente ao servidor, que valida
+com o Supabase Auth, confere novamente a allowlist e emite a sessão administrativa
+em cookie HttpOnly. A senha nunca é gravada pelo CRM, enviada ao bundle ou registrada
+em log.
 
 O CRM falha fechado se e-mail ou segredo estiverem ausentes. Páginas redirecionam
 para `/login`, APIs privadas retornam 401 e a sessão expira em sete dias. Trocar

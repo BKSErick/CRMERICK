@@ -88,7 +88,6 @@ export function safeReturnPath(value?: string | null) {
 export function isPublicCrmPath(pathname: string) {
   return (
     pathname === "/login" ||
-    pathname === "/auth/callback" ||
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/webhooks/uazapi") ||
     pathname.startsWith("/api/threads/callback") ||

@@ -2,20 +2,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-test("login solicita magic link do Supabase sem embutir credencial administrativa", () => {
+test("login envia email e senha ao endpoint server-side sem embutir credenciais", () => {
   const source = readFileSync(new URL("../src/app/login/LoginForm.tsx", import.meta.url), "utf8");
-  assert.match(source, /api\/auth\/request/);
-  assert.match(source, /link de acesso/i);
-  assert.doesNotMatch(source, /api\/auth\/verify/);
-  assert.doesNotMatch(source, /CRM_ADMIN_EMAIL/);
+  assert.match(source, /api\/auth\/login/);
+  assert.match(source, /type="password"/);
+  assert.match(source, /current-password/);
+  assert.match(source, /Entrar no CRM/);
+  assert.doesNotMatch(source, /api\/auth\/request|link de acesso|CRM_ADMIN_EMAIL/i);
 });
 
-test("bridge troca o token do magic link por sessao HttpOnly e limpa a URL", () => {
-  const source = readFileSync(new URL("../src/components/SupabaseAuthBridge.tsx", import.meta.url), "utf8");
-  assert.match(source, /access_token/);
-  assert.match(source, /api\/auth\/link/);
-  assert.match(source, /history\.replaceState/);
-  assert.doesNotMatch(source, /console\.log/);
+test("layout nao processa tokens de magic link no navegador", () => {
+  const source = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /SupabaseAuthBridge|access_token/);
 });
 
 test("sidebar encerra a sessao administrativa", () => {

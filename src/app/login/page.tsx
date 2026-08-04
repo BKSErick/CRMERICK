@@ -21,12 +21,12 @@ export default function LoginPage() {
           <div className="login-eyebrow"><span /> Acesso privado</div>
           <h1>Seu CRM, protegido.</h1>
           <p className="login-lead">
-            Entre com o e-mail administrativo. Voce recebera um link seguro do Supabase para liberar esta sessao.
+            Entre normalmente com seu e-mail administrativo e sua senha.
           </p>
           <LoginForm />
           <div className="login-security-note">
             <span aria-hidden="true">✓</span>
-            Sem senha salva no navegador. A sessao e assinada e expira automaticamente.
+            A senha e validada pelo Supabase e nunca e armazenada pelo CRM.
           </div>
         </div>
         <p className="login-footer">CRM Erick · ambiente administrativo</p>
