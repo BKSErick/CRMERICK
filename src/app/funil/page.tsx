@@ -8,7 +8,7 @@ type InstagramState =
   | { status: "live"; reach: number; message: string }
   | { status: "fallback"; reach: null; message: string };
 
-type FunnelSource = "consolidado" | "pipeline" | "instagram" | "facebook";
+type FunnelSource = "consolidado" | "pipeline" | "instagram" | "facebook" | "google";
 type PixelState = {
   status: "loading" | "ready" | "fallback";
   configured: boolean;
@@ -49,6 +49,12 @@ export default function FunilPage() {
     status: "loading",
     configured: false,
     message: "Buscando Facebook Pixel...",
+    metrics: { views: 0, ctaClicks: 0, reportClicks: 0, ostrackClicks: 0, leads: 0, sales: 0 },
+  });
+  const [google, setGoogle] = useState<PixelState>({
+    status: "loading",
+    configured: false,
+    message: "Buscando Google Analytics...",
     metrics: { views: 0, ctaClicks: 0, reportClicks: 0, ostrackClicks: 0, leads: 0, sales: 0 },
   });
   const [crmSource, setCrmSource] = useState<"loading" | "ready" | "fallback">("loading");
@@ -152,6 +158,45 @@ export default function FunilPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadGoogle() {
+      try {
+        const response = await fetch("/api/google-analytics");
+        const body = await response.json();
+        if (!cancelled) {
+          setGoogle({
+            status: response.ok ? "ready" : "fallback",
+            configured: Boolean(body.configured),
+            message: body.message ?? "Google Analytics ainda sem eventos.",
+            metrics: {
+              views: Number(body.metrics?.views) || 0,
+              ctaClicks: Number(body.metrics?.ctaClicks) || 0,
+              reportClicks: Number(body.metrics?.reportClicks) || 0,
+              ostrackClicks: Number(body.metrics?.ostrackClicks) || 0,
+              leads: Number(body.metrics?.leads) || 0,
+              sales: Number(body.metrics?.sales) || 0,
+            },
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setGoogle((current) => ({
+            ...current,
+            status: "fallback",
+            message: "Google Analytics indisponivel neste ambiente.",
+          }));
+        }
+      }
+    }
+
+    loadGoogle();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const funnel = useMemo(() => {
     const count = (stages: DealStage[]) => deals.filter((deal) => stages.includes(deal.stage)).length;
     const won = count(["won"]);
@@ -164,6 +209,8 @@ export default function FunilPage() {
     // Removida a fabricacao antiga (fallbackReach 942, leads*80, leads*2.5).
     const instagramReach = instagram.reach ?? 0;
     const instagramClicks = pixelClicks;
+    const googleViews = google.metrics.views;
+    const googleClicks = google.metrics.ctaClicks + google.metrics.reportClicks + google.metrics.ostrackClicks;
 
     const sourceMetrics = {
       consolidado: {
@@ -205,6 +252,17 @@ export default function FunilPage() {
         won: pixel.metrics.sales,
         sourceLabel: pixel.configured ? "Facebook Pixel/CAPI" : "Facebook Pixel aguardando env",
       },
+      google: {
+        // Espelho do funil do Pixel, so que lido do GA4 (Data API). Numeros nao
+        // batem de proposito: GA4 deduplica por sessao e o Pixel conta evento.
+        reach: googleViews,
+        clicks: googleClicks,
+        leads: google.metrics.leads,
+        conversations: google.metrics.ctaClicks,
+        proposals: google.metrics.reportClicks,
+        won: google.metrics.sales,
+        sourceLabel: google.configured ? "Google Analytics 4" : "Google Analytics aguardando credenciais",
+      },
     } satisfies Record<FunnelSource, {
       reach: number;
       clicks: number;
@@ -231,7 +289,16 @@ export default function FunilPage() {
       proposalRate: selected.conversations > 0 ? (selected.proposals / selected.conversations) * 100 : 0,
       closingRate: selected.proposals > 0 ? (selected.won / selected.proposals) * 100 : 0,
     };
-  }, [activeSource, deals, instagram.reach, instagram.status, pixel.configured, pixel.metrics]);
+  }, [
+    activeSource,
+    deals,
+    instagram.reach,
+    instagram.status,
+    pixel.configured,
+    pixel.metrics,
+    google.configured,
+    google.metrics,
+  ]);
 
   const stageCounts = useMemo(
     () =>
@@ -316,6 +383,7 @@ export default function FunilPage() {
           ["pipeline", "Pipeline"],
           ["instagram", "Instagram"],
           ["facebook", "Facebook Pixel"],
+          ["google", "Google Analytics"],
         ].map(([source, label]) => (
           <button
             className={activeSource === source ? "active" : ""}
@@ -377,7 +445,13 @@ export default function FunilPage() {
           <article>
             <span>Diagnostico</span>
             <strong>{bottleneck}</strong>
-            <p>{activeSource === "facebook" ? pixel.message : instagram.message}</p>
+            <p>
+              {activeSource === "facebook"
+                ? pixel.message
+                : activeSource === "google"
+                  ? google.message
+                  : instagram.message}
+            </p>
           </article>
           <article>
             <span>Pipeline</span>

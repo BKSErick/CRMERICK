@@ -54,6 +54,20 @@ type Payload = {
   error?: string;
 };
 
+// Lado Google do radar: o GA4 ve as MESMAS paginas, mas conta sessao/usuario em
+// vez de evento. Serve de contraprova do Pixel — divergencia grande entre os dois
+// costuma ser bloqueador de anuncio ou tag que nao disparou.
+type GaPage = { pagePath: string; sessions: number; activeUsers: number };
+type GaState = {
+  status: "loading" | "ready" | "fallback";
+  configured: boolean;
+  message: string;
+  views: number;
+  users: number;
+  leads: number;
+  pages: GaPage[];
+};
+
 const nf = new Intl.NumberFormat("pt-BR");
 
 function timeAgo(iso: string) {
@@ -79,6 +93,41 @@ export default function SinaisPage() {
         if (!cancelled) { setData(body); setStatus("ready"); }
       } catch (e) {
         if (!cancelled) { setData({ ok: false, error: e instanceof Error ? e.message : "indisponivel" }); setStatus("error"); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const [ga, setGa] = useState<GaState>({
+    status: "loading",
+    configured: false,
+    message: "",
+    views: 0,
+    users: 0,
+    leads: 0,
+    pages: [],
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/google-analytics");
+        const body = await res.json();
+        if (cancelled) return;
+        setGa({
+          status: body.configured && body.status === "ready" ? "ready" : "fallback",
+          configured: Boolean(body.configured),
+          message: body.message ?? "",
+          views: Number(body.metrics?.views) || 0,
+          users: Number(body.metrics?.users) || 0,
+          leads: Number(body.metrics?.leads) || 0,
+          pages: Array.isArray(body.pages) ? (body.pages as GaPage[]) : [],
+        });
+      } catch {
+        if (!cancelled) {
+          setGa((current) => ({ ...current, status: "fallback", message: "Google Analytics indisponivel neste ambiente." }));
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -137,7 +186,52 @@ export default function SinaisPage() {
               <div className="kpi-value">{nf.format(totals.sources)}</div>
               <div className="kpi-trend">{nf.format(totals.pages)} paginas ativas</div>
             </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Google Analytics (30d)</div>
+              <div className="kpi-value">{ga.status === "ready" ? nf.format(ga.users) : "--"}</div>
+              <div className="kpi-trend">
+                {ga.status === "ready"
+                  ? `${nf.format(ga.views)} pageviews · ${nf.format(ga.leads)} leads`
+                  : "aguardando credenciais do GA4"}
+              </div>
+            </article>
           </div>
+
+          {ga.status === "ready" && ga.pages.length > 0 && (
+            <>
+              <h2 style={{ marginTop: "24px" }}>Trafego no Google Analytics</h2>
+              <div className="subtitle" style={{ marginBottom: "12px" }}>
+                Mesmas paginas, contagem do Google: sessao e usuario unico em vez de evento.
+                Serve de contraprova do Pixel — divergencia grande costuma ser tag que nao disparou.
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Pagina</th>
+                      <th>Sessoes</th>
+                      <th>Usuarios</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ga.pages.map((p) => (
+                      <tr key={p.pagePath}>
+                        <td>{p.pagePath}</td>
+                        <td><strong>{nf.format(p.sessions)}</strong></td>
+                        <td>{nf.format(p.activeUsers)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {ga.status === "fallback" && ga.message && (
+            <div className="connection-status fallback" style={{ marginTop: "16px" }}>
+              Google Analytics: {ga.message}
+            </div>
+          )}
 
           {sources.length > 0 && (
             <>
