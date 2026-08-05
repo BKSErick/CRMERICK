@@ -15,11 +15,30 @@
     return el ? (el.textContent || "").trim() : "";
   }
 
+  // O GA4 server-side (Measurement Protocol) precisa do mesmo client_id do
+  // browser, senao cada evento vira um usuario novo e nao junta com a sessao do
+  // gtag. O cookie _ga e a fonte real; o localStorage cobre o primeiro pageview,
+  // quando o gtag.js ainda nao gravou o cookie.
+  function gaClientId() {
+    var match = document.cookie.match(/_ga=GA\d+\.\d+\.(\d+\.\d+)/);
+    if (match) return match[1];
+    try {
+      var stored = window.localStorage.getItem("crm_ga_cid");
+      if (stored) return stored;
+      var cid = Math.floor(Math.random() * 1e9) + "." + Math.floor(Date.now() / 1000);
+      window.localStorage.setItem("crm_ga_cid", cid);
+      return cid;
+    } catch {
+      return undefined;
+    }
+  }
+
   function track(eventName, extra) {
     var payload = Object.assign({
       eventName: eventName,
       pageUrl: window.location.href,
       clientName: CLIENT_NAME || text("h1") || document.title.replace(/^Analise Digital - /, ""),
+      gaClientId: gaClientId(),
     }, extra || {});
 
     var sent = false;

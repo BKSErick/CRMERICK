@@ -17,9 +17,23 @@ const ostrackSalesUrl = process.env.OSTRACK_SALES_URL || ostrackDefaultSalesUrl;
 const ostrackUtm = 'utm_source=diagnostico&utm_medium=cta&utm_campaign=crm-erick';
 const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || process.env.FACEBOOK_PIXEL_ID || process.env.META_DATASET_ID || '1175331711422463';
 const metaPixelSnippet = metaPixelId
-  ? `<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${metaPixelId}');fbq('track','PageView');</script>`
+  ? `<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${metaPixelId}');fbq('track','PageView');</script><noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1"/></noscript>`
   : '';
-const trackingSnippet = `${metaPixelSnippet}<script src="/diagnostico-pixel.js" defer></script>`;
+const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-JHG7W15L2H';
+const gaSnippet = gaMeasurementId
+  ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaMeasurementId}');</script>`
+  : '';
+const diagnosticoPixelSnippet = '<script src="/diagnostico-pixel.js" defer></script>';
+
+// Injeta so o que falta: paginas que ja trazem Pixel/GA/diagnostico-pixel na fonte
+// nao podem receber uma segunda copia (PageView dobrado).
+function buildTrackingSnippet(html) {
+  return [
+    /fbq\s*\(\s*['"]init['"]/i.test(html) ? '' : metaPixelSnippet,
+    /googletagmanager\.com\/gtag\/js/i.test(html) ? '' : gaSnippet,
+    html.includes('diagnostico-pixel.js') ? '' : diagnosticoPixelSnippet,
+  ].join('');
+}
 
 function buildOstrackCtaUrl() {
   const separator = ostrackSalesUrl.includes('?') ? '&' : '?';
@@ -61,7 +75,8 @@ function copyDiagnosticsWithTracking() {
     const target = path.join(diagnosticsTargetDir, file);
     let html = fs.readFileSync(source, 'utf8');
 
-    if (!html.includes('/diagnostico-pixel.js')) {
+    const trackingSnippet = buildTrackingSnippet(html);
+    if (trackingSnippet) {
       html = html.includes('</head>')
         ? html.replace('</head>', `${trackingSnippet}</head>`)
         : `${trackingSnippet}\n${html}`;

@@ -11,6 +11,7 @@ type PixelEventBody = {
   leadPhone?: string;
   buttonName?: string;
   testEventCode?: string;
+  gaClientId?: string;
 };
 
 const API_VERSION = process.env.META_API_VERSION ?? "v25.0";
@@ -26,6 +27,12 @@ const META_TOKEN =
   process.env.VITE_META_TOKEN ??
   process.env.FACEBOOK_ACCESS_TOKEN;
 const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE;
+
+// GA4 Measurement Protocol — perna server-side espelhando a CAPI da Meta.
+// O api_secret e POR STREAM: este par tem que ser do mesmo stream que as paginas
+// carregam no gtag, senao o GA4 aceita o POST e descarta o evento em silencio.
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const GA_API_SECRET = process.env.GA_MEASUREMENT_PROTOCOL_SECRET;
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -150,6 +157,68 @@ async function logSignalActivity(body: PixelEventBody, eventName: string): Promi
   }
 }
 
+// GA4 so aceita nome de evento snake_case (<=40 chars, comeca com letra).
+// Os eventos conhecidos sao mapeados na mao porque o camelCase automatico gera
+// nome ruim no relatorio ("diagnostico_whats_app_click").
+const GA_EVENT_NAMES: Record<string, string> = {
+  DiagnosticoView: "diagnostico_view",
+  DiagnosticoWhatsAppClick: "diagnostico_whatsapp_click",
+  DiagnosticoLinkClick: "diagnostico_link_click",
+  DiagnosticoOStrackClick: "diagnostico_ostrack_click",
+};
+
+function toGaEventName(eventName: string): string {
+  const known = GA_EVENT_NAMES[eventName];
+  if (known) return known;
+
+  return eventName
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
+// Espelha o evento no GA4 via Measurement Protocol. Best-effort: nunca pode
+// derrubar o beacon nem atrasar a resposta do CAPI.
+async function sendGaEvent(body: PixelEventBody, eventName: string): Promise<boolean> {
+  if (!GA_MEASUREMENT_ID || !GA_API_SECRET) return false;
+
+  // Sem client_id o GA4 conta cada evento como um usuario novo e nao junta com a
+  // sessao do browser. O beacon manda o cid do cookie _ga; o random e ultimo caso.
+  const clientId = body.gaClientId?.trim() || `${Date.now()}.${Math.floor(Math.random() * 1e9)}`;
+
+  try {
+    const res = await fetch(
+      `https://www.google-analytics.com/mp/collect?measurement_id=${GA_MEASUREMENT_ID}&api_secret=${GA_API_SECRET}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: clientId,
+          events: [
+            {
+              name: toGaEventName(eventName),
+              params: {
+                // Sem engagement_time_msec o evento nao abre sessao no relatorio.
+                engagement_time_msec: "1",
+                page_location: body.pageUrl?.slice(0, 100),
+                client_name: body.clientName?.slice(0, 100),
+                button_name: body.buttonName?.slice(0, 100),
+                crm_source: "CRM Erick diagnostico",
+              },
+            },
+          ],
+        }),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Lê o resumo agregado (só contagens) via RPC SECURITY DEFINER.
 async function fetchSummary(): Promise<Metrics | null> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
@@ -214,12 +283,17 @@ export async function POST(request: NextRequest) {
   // 1b) Fio 1: reflete o sinal na timeline do deal casado (best-effort).
   await logSignalActivity(body, eventName);
 
+  // 1c) Espelha no GA4 server-side. Independe do CAPI: se o token Meta cair, o
+  // GA4 continua recebendo.
+  const gaSent = await sendGaEvent(body, eventName);
+
   // 2) Envia ao Meta CAPI, se configurado.
   if (!DATASET_ID || !META_TOKEN) {
     return NextResponse.json(
       {
         ok: persisted,
         persisted,
+        gaSent,
         status: "stored_only",
         message: "Evento salvo no CRM. Token Meta nao configurado para CAPI (META_API_TOKEN).",
       },
@@ -260,6 +334,7 @@ export async function POST(request: NextRequest) {
     {
       ok: response.ok && !meta.error,
       persisted,
+      gaSent,
       status: response.ok && !meta.error ? "sent" : "error",
       eventsReceived: meta.events_received ?? 0,
       fbtraceId: meta.fbtrace_id,
