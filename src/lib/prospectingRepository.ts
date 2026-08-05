@@ -9,6 +9,7 @@ import {
 import { mapProspectingChannelFromRow, mapProspectingChannelToRow } from "./prospectingRecords";
 import { planProspectingAction, type ProspectingAction } from "./prospectingActions";
 import type { ProspectingChannel, ProspectingVertical } from "./prospecting";
+import { normalizeWhatsappPhone } from "./whatsappPhone";
 
 function copyPersonalization(evidence?: Record<string, unknown> | null) {
   return {
@@ -70,6 +71,12 @@ async function references() {
   });
 }
 
+/** So aceita numero completo: meio numero em contacts.whatsapp casaria com o lead errado. */
+function whatsappCanonico(valor?: string | null) {
+  const digits = normalizeWhatsappPhone(valor);
+  return digits.length >= 12 ? digits : null;
+}
+
 async function createDeal(candidate: ImportCandidate, vertical: ProspectingVertical) {
   const supabase = getCrmSupabaseAdmin();
   const [lastContact, lastDeal] = await Promise.all([
@@ -85,6 +92,10 @@ async function createDeal(candidate: ImportCandidate, vertical: ProspectingVerti
     name: candidate.name,
     company: candidate.name,
     phone: candidate.phone || "—",
+    // Digito corrido para o webhook casar a resposta. Sem isto o lead entra so com o
+    // telefone formatado, que nao bate com o .in() nem com o fallback por sufixo, e a
+    // resposta dele se perde inteira. Ver o mesmo cuidado em scripts/lib/leadIngest.js.
+    whatsapp: whatsappCanonico(candidate.phone),
     status: "lead",
     initials,
     city: candidate.city,
@@ -104,6 +115,7 @@ async function createDeal(candidate: ImportCandidate, vertical: ProspectingVerti
     segment: vertical,
     stage: "prospect",
     status: "open",
+    contact_id: id,
     phone: candidate.phone,
     site_url: candidate.website,
     points: 1,

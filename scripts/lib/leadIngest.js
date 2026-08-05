@@ -73,6 +73,25 @@ function ehProibido(nome, lista) {
 
 const digitos = (v) => String(v || "").replace(/\D/g, "").replace(/^55/, "");
 
+// Telefone em digito corrido, mesma regra do normalizeWhatsappPhone de src/lib/whatsappPhone.ts.
+//
+// EXISTE POR UM MOTIVO ESPECIFICO: o webhook da Uazapi procura o contato com
+// .in("phone"|"whatsapp", variantes) sobre digito corrido, e o unico fallback dele exige
+// uma sequencia de 8+ digitos no valor GRAVADO. Lead do Serper entrava so com o telefone
+// formatado ("+55 31 99207-4444"), que nao tem sequencia de 8 digitos, entao NENHUM dos
+// dois caminhos casava: a resposta do lead sumia sem virar mensagem, activity nem card
+// orfao. Aconteceu em 05/08/2026 com Fago Refrigeracao e ILB Soldas, os dois leads mais
+// quentes do dia, e custou 156 cards para consertar depois. O formatado continua em
+// contacts.phone para a tela; o canonico vive em contacts.whatsapp.
+function telefoneCanonico(valor) {
+  const temDDI = String(valor || "").trim().startsWith("+");
+  let d = String(valor || "").replace(/\D/g, "");
+  if (!d) return null;
+  if (d.startsWith("0") && (d.length === 11 || d.length === 12)) d = d.slice(1);
+  if (!temDDI && !d.startsWith("55") && (d.length === 10 || d.length === 11)) d = `55${d}`;
+  return d.length >= 12 ? d : null;
+}
+
 // Dominios que NAO identificam a empresa: varios leads apontam o "site" para a mesma
 // rede social ou encurtador. Usar isso como chave de dedupe fazia lead novo ser
 // descartado por "ja existe" (7 de 8 na primeira puxada de Joao Monlevade).
@@ -220,6 +239,7 @@ async function gravar(crm, itens, proximoId, aoGravar) {
         name: nome,
         company: nome,
         phone: lead.phone || "—",
+        whatsapp: telefoneCanonico(lead.phone),
         status: "lead",
         initials: iniciais,
         city: lead.city,
@@ -250,6 +270,7 @@ async function gravar(crm, itens, proximoId, aoGravar) {
         segment: segmentoCanonico(lead.name, lead.categoria),
         stage: "prospect",
         status: "open",
+        contact_id: meuId,
         phone: lead.phone || null,
         site_url: lead.website || null,
         points: diag.priority_score,
