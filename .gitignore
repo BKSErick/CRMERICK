@@ -42,3 +42,4 @@ data/analise-conversas.md
 
 .vercel
 .env.local
+logs/
