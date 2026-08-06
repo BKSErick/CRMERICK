@@ -11,6 +11,7 @@
 
 const fs   = require('fs');
 const path = require('path');
+const { nomeCurto: nomeDaEmpresa } = require('./lib/nomeEmpresa.js');
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const LEADS_DIR  = path.join(__dirname, '..', 'huberick-temp');
@@ -213,6 +214,20 @@ function promessa(seg) {
     : 'o cliente chama no WhatsApp já dizendo o que precisa';
 }
 
+// wa.me, perfil de rede social e encurtador NAO sao site. Contar como site faz a
+// copy abrir com "passei pelo site de voces" para quem nao tem site nenhum — o
+// lead confere em dois segundos e a mensagem morre ali, junto com a credibilidade.
+const NAO_E_SITE = /wa\.me|api\.whatsapp|instagram\.com|facebook\.com|fb\.me|linktr\.ee|linktree|bit\.ly|encurtador|maps\.google|goo\.gl|business\.site\/?$/i;
+function ehSiteProprio(url) {
+  const u = String(url || '').trim();
+  return Boolean(u) && !NAO_E_SITE.test(u);
+}
+
+// Prova social do Maps so entra com amostra que sustenta a frase. "5 estrelas com
+// 1 avaliação no Maps é operação de verdade, com cliente que volta" diz o contrario
+// do que quer dizer: uma avaliacao nao mostra cliente que volta.
+const MINIMO_AVALIACOES = 5;
+
 function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
   const seg = detectarSegmento(empresa);
@@ -222,8 +237,8 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   const local = ehLocal(cidade);
   const OI = local ? aberturaLocal(ab) : abertura(ab);
   const CTA = local ? ctaLocal(seg) : ctaDoSegmento(seg);
-  // Nome curto: nome comercial gigante repetido inteiro soa robotico.
-  const nomeCurto = empresa.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(' ');
+  // Nome comercial gigante repetido inteiro soa robotico. Regra em lib/nomeEmpresa.
+  const nomeCurto = nomeDaEmpresa(empresa);
   // Se a abertura ja disse "de Monlevade mesmo", repetir a cidade no elogio soa robotico.
   const ondeLocal = cidade && !local ? `, em ${cidade}` : '';
   // Aposto tem que FECHAR com virgula: sem isso sai "site da X, em Joinville e da
@@ -284,7 +299,7 @@ function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {
 
 // Reaproveitado por scripts/generate-copies-db.mjs, que gera copy para lead que entrou
 // pela puxada por cidade e por isso NAO tem pagina de auditoria em huberick-temp.
-module.exports = { gerarCopy, detectarSegmento, ehLocal, SEGMENTOS };
+module.exports = { gerarCopy, detectarSegmento, ehLocal, ehSiteProprio, SEGMENTOS, MINIMO_AVALIACOES };
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 // So roda a varredura de arquivos quando chamado direto na linha de comando.

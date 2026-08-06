@@ -24,6 +24,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
@@ -81,7 +82,9 @@ const casoDoSegmento = (seg) =>
     ? "uma metalúrgica de usinagem de precisão"
     : "uma empresa de manutenção industrial";
 
-const nomeCurto = (c) => c.split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(" ") || c;
+// Regra unica em lib/nomeEmpresa: a copia local aqui cortava na conjuncao e mandava
+// "olhar como a By Tico Usinagem e aparece pra quem procura" no breakup.
+const { nomeCurto } = createRequire(import.meta.url)("./lib/nomeEmpresa.js");
 
 function followupMessage(tier, companyRaw, ehBot, segment) {
   const company = nomeCurto(companyRaw);

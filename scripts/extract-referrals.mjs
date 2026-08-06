@@ -22,7 +22,11 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { carregarEnv, clienteSupabase, ehProspect } from "./lib/analise-comum.mjs";
+
+// Mesma regra de nome curto da copy e do follow-up.
+const { nomeCurto } = createRequire(import.meta.url)("./lib/nomeEmpresa.js");
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 carregarEnv(RAIZ);
@@ -76,7 +80,6 @@ function extrairContatoIndicado(content, empresa) {
   return nome ? { nome, telefone } : null;
 }
 
-const nomeCurto = (c) => String(c || "").split(/[|\-–,]/)[0].trim().split(/\s+/).slice(0, 4).join(" ");
 const primeiroNome = (n) => String(n || "").trim().split(/\s+/)[0] || n;
 
 function mensagemDecisorIndicado({ nomeDecisor, empresa, quemIndicou }) {

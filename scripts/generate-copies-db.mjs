@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const { gerarCopy } = require(path.join(RAIZ, "scripts/regenerate-copies.js"));
+const { gerarCopy, ehSiteProprio, MINIMO_AVALIACOES } = require(path.join(RAIZ, "scripts/regenerate-copies.js"));
 const { normalize } = require(path.join(RAIZ, "src/lib/leadScoring.js"));
 const ingest = require(path.join(RAIZ, "scripts/lib/leadIngest.js"));
 
@@ -51,6 +51,9 @@ const crm = ingest.crmClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERV
 function mapsInfoDe(rating, reviews) {
   const n = Number(reviews || 0);
   if (!rating && !n) return null;
+  // Amostra minima: com 1 ou 2 avaliacoes a frase "operacao de verdade, com cliente
+  // que volta" prova o contrario do que promete. Sem prova, vai a versao sem numero.
+  if (n < MINIMO_AVALIACOES) return null;
   const partes = [];
   if (rating) partes.push(`${String(rating).replace(".", ",")} estrelas`);
   if (n) partes.push(`${n} ${n === 1 ? "avaliação" : "avaliações"}`);
@@ -90,7 +93,7 @@ function mapsInfoDe(rating, reviews) {
       empresa: d.company || "",
       // temSite pesa no texto: quem tem site recebe a versao "a prova esta espalhada",
       // quem nao tem recebe a versao "quem aparece na hora da busca entra na cotacao".
-      temSite: Boolean(d.site_url || c.site_url),
+      temSite: ehSiteProprio(d.site_url) || ehSiteProprio(c.site_url),
       mapsInfo: mapsInfoDe(c.rating, c.reviews_count),
       cidade: c.city || null,
     });
