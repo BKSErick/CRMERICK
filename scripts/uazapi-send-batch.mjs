@@ -27,8 +27,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const { avaliarLead, carregarAprovados } = createRequire(import.meta.url)("./lib/triagemLead.js");
+// Preenchido em carregarFila: o que a triagem de porte/tipo segurou fora da fila.
+let retidos = [];
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
   const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
@@ -116,15 +120,27 @@ async function carregarFila() {
   const filtro = IDS.length
     ? `id=in.(${IDS.join(",")})`
     : `stage=eq.prospect&segment=in.(${SEGMENTOS_VALIDOS})`;
-  const deals = await (await supa(`deals?${filtro}&select=id,company,stage,copy_text`, { headers: { Range: "0-9999" } })).json();
-  const contatos = await (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid", { headers: { Range: "0-9999" } })).json();
+  const deals = await (await supa(`deals?${filtro}&select=id,company,stage,copy_text,site_url`, { headers: { Range: "0-9999" } })).json();
+  const contatos = await (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url", { headers: { Range: "0-9999" } })).json();
   const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
 
   const fora = await carregarOptOuts();
 
+  // Triagem de porte e tipo: comercio e rede caem em segmento industrial pela
+  // classificacao do Maps, e ja chegaram a disparar (Lojas Singer, 06/08/2026).
+  const aprovados = carregarAprovados(RAIZ);
   return deals
     .filter((d) => d.copy_text)
     .filter((d) => !fora.has(d.id))
+    .filter((d) => {
+      const c = porId[d.id] || {};
+      const v = avaliarLead(
+        { id: d.id, company: d.company, reviews: c.reviews_count, siteUrl: d.site_url || c.site_url },
+        aprovados,
+      );
+      if (!v.ok) retidos.push(`#${d.id} ${d.company} (${v.motivo})`);
+      return v.ok;
+    })
     .map((d) => {
       const c = porId[d.id];
       // Numero confirmado primeiro. Disparar para numero que NAO existe no WhatsApp e
@@ -251,6 +267,11 @@ async function registrar(dealId, empresa) {
 
   const confirmados = lote.filter((l) => l.confianca === 3).length;
   console.log(`\nFila elegivel: ${fila.length} | ja enviados hoje: ${hoje.length}/${TETO_DIA} | lote: ${lote.length}`);
+  if (retidos.length) {
+    console.log(`Retidos pela triagem de porte/tipo: ${retidos.length} (liberar em data/triagem-aprovados.json)`);
+    retidos.slice(0, 8).forEach((r) => console.log(`   ${r}`));
+    if (retidos.length > 8) console.log(`   ... e mais ${retidos.length - 8}`);
+  }
   console.log(`Numeros confirmados no lote: ${confirmados}/${lote.length} | modo: ${DIA_INTEIRO ? "DIA INTEIRO" : "lote"} ${GO ? "(ENVIO REAL)" : "(dry-run)"}\n`);
   lote.forEach((l, i) => {
     console.log(`[${i + 1}] #${l.id} ${l.company} -> ${l.fone}`);

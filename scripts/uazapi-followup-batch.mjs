@@ -100,7 +100,31 @@ function followupMessage(tier, companyRaw, ehBot, segment) {
   return `Oi! Vou parar de te escrever pra não virar chateação. Fica o registro: se um dia fizer sentido olhar como a ${company} aparece pra quem procura antes de pedir orçamento, é só me chamar aqui. Sucesso aí!`;
 }
 
-const AUTORESPONDER = /agradece|obrigado (por|pelo)|seja bem-vind|responderemos|assistente virtual|em breve|horário de atendimento/i;
+// Saudacao automatica de WhatsApp Business. A lista comecou curta ("agradece",
+// "seja bem-vindo") e deixava passar os dois casos que hoje sao maioria: a saudacao
+// personalizada com o nome da empresa ("Bem-vindo ao atendimento comercial da EMC
+// Sistemas. Como podemos ajudar?") e a resposta escrita por IA, que cumprimenta pelo
+// nome e devolve pergunta ("Ola, Erick! Agradeco o contato e o elogio a nossa
+// reputacao..."). As duas liam como resposta HUMANA, entao o lead saia da cadencia
+// automatica e ficava esperando resposta escrita a mao que nunca vinha: 6 leads
+// presos assim em 06/08/2026. Medido na base: 53% das respostas sao so saudacao
+// automatica, e a taxa aparente de 22,8% vira 9,5% quando so conta gente.
+const AUTORESPONDER = new RegExp(
+  [
+    // Janela curta entre o verbo e o substantivo: pega "agradece seu contato",
+    // "Agradeço o contato" e "Agradecemos pelo seu contato" sem atravessar frase.
+    "agradec\\w+[^.!?\\n]{0,24}(contato|mensagem|interesse)",
+    "obrigado (por|pelo)",
+    "bem-?vind",
+    "responderemos|retornaremos|em breve|horário de atendimento",
+    "assistente (virtual|digital)|atendimento (comercial|virtual|automátic)",
+    "em instantes|um de nossos atendentes|nossa equipe (vai|irá|entrará)",
+    "como (podemos|posso) (te )?ajudar|em que (posso|podemos)",
+    "digite \\d|escolha (uma|a) opção|selecione (uma|a) opção|menu de atendimento",
+    "faça seu cadastro",
+  ].join("|"),
+  "i",
+);
 
 async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
