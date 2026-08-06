@@ -86,18 +86,38 @@ const casoDoSegmento = (seg) =>
 // "olhar como a By Tico Usinagem e aparece pra quem procura" no breakup.
 const { nomeCurto } = createRequire(import.meta.url)("./lib/nomeEmpresa.js");
 
-function followupMessage(tier, companyRaw, ehBot, segment) {
+// Espelha os textos de src/lib/followup.ts. ATENCAO: os dois arquivos precisam sair
+// juntos. Em 02/08 a doutrina foi reescrita so no .ts e o script continuou mandando a
+// copy velha por quatro dias, incluindo o M1 "passou batido na correria" que tinha
+// sido aposentado justamente por resgatar 1 lead em 37.
+const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const ehLocal = (cidade) => semAcento(cidade).includes("monlevade");
+// Nome do mecanismo, igual ao MECANISMO de src/lib/followup.ts.
+const MECANISMO = "Ficha de Escopo";
+
+function followupMessage(tier, companyRaw, ehBot, segment, cidade) {
   const company = nomeCurto(companyRaw);
   if (ehBot) {
     return `Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da ${company} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.`;
   }
+  // M1 = angulo novo, nunca lembrete: a dor do orcamento que chega incompleto.
   if (tier === "M1") {
-    return `Oi, Erick de novo. Te escrevi sobre a ${company} esses dias e imagino que tenha passado batido na correria. Só retomando: separei um exemplo de página que faz o comprador chegar já com o pedido definido. Quer que eu mande?`;
+    return `Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com ${casoDoSegmento(segment).replace(/^uma /, "")}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?`;
   }
+  // M2 = prova nomeada + mecanismo + pedido de reuniao. Case anonimo ("uma metalurgica
+  // de usinagem") joga fora a unica vantagem que ele tem: os dois cases sao daqui e o
+  // dono provavelmente conhece. Quem e de perto recebe "passo ai", que pra dono de
+  // industria pequena e menos atrito que marcar chamada.
   if (tier === "M2") {
-    return `Oi! Um contexto rápido: fiz isso pra ${casoDoSegmento(segment)}, que atende indústria como vocês. O ponto era o mesmo, serviço bom e o comprador sem achar prova disso na internet. Te mando como ficou?`;
+    const onde = ehLocal(cidade) ? "aqui de João Monlevade" : "duas indústrias aqui do Vale do Aço";
+    const convite = ehLocal(cidade)
+      ? "Te mostro como ficou em 15 minutos. Passo aí ou prefere uma chamada rápida?"
+      : "Te mostro como ficou numa chamada de 15 minutos. Qual o melhor dia pra você?";
+    return `Oi! Fiz a página da Jotta Manutenções e da Metalthec, ${onde}. O que resolveu nas duas foi a ${MECANISMO}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. ${convite}`;
   }
-  return `Oi! Vou parar de te escrever pra não virar chateação. Fica o registro: se um dia fizer sentido olhar como a ${company} aparece pra quem procura antes de pedir orçamento, é só me chamar aqui. Sucesso aí!`;
+  // M3 = breakup com porta especifica. Fecha a conversa mas deixa UMA condicao concreta
+  // e a reuniao curta como ultima porta.
+  return `Oi! Última mensagem daqui, pra não virar chateação. Quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. Se quiser ver em 15 minutos o que fiz pra Jotta e pra Metalthec, é só falar. Caso contrário, sucesso aí!`;
 }
 
 // Saudacao automatica de WhatsApp Business. A lista comecou curta ("agradece",
@@ -129,7 +149,7 @@ const AUTORESPONDER = new RegExp(
 async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
     (await supa("deals?stage=in.(abordado,followup)&select=id,company,segment", { headers: { Range: "0-9999" } })).json(),
-    (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid", { headers: { Range: "0-9999" } })).json(),
+    (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid,city", { headers: { Range: "0-9999" } })).json(),
     (await supa(
       "activities?type=in.(whatsapp_sent,whatsapp_sent_sync,whatsapp_received)&select=deal_id,type,description,created_at&order=created_at.asc",
       { headers: { Range: "0-9999" } },
@@ -168,7 +188,7 @@ async function carregarFila() {
       const tier = tierForDays(dias);
       if (tier === "aguardar") return null;
       if (h.saidas >= 3) return null; // ja levou 3 toques: parar por respeito e por seguranca
-      return { ...d, fone: celular, dias, tier, ehBot: h.bots > 0, toques: h.saidas };
+      return { ...d, fone: celular, dias, tier, ehBot: h.bots > 0, toques: h.saidas, cidade: porId[d.id]?.city };
     })
     .filter(Boolean)
     .filter((d) => !TIER_FILTRO || d.tier === TIER_FILTRO)
@@ -232,7 +252,7 @@ async function registrar(dealId, empresa, tier) {
 
   console.log(`\nFila de follow-up: ${fila.length} ${JSON.stringify(porTier)} | lote: ${lote.length} | modo: ${GO ? "ENVIO REAL" : "dry-run"}\n`);
   lote.forEach((l, i) => {
-    const texto = followupMessage(l.tier, l.company, l.ehBot, l.segment);
+    const texto = followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade);
     console.log(`[${i + 1}] ${l.tier}${l.ehBot ? "/bot" : ""} D+${l.dias} #${l.id} ${l.company} -> ${l.fone}`);
     if (!GO) console.log("    " + texto + "\n");
   });
@@ -246,7 +266,7 @@ async function registrar(dealId, empresa, tier) {
   let enviados = 0;
   for (let i = 0; i < lote.length; i++) {
     const l = lote[i];
-    const r = await enviar(l.fone, followupMessage(l.tier, l.company, l.ehBot, l.segment));
+    const r = await enviar(l.fone, followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade));
     if (r.ok) {
       falhas = 0;
       enviados++;

@@ -522,11 +522,20 @@ export function casoDoSegmento(segment?: string | null) {
 
 // Textos alinhados a copy aprovada em 31/07: sem "diagnostico" e sem "leitura de 2
 // minutos", zero apontamento de falha, e o CTA sempre nomeia o que chega depois do sim.
+export function ehLocal(city?: string | null) {
+  return String(city ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .includes("monlevade");
+}
+
 export function followupMessage(
   tier: Exclude<FollowupTier, "aguardar">,
   companyRaw: string,
   responseType: ResponseType = "sem_resposta",
   segment?: string | null,
+  city?: string | null,
 ) {
   const company = nomeCurto(companyRaw);
   if (responseType === "bot") {
@@ -547,10 +556,20 @@ export function followupMessage(
   // M2 = prova + mecanismo nomeado. Sem nomear a Ficha de Escopo, "fiz uma pagina
   // pra uma empresa do ramo" e o que todo mundo diz, e nao da ao lead nenhum
   // motivo novo pra responder.
+  // M2 = prova NOMEADA + mecanismo + pedido de reuniao. O case anonimo ("uma
+  // metalurgica de usinagem") jogava fora a unica vantagem que essa prova tem: as
+  // duas empresas sao daqui e o dono provavelmente conhece. Quem e de perto recebe
+  // "passo ai", que pra dono de industria pequena e menos atrito que marcar chamada.
   if (tier === "M2") {
-    return `Oi! Contexto rápido: fiz isso pra ${casoDoSegmento(segment)}, que atende indústria como vocês. O que resolveu lá foi a ${MECANISMO}: o cliente informa serviço, equipamento e urgência antes de falar com o dono, e a cotação sai sem ida e volta. Te mando como ficou?`;
+    const perto = ehLocal(city);
+    const onde = perto ? "aqui de João Monlevade" : "duas indústrias aqui do Vale do Aço";
+    const convite = perto
+      ? "Te mostro como ficou em 15 minutos. Passo aí ou prefere uma chamada rápida?"
+      : "Te mostro como ficou numa chamada de 15 minutos. Qual o melhor dia pra você?";
+    return `Oi! Fiz a página da Jotta Manutenções e da Metalthec, ${onde}. O que resolveu nas duas foi a ${MECANISMO}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. ${convite}`;
   }
   // M3 = breakup com porta especifica. "Me chama" generico nao volta; deixar UMA
-  // condicao concreta cria gancho pra ele voltar quando ela acontecer.
-  return `Oi! Vou parar de te escrever pra não virar chateação. Fica o registro: quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. É só me chamar aqui. Sucesso aí!`;
+  // condicao concreta cria gancho pra ele voltar quando ela acontecer, e a reuniao
+  // curta fica como ultima porta aberta.
+  return `Oi! Última mensagem daqui, pra não virar chateação. Quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. Se quiser ver em 15 minutos o que fiz pra Jotta e pra Metalthec, é só falar. Caso contrário, sucesso aí!`;
 }
