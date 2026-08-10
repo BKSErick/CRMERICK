@@ -235,10 +235,16 @@ async function registrar(dealId, empresa, tier) {
   const inicio = new Date();
   inicio.setHours(0, 0, 0, 0);
   const hoje = await (await supa(
-    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=id`,
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=id,deal_id`,
     { headers: { Range: "0-9999" } },
   )).json();
-  const jaHoje = Array.isArray(hoje) ? hoje.length : 0;
+  // Deal com is_prospect=false nao gasta teto: o webhook sincroniza a conversa pessoal
+  // do Erick como whatsapp_sent_sync e ela comeu 12 das 35 do dia em 07/08/2026.
+  // Filtro em JS e nao com deal_id=not.in.(...) no PostgREST: la a atividade sem deal
+  // sairia da conta junto, porque NOT IN com NULL da NULL. Espelha uazapi-send-batch.mjs.
+  const naoProspect = await (await supa("deals?is_prospect=is.false&select=id", { headers: { Range: "0-9999" } })).json();
+  const fora = new Set(Array.isArray(naoProspect) ? naoProspect.map((d) => d.id) : []);
+  const jaHoje = Array.isArray(hoje) ? hoje.filter((a) => !fora.has(a.deal_id)).length : 0;
   const restaHoje = Math.max(0, TETO_DIA - jaHoje);
   if (GO && restaHoje === 0) {
     console.log(`\nTeto do dia atingido (${jaHoje}/${TETO_DIA}), somando disparo e follow-up. Nada a enviar.`);
