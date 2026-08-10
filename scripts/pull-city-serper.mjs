@@ -230,6 +230,35 @@ async function serperMaps(corpo) {
   const { gravados, falhas } = await ingest.gravar(crm, itens, indice.proximoId);
   console.log(`\nImportados: ${gravados}/${itens.length}`);
   for (const f of falhas.slice(0, 8)) console.log(`  FALHA ${f}`);
-  console.log("\nProximo passo: node scripts/uazapi-check-numbers.mjs --go   (ve quais fixos atendem no WhatsApp)");
-  console.log("Depois:        node scripts/regenerate-copies.js             (gera a copy dos novos)");
+
+  // TRIAGEM AUTOMATICA (10/08/2026). O check e o descarte sempre foram o proximo
+  // passo impresso aqui, mas dependiam de alguem lembrar de rodar -- e foi assim
+  // que 404 leads inalcancaveis se acumularam na fila e ficaram meses escondendo
+  // os leads bons. Agora o proprio pull encadeia, e a fila ja nasce limpa.
+  //
+  // Importar o lead ruim e proposital: a linha e a memoria do dedupe
+  // (montarIndiceDedupe indexa maps_cid, nome, telefone e dominio do que ja
+  // existe). Apagar faria o mesmo lead voltar na proxima varredura da cidade.
+  // Por isso ele entra e e marcado como lost/sem_whatsapp, nao deletado.
+  //
+  // --sem-triagem pula, para quem quiser inspecionar a importacao crua antes.
+  if (!process.argv.includes("--sem-triagem")) {
+    const { execFileSync } = await import("node:child_process");
+    const rodar = (script, args) => {
+      console.log(`\n> ${script} ${args.join(" ")}`);
+      try {
+        execFileSync(process.execPath, [path.join(RAIZ, "scripts", script), ...args], {
+          stdio: "inherit",
+          cwd: RAIZ,
+        });
+      } catch (e) {
+        // Triagem que falha nao pode derrubar a importacao que ja foi gravada.
+        console.log(`  (${script} falhou: ${e.message}. Rode na mao depois.)`);
+      }
+    };
+    rodar("uazapi-check-numbers.mjs", ["--go"]);
+    rodar("descartar-sem-whatsapp.mjs", ["--go"]);
+  }
+
+  console.log("\nProximo passo: node scripts/regenerate-copies.js   (gera a copy dos novos)");
 })();
