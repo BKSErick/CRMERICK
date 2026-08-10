@@ -28,9 +28,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { avaliarLead, carregarAprovados } = createRequire(import.meta.url)("./lib/triagemLead.js");
+const { activityExperimentMetadata, copyAssignmentForLead } = salesPlaybookModule;
 // Preenchido em carregarFila: o que a triagem de porte/tipo segurou fora da fila.
 let retidos = [];
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
@@ -147,7 +149,12 @@ async function carregarFila() {
       // um dos sinais mais fortes de spam para a plataforma, porque usuario de verdade
       // nao fica escrevendo para numero inexistente.
       const confianca = c?.whatsapp_jid ? 3 : c?.whatsapp_site ? 2 : 1;
-      return { ...d, fone: canalDoContato(c), confianca };
+      return {
+        ...d,
+        fone: canalDoContato(c),
+        confianca,
+        copyAssignment: copyAssignmentForLead({ id: d.id, company: d.company, copyText: d.copy_text }),
+      };
     })
     .filter((d) => d.fone)
     // Canal NAO confirmado nao entra na fila (10/08/2026). Ate aqui a ordenacao
@@ -237,23 +244,35 @@ async function enviar(fone, texto) {
 // vindo do cliente para "whatsapp_opened" (o desenho antigo so aceitava confirmacao de
 // envio pelo webhook, que ignora o que sai pela API). Com isso o card nunca saia de
 // prospect. Aqui o envio ja foi confirmado pela resposta da Uazapi, entao vale sent.
-async function registrar(dealId, empresa) {
+async function registrar(deal) {
+  const metadata = activityExperimentMetadata(deal.copyAssignment, { channel: "whatsapp", touch: "first_contact" });
   const a = await supa("activities", {
     method: "POST",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({
-      deal_id: dealId,
+      deal_id: deal.id,
       type: "whatsapp_sent",
-      description: `Disparo automatico para ${empresa}`,
+      description: `Disparo automatico para ${deal.company} [${deal.copyAssignment.copyVersion}/${deal.copyAssignment.variant}]`,
+      metadata,
     }),
   });
-  // prospect -> abordado. O .eq no filtro impede rebaixar quem ja avancou.
-  await supa(`deals?id=eq.${dealId}&stage=eq.prospect`, {
+  const tracking = await supa(`deals?id=eq.${deal.id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      copy_version: deal.copyAssignment.copyVersion,
+      copy_variant: deal.copyAssignment.variant,
+      offer_version: deal.copyAssignment.offerVersion,
+      experiment_id: deal.copyAssignment.experimentId,
+    }),
+  });
+  // prospect -> abordado. O filtro impede rebaixar quem ja avancou.
+  const stage = await supa(`deals?id=eq.${deal.id}&stage=eq.prospect`, {
     method: "PATCH",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({ stage: "abordado" }),
   });
-  return a.ok;
+  return a.ok && tracking.ok && stage.ok;
 }
 
 (async () => {
@@ -319,7 +338,7 @@ async function registrar(dealId, empresa) {
     if (r.ok) {
       falhasSeguidas = 0;
       enviados++;
-      const logou = await registrar(lead.id, lead.company);
+      const logou = await registrar(lead);
       console.log(`${hhmm()} OK   #${lead.id} ${lead.company}${logou ? "" : " (atividade NAO registrada)"}`);
     } else {
       falhasSeguidas++;

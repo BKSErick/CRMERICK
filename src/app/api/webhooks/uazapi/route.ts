@@ -4,6 +4,7 @@ import { aiComplete } from "@/lib/aiComplete";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import {
   classifyInboundResponse,
+  extrairContatoIndicado,
   nextActionAfterInbound,
   nextActionAfterOutbound,
   type ResponseType,
@@ -302,7 +303,10 @@ export async function POST(request: NextRequest) {
     if (activity.error) throw activity.error;
 
     if (message.direction === "received") {
-      const detectedResponseType = classifyInboundResponse(message.content);
+      const indicatedContact = extrairContatoIndicado(message.content, deal.company);
+      const detectedResponseType = indicatedContact
+        ? "encaminhamento"
+        : classifyInboundResponse(message.content);
       const responseType =
         deal.response_type_source === "manual"
           ? (deal.response_type ?? detectedResponseType)
@@ -321,13 +325,19 @@ export async function POST(request: NextRequest) {
         last_inbound_at: message.occurredAt,
         response_time_minutes: responseMinutes,
       };
+      if (indicatedContact) {
+        operationalUpdate.referred_name = indicatedContact.nome;
+        operationalUpdate.referred_phone = indicatedContact.telefone;
+        operationalUpdate.referred_by = message.senderName || contact.name;
+        operationalUpdate.referred_at = message.occurredAt;
+      }
       if (deal.response_type_source !== "manual") {
         operationalUpdate.response_type = responseType;
         operationalUpdate.response_type_source = "automatic";
       }
       if (deal.next_action_source !== "manual") {
         operationalUpdate.next_action_at = plan.at;
-        operationalUpdate.next_action_type = plan.type;
+        operationalUpdate.next_action_type = indicatedContact ? "contactar_responsavel" : plan.type;
         operationalUpdate.next_action_note = plan.note;
         operationalUpdate.next_action_source = "automatic";
       }

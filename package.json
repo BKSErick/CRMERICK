@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/uazapi-webhook.test.ts tests/followup-operations.test.ts tests/admin-auth.test.ts tests/admin-auth-proxy.test.ts tests/admin-auth-routes.test.ts tests/admin-login-ui.test.ts tests/instagram-prospecting-ui.test.ts tests/prospecting-operations.test.ts tests/prospecting-search.test.ts tests/prospecting-records.test.ts tests/prospecting-actions.test.ts tests/prospecting-api.test.ts tests/prospecting-routes.test.ts tests/serper-client.test.ts tests/pipeline-runtime.test.ts tests/deal-deletion.test.ts tests/dependency-security.test.ts",
+    "test": "node --test tests/uazapi-webhook.test.ts tests/followup-operations.test.ts tests/admin-auth.test.ts tests/admin-auth-proxy.test.ts tests/admin-auth-routes.test.ts tests/admin-login-ui.test.ts tests/instagram-prospecting-ui.test.ts tests/prospecting-operations.test.ts tests/prospecting-search.test.ts tests/prospecting-records.test.ts tests/prospecting-actions.test.ts tests/prospecting-api.test.ts tests/prospecting-routes.test.ts tests/serper-client.test.ts tests/pipeline-runtime.test.ts tests/deal-deletion.test.ts tests/dependency-security.test.ts tests/sales-automation.test.ts tests/funnel-metrics.test.ts",
     "copy:dry": "node scripts/regenerate-copies.js --dry-run --limit=5",
     "copy:regen": "node scripts/regenerate-copies.js",
     "copy:sync": "node scripts/sync-mock-db-copies.js",
@@ -22,7 +22,10 @@
     "leads:import": "node js/import-huberick-leads.js",
     "whatsapp:webhook:dry": "node --env-file-if-exists=.env scripts/configure-uazapi-webhook.mjs --dry-run",
     "whatsapp:webhook:configure": "node --env-file-if-exists=.env scripts/configure-uazapi-webhook.mjs",
-    "followup:ops": "node --env-file-if-exists=.env scripts/followup-ops.mjs"
+    "followup:ops": "node --env-file-if-exists=.env scripts/followup-ops.mjs",
+    "prospeccao:run": "node --env-file-if-exists=.env scripts/prospeccao-runner.mjs",
+    "prospeccao:run:live": "node --env-file-if-exists=.env scripts/prospeccao-runner.mjs --go",
+    "copy:experiment:report": "node --env-file-if-exists=.env scripts/report-copy-experiment.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",

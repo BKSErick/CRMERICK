@@ -40,7 +40,11 @@ create table if not exists public.deals (
   next_action_source text not null default 'automatic',
   last_inbound_at timestamptz,
   last_outbound_at timestamptz,
-  response_time_minutes integer
+  response_time_minutes integer,
+  copy_version text,
+  copy_variant text check (copy_variant is null or copy_variant in ('A', 'B')),
+  offer_version text,
+  experiment_id text
 );
 
 -- ─────────────────────────────────────────────
@@ -98,8 +102,43 @@ create table if not exists public.activities (
   contact_id  integer references public.contacts(id),
   type        text,                         -- note | call | email | meeting | stage_change
   description text,
+  metadata    jsonb not null default '{}'::jsonb,
   created_at  timestamptz default now()
 );
+
+-- Fonte unica de agenda e reunioes. Status detalhado permite medir o fundo do funil.
+create table if not exists public.calendar_events (
+  id bigint generated always as identity primary key,
+  title text not null,
+  kind text not null default 'compromisso',
+  starts_at timestamptz not null,
+  ends_at timestamptz,
+  deal_id integer references public.deals(id) on delete set null,
+  contact_id integer references public.contacts(id) on delete set null,
+  location text,
+  notes text,
+  done boolean not null default false,
+  meeting_status text,
+  confirmed_at timestamptz,
+  held_at timestamptz,
+  created_at timestamptz not null default now(),
+  constraint calendar_events_meeting_status_check check (
+    (kind = 'reuniao' and meeting_status in ('scheduled', 'confirmed', 'held', 'no_show', 'cancelled'))
+    or (kind <> 'reuniao' and meeting_status is null)
+  )
+);
+
+-- Mantem o arquivo aplicavel em bancos criados antes da Story 025.
+alter table public.deals
+  add column if not exists copy_version text,
+  add column if not exists copy_variant text,
+  add column if not exists offer_version text,
+  add column if not exists experiment_id text;
+alter table public.activities add column if not exists metadata jsonb not null default '{}'::jsonb;
+alter table public.calendar_events
+  add column if not exists meeting_status text,
+  add column if not exists confirmed_at timestamptz,
+  add column if not exists held_at timestamptz;
 
 -- Estado operacional por oportunidade + canal. O deal continua unico no pipeline;
 -- os relogios de WhatsApp, Instagram, email e LinkedIn nao se contaminam.
@@ -134,6 +173,7 @@ alter table public.deals      enable row level security;
 alter table public.contacts   enable row level security;
 alter table public.messages   enable row level security;
 alter table public.activities enable row level security;
+alter table public.calendar_events enable row level security;
 alter table public.prospecting_channels enable row level security;
 
 -- Deny-by-default para anon/public.
@@ -142,6 +182,7 @@ drop policy if exists "Allow all" on public.deals;
 drop policy if exists "Allow all" on public.contacts;
 drop policy if exists "Allow all" on public.messages;
 drop policy if exists "Allow all" on public.activities;
+drop policy if exists "Allow all" on public.calendar_events;
 drop policy if exists "Allow all" on public.prospecting_channels;
 
 -- ─────────────────────────────────────────────
@@ -171,9 +212,13 @@ create index if not exists idx_deals_owner    on public.deals(owner);
 create index if not exists deals_next_action_at_idx on public.deals(next_action_at)
   where next_action_at is not null;
 create index if not exists deals_response_type_idx on public.deals(response_type);
+create index if not exists deals_experiment_variant_idx on public.deals(experiment_id, copy_variant)
+  where experiment_id is not null;
 create index if not exists idx_contacts_status on public.contacts(status);
 create index if not exists idx_messages_deal  on public.messages(deal_id);
 create index if not exists idx_messages_status on public.messages(status);
+create index if not exists calendar_events_meeting_status_idx on public.calendar_events(meeting_status, starts_at)
+  where kind = 'reuniao';
 create unique index if not exists messages_provider_message_uidx
   on public.messages(provider, provider_message_id)
   where provider_message_id is not null;

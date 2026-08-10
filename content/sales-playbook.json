@@ -1,0 +1,38 @@
+{
+  "copyVersion": "copy-2026-08-10.1",
+  "offer": {
+    "version": "offer-site-industrial-1000-150-v1",
+    "name": "Pagina industrial com Ficha de Escopo",
+    "setupPrice": 1000,
+    "monthlyPrice": 150,
+    "currency": "BRL",
+    "meetingMinutes": 15
+  },
+  "mechanism": "Ficha de Escopo",
+  "experiment": {
+    "id": "wa-opening-2026-08-v1",
+    "name": "Abertura cordial vs direta",
+    "hypothesis": "A abertura direta aumenta respostas validas sem reduzir reunioes realizadas.",
+    "isolatedVariable": "opening",
+    "variants": ["A", "B"],
+    "openings": {
+      "A": "Oi, tudo bem? Erick aqui, faço página de vendas pra indústria.",
+      "B": "Fala! Erick aqui, faço página de vendas pra indústria."
+    },
+    "localOpenings": {
+      "A": "Oi, tudo bem? Erick aqui, de Monlevade mesmo, faço página de vendas pra indústria.",
+      "B": "Fala! Erick aqui, de Monlevade mesmo, faço página de vendas pra indústria."
+    }
+  },
+  "cases": {
+    "metalthecUrl": "https://site-metalthec.vercel.app/",
+    "jottaUrl": "https://sitejotta.vercel.app/"
+  },
+  "followups": {
+    "bot": "Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da {{company}} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.",
+    "M1": "Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com {{segmentDescription}}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?",
+    "M2Local": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, aqui de João Monlevade. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Te mostro como ficou em 15 minutos. Passo aí ou prefere uma chamada rápida?",
+    "M2Remote": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, duas indústrias aqui do Médio Piracicaba. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Te mostro como ficou numa chamada de 15 minutos. Qual o melhor dia pra você?",
+    "M3": "Oi! Última mensagem daqui, pra não virar chateação. Quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. Se quiser ver em 15 minutos o que fiz pra Jotta e pra Metalthec, é só falar. Caso contrário, sucesso aí!"
+  }
+}

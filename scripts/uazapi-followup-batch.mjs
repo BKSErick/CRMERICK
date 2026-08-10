@@ -24,9 +24,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
+import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const { renderFollowupMessage } = salesPlaybookModule;
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
   const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
@@ -77,47 +78,14 @@ const supa = async (rota, init = {}) =>
 
 // Espelha tierForDays de src/lib/followup.ts (o script e .mjs e nao importa TS).
 const tierForDays = (dias) => (dias < 2 ? "aguardar" : dias <= 4 ? "M1" : dias <= 9 ? "M2" : "M3");
-const casoDoSegmento = (seg) =>
-  seg === "usinagem" || seg === "caldeiraria"
-    ? "uma metalúrgica de usinagem de precisão"
-    : "uma empresa de manutenção industrial";
-
-// Regra unica em lib/nomeEmpresa: a copia local aqui cortava na conjuncao e mandava
-// "olhar como a By Tico Usinagem e aparece pra quem procura" no breakup.
-const { nomeCurto } = createRequire(import.meta.url)("./lib/nomeEmpresa.js");
-
-// Espelha os textos de src/lib/followup.ts. ATENCAO: os dois arquivos precisam sair
-// juntos. Em 02/08 a doutrina foi reescrita so no .ts e o script continuou mandando a
-// copy velha por quatro dias, incluindo o M1 "passou batido na correria" que tinha
-// sido aposentado justamente por resgatar 1 lead em 37.
-const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-const ehLocal = (cidade) => semAcento(cidade).includes("monlevade");
-// Nome do mecanismo, igual ao MECANISMO de src/lib/followup.ts.
-const MECANISMO = "Ficha de Escopo";
-
-function followupMessage(tier, companyRaw, ehBot, segment, cidade) {
-  const company = nomeCurto(companyRaw);
-  if (ehBot) {
-    return `Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da ${company} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.`;
-  }
-  // M1 = angulo novo, nunca lembrete: a dor do orcamento que chega incompleto.
-  if (tier === "M1") {
-    return `Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com ${casoDoSegmento(segment).replace(/^uma /, "")}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?`;
-  }
-  // M2 = prova nomeada + mecanismo + pedido de reuniao. Case anonimo ("uma metalurgica
-  // de usinagem") joga fora a unica vantagem que ele tem: os dois cases sao daqui e o
-  // dono provavelmente conhece. Quem e de perto recebe "passo ai", que pra dono de
-  // industria pequena e menos atrito que marcar chamada.
-  if (tier === "M2") {
-    const onde = ehLocal(cidade) ? "aqui de João Monlevade" : "duas indústrias aqui do Vale do Aço";
-    const convite = ehLocal(cidade)
-      ? "Te mostro como ficou em 15 minutos. Passo aí ou prefere uma chamada rápida?"
-      : "Te mostro como ficou numa chamada de 15 minutos. Qual o melhor dia pra você?";
-    return `Oi! Fiz a página da Jotta Manutenções e da Metalthec, ${onde}. O que resolveu nas duas foi a ${MECANISMO}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. ${convite}`;
-  }
-  // M3 = breakup com porta especifica. Fecha a conversa mas deixa UMA condicao concreta
-  // e a reuniao curta como ultima porta.
-  return `Oi! Última mensagem daqui, pra não virar chateação. Quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. Se quiser ver em 15 minutos o que fiz pra Jotta e pra Metalthec, é só falar. Caso contrário, sucesso aí!`;
+function followupMessage(tier, company, ehBot, segment, city) {
+  return renderFollowupMessage({
+    tier,
+    company,
+    segment,
+    city,
+    responseType: ehBot ? "bot" : "sem_resposta",
+  });
 }
 
 // Saudacao automatica de WhatsApp Business. A lista comecou curta ("agradece",

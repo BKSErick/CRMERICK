@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { logWhatsappOpened } from "@/lib/activityClient";
+import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
 
 // Sala de Comando = cockpit de cobranca diaria. Placar do dia (disparos/follow-ups/calls/deals
 // movidos), fila priorizada e alertas das regras (7 dias, dia 20), tudo da rota server-side
@@ -108,6 +109,9 @@ function whatsappLink(phone: string, message: string) {
 // Mensagens genericas (nao sao por lead): gatekeeper quando quem responde nao e o
 // dono, e follow-ups de reaquecimento. Seguem o Framework_Mensagem_Abordagem_Hormozi
 // (anti-ego, encaminhavel, pergunta de baixo custo).
+const { SALES_PLAYBOOK } = salesPlaybookModule;
+const offerPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.offer.currency });
+
 const READY_MESSAGES: { title: string; text: string }[] = [
   {
     title: "🚪 Quem responde nao e o dono (atendente / central)",
@@ -188,7 +192,7 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // primeira cobranca extra. Preco de entrada, para subir depois.
   {
     title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
-    text: "Boa pergunta. A página é um valor único de R$ 1.000, e depois disso ela é sua. O mensal são R$ 150 e cobrem a hospedagem e as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer. Quer que eu te mande isso escrito?",
+    text: `Boa pergunta. A página é um valor único de ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)}, e depois disso ela é sua. O mensal são ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)} e cobrem a hospedagem e as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer. Quer que eu te mande isso escrito?`,
   },
   {
     title: "🤝 \"Já tenho quem faça isso pra mim\"",
