@@ -22,6 +22,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { fetchAllPages } from "./lib/supabaseRest.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
@@ -98,8 +99,8 @@ const variantes = (dig) => {
   }
 
   const [deals, contatos] = await Promise.all([
-    (await supa("deals?stage=eq.prospect&select=id", { headers: { Range: "0-9999" } })).json(),
-    (await supa("contacts?select=id,phone,whatsapp_jid", { headers: { Range: "0-9999" } })).json(),
+    fetchAllPages(supa, "deals?stage=eq.prospect&select=id"),
+    fetchAllPages(supa, "contacts?select=id,phone,whatsapp_jid"),
   ]);
   const prospects = new Set(deals.map((d) => d.id));
   const alvo = contatos

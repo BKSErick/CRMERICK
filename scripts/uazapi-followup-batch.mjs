@@ -25,6 +25,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
+import { fetchAllPages } from "./lib/supabaseRest.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { renderFollowupMessage } = salesPlaybookModule;
@@ -46,6 +47,9 @@ const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
 const TAM_BLOCO = Number(arg("bloco", 5));
 const TETO_DIA = Number(arg("teto-dia", 40));
+const IDS = new Set(arg("ids", "").split(",").map(Number).filter(Boolean));
+const EXCLUDE_IDS = new Set(arg("exclude-ids", "").split(",").map(Number).filter(Boolean));
+const JSON_OUT = arg("json-out", "");
 
 const BASE = process.env.UAZAPI_BASE_URL;
 const TOKEN = process.env.UAZAPI_INSTANCE_TOKEN;
@@ -116,21 +120,21 @@ const AUTORESPONDER = new RegExp(
 
 async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
-    (await supa("deals?stage=in.(abordado,followup)&select=id,company,segment", { headers: { Range: "0-9999" } })).json(),
-    (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid,city", { headers: { Range: "0-9999" } })).json(),
-    (await supa(
+    fetchAllPages(supa, "deals?stage=in.(abordado,followup)&select=id,company,segment"),
+    fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,city"),
+    fetchAllPages(supa,
       "activities?type=in.(whatsapp_sent,whatsapp_sent_sync,whatsapp_received)&select=deal_id,type,description,created_at&order=created_at.asc",
-      { headers: { Range: "0-9999" } },
-    )).json(),
+    ),
   ]);
 
   const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
-  // Mesma ordem do disparo: jid confirmado > numero publicado no site > celular do Maps.
+  // Mesma barreira do primeiro disparo: jid confirmado ou numero publicado no site.
+  // Celular vindo apenas do Maps nao e suficiente para automacao; precisa passar
+  // primeiro pelo check da Uazapi ou ser encontrado no canal oficial da empresa.
   const canal = (c) => {
     if (c?.whatsapp_jid) return String(c.whatsapp_jid).split("@")[0];
     if (c?.whatsapp_site) return String(c.whatsapp_site).replace(/\D/g, "");
-    const d = String(c?.phone || "").replace(/\D/g, "");
-    return d.length === 11 && d[2] === "9" ? `55${d}` : null;
+    return null;
   };
   const hist = {};
   for (const a of acts) {
@@ -160,6 +164,8 @@ async function carregarFila() {
     })
     .filter(Boolean)
     .filter((d) => !TIER_FILTRO || d.tier === TIER_FILTRO)
+    .filter((d) => IDS.size === 0 || IDS.has(d.id))
+    .filter((d) => !EXCLUDE_IDS.has(d.id))
     .sort((a, b) => b.dias - a.dias);
 }
 
@@ -173,19 +179,24 @@ async function enviar(fone, texto) {
 }
 
 async function registrar(dealId, empresa, tier) {
-  await supa("activities", {
+  const activity = await supa("activities", {
     method: "POST",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({ deal_id: dealId, type: "whatsapp_sent", description: `Follow-up ${tier} para ${empresa}` }),
   });
-  await supa(`deals?id=eq.${dealId}&stage=eq.abordado`, {
+  const stage = await supa(`deals?id=eq.${dealId}&stage=eq.abordado`, {
     method: "PATCH",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({ stage: "followup" }),
   });
+  return activity.ok && stage.ok;
 }
 
 (async () => {
+  if (GO && JSON_OUT) {
+    console.error("--json-out e exclusivo da preparacao em dry-run; remova --go.");
+    process.exit(1);
+  }
   const status = await (await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })).json().catch(() => ({}));
   console.log(`Instancia: ${status?.instance?.status ?? "desconhecida"} (${status?.instance?.owner ?? "-"})`);
   if (GO && status?.instance?.status !== "connected") {
@@ -202,15 +213,15 @@ async function registrar(dealId, empresa, tier) {
   // mesmo WhatsApp, entao os dois contam no mesmo orcamento do dia.
   const inicio = new Date();
   inicio.setHours(0, 0, 0, 0);
-  const hoje = await (await supa(
+  const hoje = await fetchAllPages(
+    supa,
     `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=id,deal_id`,
-    { headers: { Range: "0-9999" } },
-  )).json();
+  );
   // Deal com is_prospect=false nao gasta teto: o webhook sincroniza a conversa pessoal
   // do Erick como whatsapp_sent_sync e ela comeu 12 das 35 do dia em 07/08/2026.
   // Filtro em JS e nao com deal_id=not.in.(...) no PostgREST: la a atividade sem deal
   // sairia da conta junto, porque NOT IN com NULL da NULL. Espelha uazapi-send-batch.mjs.
-  const naoProspect = await (await supa("deals?is_prospect=is.false&select=id", { headers: { Range: "0-9999" } })).json();
+  const naoProspect = await fetchAllPages(supa, "deals?is_prospect=is.false&select=id");
   const fora = new Set(Array.isArray(naoProspect) ? naoProspect.map((d) => d.id) : []);
   const jaHoje = Array.isArray(hoje) ? hoje.filter((a) => !fora.has(a.deal_id)).length : 0;
   const restaHoje = Math.max(0, TETO_DIA - jaHoje);
@@ -221,7 +232,7 @@ async function registrar(dealId, empresa, tier) {
 
   const fila = await carregarFila();
   const porTier = fila.reduce((a, d) => ({ ...a, [d.tier]: (a[d.tier] || 0) + 1 }), {});
-  const lote = fila.slice(0, Math.min(LIMITE, restaHoje));
+  const lote = fila.slice(0, Math.min(LIMITE, JSON_OUT ? LIMITE : restaHoje));
   console.log(`Enviados hoje (disparo + follow-up): ${jaHoje}/${TETO_DIA}`);
 
   console.log(`\nFila de follow-up: ${fila.length} ${JSON.stringify(porTier)} | lote: ${lote.length} | modo: ${GO ? "ENVIO REAL" : "dry-run"}\n`);
@@ -230,6 +241,18 @@ async function registrar(dealId, empresa, tier) {
     console.log(`[${i + 1}] ${l.tier}${l.ehBot ? "/bot" : ""} D+${l.dias} #${l.id} ${l.company} -> ${l.fone}`);
     if (!GO) console.log("    " + texto + "\n");
   });
+
+  if (JSON_OUT) {
+    const destino = path.resolve(RAIZ, JSON_OUT);
+    fs.mkdirSync(path.dirname(destino), { recursive: true });
+    fs.writeFileSync(destino, JSON.stringify({
+      kind: "followup",
+      generatedAt: new Date().toISOString(),
+      ids: lote.map((lead) => lead.id),
+      candidates: lote.map((lead) => ({ id: lead.id, company: lead.company, tier: lead.tier })),
+    }, null, 2) + "\n");
+    console.log(`Candidatos gravados em ${destino}.`);
+  }
 
   if (!GO) {
     console.log("\nDry-run. Nada foi enviado. Rode de novo com --go para disparar.");
@@ -243,14 +266,20 @@ async function registrar(dealId, empresa, tier) {
     const r = await enviar(l.fone, followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade));
     if (r.ok) {
       falhas = 0;
-      enviados++;
-      await registrar(l.id, l.company, l.tier);
+      const logou = await registrar(l.id, l.company, l.tier);
       console.log(`${hhmm()} OK   ${l.tier} #${l.id} ${l.company}`);
+      if (!logou) {
+        console.error("Envio confirmado, mas o CRM nao registrou a atividade. Parando para nao ultrapassar o teto real.");
+        process.exitCode = 2;
+        break;
+      }
+      enviados++;
     } else {
       falhas++;
       console.log(`${hhmm()} FALHA #${l.id} ${l.company} -> ${r.status} ${JSON.stringify(r.corpo).slice(0, 110)}`);
       if (falhas >= 2) {
         console.error("\nDuas falhas seguidas. Parando: e o primeiro sinal de bloqueio.");
+        process.exitCode = 2;
         break;
       }
     }

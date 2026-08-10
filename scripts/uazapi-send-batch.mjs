@@ -29,6 +29,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
+import { fetchAllPages } from "./lib/supabaseRest.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { avaliarLead, carregarAprovados } = createRequire(import.meta.url)("./lib/triagemLead.js");
@@ -50,6 +51,9 @@ const FORCE_HORA = process.argv.includes("--force-hora");
 // mao fecham a meta de 30 a 35 por dia. Bloco de 5 = duas metades com pausa no meio.
 const LIMITE = Number(arg("limit", 10));
 const IDS = arg("ids", "").split(",").map(Number).filter(Boolean);
+const EXCLUDE_IDS = new Set(arg("exclude-ids", "").split(",").map(Number).filter(Boolean));
+const STRICT_IDS = process.argv.includes("--strict-ids");
+const JSON_OUT = arg("json-out", "");
 const MIN_S = Number(arg("min", 90));
 const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
@@ -122,8 +126,10 @@ async function carregarFila() {
   const filtro = IDS.length
     ? `id=in.(${IDS.join(",")})`
     : `stage=eq.prospect&segment=in.(${SEGMENTOS_VALIDOS})`;
-  const deals = await (await supa(`deals?${filtro}&select=id,company,stage,copy_text,site_url`, { headers: { Range: "0-9999" } })).json();
-  const contatos = await (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url", { headers: { Range: "0-9999" } })).json();
+  const [deals, contatos] = await Promise.all([
+    fetchAllPages(supa, `deals?${filtro}&select=id,company,stage,copy_text,site_url`),
+    fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url"),
+  ]);
   const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
 
   const fora = await carregarOptOuts();
@@ -132,6 +138,7 @@ async function carregarFila() {
   // classificacao do Maps, e ja chegaram a disparar (Lojas Singer, 06/08/2026).
   const aprovados = carregarAprovados(RAIZ);
   return deals
+    .filter((d) => !STRICT_IDS || d.stage === "prospect")
     .filter((d) => d.copy_text)
     .filter((d) => !fora.has(d.id))
     .filter((d) => {
@@ -167,11 +174,12 @@ async function carregarFila() {
     // ou scrape-site-whatsapp.mjs (grava whatsapp_site). --ids continua furando
     // a regra de proposito, para o operador manter controle manual.
     .filter((d) => {
-      if (d.confianca > 1 || IDS.includes(d.id)) return true;
+      if (d.confianca > 1 || (IDS.includes(d.id) && !STRICT_IDS)) return true;
       retidos.push(`#${d.id} ${d.company} (canal nao confirmado)`);
       return false;
     })
     .filter((d) => IDS.length === 0 || IDS.includes(d.id))
+    .filter((d) => !EXCLUDE_IDS.has(d.id))
     .sort((a, b) => b.confianca - a.confianca);
 }
 
@@ -187,10 +195,7 @@ async function jaDisparado(dealId) {
 const OPT_OUT = /\b(n[aã]o (quero|tenho interesse|me interessa|insista)|pare de|para de me|sai(r)? da lista|remove|remover|descadastr|me tira|nao perturbe|n[aã]o envie|bloquear|spam|denunc)/i;
 
 async function carregarOptOuts() {
-  const acts = await (await supa(
-    "activities?type=eq.whatsapp_received&select=deal_id,description",
-    { headers: { Range: "0-9999" } },
-  )).json();
+  const acts = await fetchAllPages(supa, "activities?type=eq.whatsapp_received&select=deal_id,description");
   const fora = new Set();
   for (const a of Array.isArray(acts) ? acts : []) {
     if (a.deal_id && OPT_OUT.test(a.description || "")) fora.add(a.deal_id);
@@ -204,8 +209,7 @@ async function carregarOptOuts() {
 // comeu 12 das 35 do dia sozinho e quase travou a fila antes das 11h. Deal marcado
 // com is_prospect=false nao gasta teto. Mesmo criterio do generate-copies-db.mjs.
 async function dealsNaoProspect() {
-  const r = await supa("deals?is_prospect=is.false&select=id", { headers: { Range: "0-9999" } });
-  const j = await r.json();
+  const j = await fetchAllPages(supa, "deals?is_prospect=is.false&select=id");
   return new Set(Array.isArray(j) ? j.map((d) => d.id) : []);
 }
 
@@ -214,11 +218,10 @@ async function dealsNaoProspect() {
 async function enviadosHoje() {
   const inicio = new Date();
   inicio.setHours(0, 0, 0, 0);
-  const r = await supa(
+  const j = await fetchAllPages(
+    supa,
     `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at,deal_id`,
-    { headers: { Range: "0-9999" } },
   );
-  const j = await r.json();
   // Filtro em JS, nao com deal_id=not.in.(...) no PostgREST: la a atividade sem deal
   // sairia da conta junto, porque NOT IN com NULL da NULL. Sem deal continua contando.
   const fora = await dealsNaoProspect();
@@ -276,6 +279,10 @@ async function registrar(deal) {
 }
 
 (async () => {
+  if (GO && JSON_OUT) {
+    console.error("--json-out e exclusivo da preparacao em dry-run; remova --go.");
+    process.exit(1);
+  }
   const status = await (await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })).json().catch(() => ({}));
   const conectada = status?.instance?.status === "connected";
   console.log(`Instancia: ${status?.instance?.status ?? "desconhecida"} (${status?.instance?.owner ?? "-"})`);
@@ -302,7 +309,7 @@ async function registrar(deal) {
     if (GO) return;
     console.log("Dry-run segue so para voce conferir a fila; com --go nada seria enviado.\n");
   }
-  const disponivel = restaHoje || LIMITE;
+  const disponivel = JSON_OUT ? LIMITE : (restaHoje || LIMITE);
   const alvo = DIA_INTEIRO ? disponivel : Math.min(LIMITE, disponivel);
 
   const lote = [];
@@ -325,6 +332,18 @@ async function registrar(deal) {
     if (!GO) console.log(l.copy_text.split("\n").map((x) => "    " + x).join("\n") + "\n");
   });
 
+  if (JSON_OUT) {
+    const destino = path.resolve(RAIZ, JSON_OUT);
+    fs.mkdirSync(path.dirname(destino), { recursive: true });
+    fs.writeFileSync(destino, JSON.stringify({
+      kind: "first_contact",
+      generatedAt: new Date().toISOString(),
+      ids: lote.map((lead) => lead.id),
+      candidates: lote.map((lead) => ({ id: lead.id, company: lead.company, confidence: lead.confianca })),
+    }, null, 2) + "\n");
+    console.log(`Candidatos gravados em ${destino}.`);
+  }
+
   if (!GO) {
     console.log("\nDry-run. Nada foi enviado. Rode de novo com --go para disparar.");
     return;
@@ -337,14 +356,20 @@ async function registrar(deal) {
     const r = await enviar(lead.fone, lead.copy_text);
     if (r.ok) {
       falhasSeguidas = 0;
-      enviados++;
       const logou = await registrar(lead);
       console.log(`${hhmm()} OK   #${lead.id} ${lead.company}${logou ? "" : " (atividade NAO registrada)"}`);
+      if (!logou) {
+        console.error("Envio confirmado, mas o CRM nao registrou a atividade. Parando para nao ultrapassar o teto real.");
+        process.exitCode = 2;
+        break;
+      }
+      enviados++;
     } else {
       falhasSeguidas++;
       console.log(`${hhmm()} FALHA #${lead.id} ${lead.company} -> ${r.status} ${JSON.stringify(r.corpo).slice(0, 120)}`);
       if (falhasSeguidas >= 2) {
         console.error("\nDuas falhas seguidas. Parando agora: e o primeiro sinal de bloqueio.");
+        process.exitCode = 2;
         break;
       }
     }
