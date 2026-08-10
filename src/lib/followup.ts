@@ -278,7 +278,20 @@ export function exemploDoSegmento(segment?: string | null) {
  *   1. entrega o exemplo prometido (sem enrolar, ele disse sim pra isso)
  *   2. nomeia o MECANISMO e diz o que ele faz, em coisa concreta na tela
  *   3. traduz pro ganho operacional dele
- *   4. pergunta que pede um sim barato e ja projeta o trabalho
+ *   4. AGENDA: propoe call curta com valor na mesa, em escolha dupla
+ *
+ * O CTA mudou em 10/08/2026. Antes era "quer que eu monte a ficha?", um sim/nao
+ * que gerava trabalho pro Erick e nao marcava nada: das 11 respostas do funil,
+ * ZERO virou call agendada com preco na mesa. O fundo do funil nao existia --
+ * a venda era tentada no proprio chat, sem etapa de reuniao.
+ *
+ * Agora fecha em agendamento (Lead -> Qualificado -> Agendamento -> Reuniao ->
+ * Fechamento) e ja sinaliza que o valor sai na call, o que mata a negociacao
+ * improvisada por mensagem. Preco definido: R$1.000 a pagina + R$150/mes.
+ *
+ * NAO contamina a medicao dos 400 disparos: a msg 2 so roda DEPOIS que o lead
+ * responde, entao nao mexe na taxa de resposta da msg 1, que e a variavel
+ * isolada do teste.
  */
 export function mensagemExemplo(companyRaw: string, segment?: string | null) {
   const company = nomeCurto(companyRaw);
@@ -288,7 +301,8 @@ export function mensagemExemplo(companyRaw: string, segment?: string | null) {
     `O que faz diferença ali não é o visual, é a ${MECANISMO}. ` +
     `Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\n` +
     `Aí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\n` +
-    `Pra ${company} seria a mesma ideia. Quer que eu monte a ficha com os serviços de vocês?`
+    `Pra ${company} seria a mesma ideia. Te mostro em 15 min como ficaria com os serviços de vocês e já te passo o valor fechado. ` +
+    `Consegue amanhã de manhã, ou prefere à tarde?`
   );
 }
 
@@ -553,13 +567,12 @@ export function followupMessage(
   if (tier === "M1") {
     return `Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com ${casoDoSegmento(segment).replace(/^uma /, "")}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?`;
   }
-  // M2 = prova + mecanismo nomeado. Sem nomear a Ficha de Escopo, "fiz uma pagina
-  // pra uma empresa do ramo" e o que todo mundo diz, e nao da ao lead nenhum
-  // motivo novo pra responder.
-  // M2 = prova NOMEADA + mecanismo + pedido de reuniao. O case anonimo ("uma
-  // metalurgica de usinagem") jogava fora a unica vantagem que essa prova tem: as
-  // duas empresas sao daqui e o dono provavelmente conhece. Quem e de perto recebe
-  // "passo ai", que pra dono de industria pequena e menos atrito que marcar chamada.
+  // M2 = prova NOMEADA + mecanismo + pedido de reuniao. Sem nomear a Ficha de Escopo,
+  // "fiz uma pagina pra uma empresa do ramo" e o que todo mundo diz e nao da ao lead
+  // motivo novo pra responder. E o case anonimo ("uma metalurgica de usinagem") jogava
+  // fora a unica vantagem que essa prova tem: as duas empresas sao daqui e o dono
+  // provavelmente conhece. Quem e de perto recebe "passo ai", que pra dono de industria
+  // pequena e menos atrito que marcar chamada.
   if (tier === "M2") {
     const perto = ehLocal(city);
     const onde = perto ? "aqui de João Monlevade" : "duas indústrias aqui do Vale do Aço";

@@ -102,6 +102,20 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "🚪 Abrir pedindo o responsavel (numero de central)",
     text: "Oi! Falo com o responsavel comercial, ou com o dono? Fiz uma analise da presenca de voces no Google e queria mostrar pra quem decide sobre isso. E rapido.",
   },
+  // BOT/IA e caso diferente do atendente humano acima: nao le nuance, nao
+  // encaminha e nao tem constrangimento social pra ignorar. Insistir no mesmo
+  // canal queima o numero sem chance de conversao -- `gatekeeper_bot` foi o que
+  // matou Manuttech e Fase a Fase. Regra: no maximo 2 mensagens, pede so o NOME
+  // (pergunta que bot as vezes responde) e troca de canal. Fixo NAO e descarte:
+  // metade dos fixos de industria pequena atende.
+  {
+    title: "🤖 Bot/IA respondendo: sair em 2 mensagens",
+    text: "Entendi! Só o nome de quem cuida do comercial já me ajuda — eu ligo direto e não tomo o tempo de vocês por aqui. Qual é?",
+  },
+  {
+    title: "🤖 Bot ignorou 2x: encerrar o canal (nao insistir)",
+    text: "Sem problema, vou tentar pelo telefone do site. Obrigado!",
+  },
   {
     title: "📞 Respondeu → puxar pra reunião",
     text: "Boa, [NOME]. Em vez de eu te explicar tudo por texto, prefiro te mostrar na tela: 15 minutos, eu abro o diagnóstico da [EMPRESA] e te mostro exatamente o que eu ajustaria e por quê. Tem uma janela [DIA] ou [DIA]?",
@@ -142,7 +156,7 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // a versao dinamica vive em mensagemExemplo() de src/lib/followup.ts.
   {
     title: "🎬 Msg 2: mandar o exemplo (depois do \"quer ver?\")",
-    text: "Show! Esse é de uma manutenção industrial aqui de Monlevade:\nhttps://sitejotta.vercel.app/\n\nO que faz diferença ali não é o visual, é a Ficha de Escopo. Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\nAí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\nPra [EMPRESA] seria a mesma ideia. Quer que eu monte a ficha com os serviços de vocês?",
+    text: "Show! Esse é de uma manutenção industrial aqui de Monlevade:\nhttps://sitejotta.vercel.app/\n\nO que faz diferença ali não é o visual, é a Ficha de Escopo. Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\nAí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\nPra [EMPRESA] seria a mesma ideia. Te mostro em 15 min como ficaria com os serviços de vocês e já te passo o valor fechado. Consegue amanhã de manhã, ou prefere à tarde?",
   },
   // Objecoes que apareceram na conversa REAL e nao tinham resposta pronta.
   // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?

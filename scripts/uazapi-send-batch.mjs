@@ -150,6 +150,20 @@ async function carregarFila() {
       return { ...d, fone: canalDoContato(c), confianca };
     })
     .filter((d) => d.fone)
+    // Canal NAO confirmado nao entra na fila (10/08/2026). Ate aqui a ordenacao
+    // por confianca so empurrava esses pro fim, mas eles continuavam disparando
+    // e gastando vaga do teto de 40/dia. Medicao do dia: de 347 fixos checados
+    // no /chat/check, apenas 10 tinham WhatsApp (2,9%). Ou seja, ~97% desses
+    // disparos batiam em numero inexistente -- exatamente o sinal de spam que o
+    // comentario acima descreve, e com o custo de queimar a cota do dia.
+    // Para recuperar um lead assim: rodar uazapi-check-numbers.mjs (grava o jid)
+    // ou scrape-site-whatsapp.mjs (grava whatsapp_site). --ids continua furando
+    // a regra de proposito, para o operador manter controle manual.
+    .filter((d) => {
+      if (d.confianca > 1 || IDS.includes(d.id)) return true;
+      retidos.push(`#${d.id} ${d.company} (canal nao confirmado)`);
+      return false;
+    })
     .filter((d) => IDS.length === 0 || IDS.includes(d.id))
     .sort((a, b) => b.confianca - a.confianca);
 }
@@ -177,17 +191,31 @@ async function carregarOptOuts() {
   return fora;
 }
 
+// O teto do dia e orcamento de PROSPECCAO, nao contador de mensagem do aparelho. O
+// webhook sincroniza como whatsapp_sent_sync tudo que sai do celular do Erick, entao
+// conversa pessoal entra na conta: em 07/08/2026 o deal #970 (o proprio numero dele)
+// comeu 12 das 35 do dia sozinho e quase travou a fila antes das 11h. Deal marcado
+// com is_prospect=false nao gasta teto. Mesmo criterio do generate-copies-db.mjs.
+async function dealsNaoProspect() {
+  const r = await supa("deals?is_prospect=is.false&select=id", { headers: { Range: "0-9999" } });
+  const j = await r.json();
+  return new Set(Array.isArray(j) ? j.map((d) => d.id) : []);
+}
+
 // Conta no BANCO, nao na memoria do processo: se o script cair e for rodado de novo,
 // o teto do dia continua valendo e ele nao recomeca do zero.
 async function enviadosHoje() {
   const inicio = new Date();
   inicio.setHours(0, 0, 0, 0);
   const r = await supa(
-    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at`,
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at,deal_id`,
     { headers: { Range: "0-9999" } },
   );
   const j = await r.json();
-  return Array.isArray(j) ? j : [];
+  // Filtro em JS, nao com deal_id=not.in.(...) no PostgREST: la a atividade sem deal
+  // sairia da conta junto, porque NOT IN com NULL da NULL. Sem deal continua contando.
+  const fora = await dealsNaoProspect();
+  return Array.isArray(j) ? j.filter((a) => !fora.has(a.deal_id)) : [];
 }
 
 function naUltimaHora(lista) {
