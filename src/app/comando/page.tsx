@@ -79,7 +79,26 @@ type Alerts = {
   sevenDayRule: { disparos7d: number; respostas: number; threshold: number; triggered: boolean };
   day20Rule: { day: number; pct: number; threshold: number; triggered: boolean };
 };
-type Comando = { placar: Placar; alerts: Alerts; queue: QueueItem[]; followupQueue: FollowupItem[] };
+// Encaminhamento: o gatekeeper mandou o vCard do decisor. Melhor lead do funil,
+// porque chega com permissao dada e nome de quem indicou.
+type ReferralItem = {
+  dealId: number;
+  company: string;
+  stage: string;
+  decisor: string;
+  phone: string;
+  indicadoPor: string | null;
+  dias: number | null;
+  acionado: boolean;
+  message: string;
+};
+type Comando = {
+  placar: Placar;
+  alerts: Alerts;
+  queue: QueueItem[];
+  followupQueue: FollowupItem[];
+  referralQueue: ReferralItem[];
+};
 
 function whatsappLink(phone: string, message: string) {
   const normalized = phone.startsWith("55") ? phone : `55${phone}`;
@@ -378,6 +397,74 @@ export default function ComandoPage() {
               </div>
             ))}
           </details>
+
+          {/* Encaminhamentos vem ANTES do follow-up de proposito: e o lead mais
+              quente do funil e o que mais esfria parado. Ate 10/08/2026 os campos
+              referred_* eram gravados e nunca lidos, e 2 dos 4 capturados nunca
+              receberam contato -- um deles foi pra "lost" sem ninguem falar com
+              o decisor indicado. */}
+          <div className="card-header" style={{ margin: "24px 0 12px" }}>
+            <div className="card-title">Encaminhamentos</div>
+            <span className="card-badge">
+              {(data.referralQueue ?? []).filter((r) => !r.acionado).length} sem contato
+            </span>
+          </div>
+          {(data.referralQueue ?? []).length === 0 ? (
+            <div className="connection-status fallback">
+              Nenhum decisor indicado ainda. Quando o gatekeeper mandar o contato (vCard), rode
+              <code> node scripts/extract-referrals.mjs --go </code> que ele aparece aqui.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Decisor</th>
+                    <th>Indicacao</th>
+                    <th>Mensagem pronta</th>
+                    <th>Telefone</th>
+                    <th>Acao</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.referralQueue ?? []).map((item) => (
+                    <tr key={`ref-${item.dealId}`}>
+                      <td>
+                        <div>
+                          <strong>{item.decisor}</strong>
+                          {!item.acionado && (
+                            <span className="card-badge" style={{ marginLeft: "6px" }}>sem contato</span>
+                          )}
+                        </div>
+                        <div className="muted-copy" style={{ fontSize: "11px" }}>{item.company}</div>
+                        <span className={`status-pill ${item.stage}`}>{item.stage}</span>
+                      </td>
+                      <td>
+                        {item.dias === null ? "Sem data" : item.dias === 0 ? "Hoje" : `Ha ${item.dias}d`}
+                        {item.indicadoPor && (
+                          <div className="muted-copy" style={{ fontSize: "11px" }}>por {item.indicadoPor}</div>
+                        )}
+                      </td>
+                      <td style={{ maxWidth: "420px" }}>
+                        <div className="muted-copy" style={{ fontSize: "12px" }}>{item.message}</div>
+                      </td>
+                      <td className="font-mono">+{item.phone}</td>
+                      <td>
+                        <a
+                          className="topbar-btn primary"
+                          href={whatsappLink(item.phone, item.message)}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          Abrir
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila de follow-up</div>
