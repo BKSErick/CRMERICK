@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { defaultLocalCRMConfig, localConfigKeys, type LocalCRMConfig } from "@/lib/localConfig";
 
 type TestState =
@@ -8,6 +8,16 @@ type TestState =
   | { status: "loading"; message: string }
   | { status: "success"; message: string }
   | { status: "error"; message: string };
+
+type AutomationRule = {
+  id: string;
+  name: string;
+  description: string;
+  version: number;
+  eventType: string;
+  enabled: boolean;
+  action: { type: string };
+};
 
 const boolToStorage = (value: boolean) => (value ? "true" : "false");
 const storageToBool = (value: string | null, fallback: boolean) => (value == null ? fallback : value === "true");
@@ -41,6 +51,28 @@ export default function ConfiguracoesPage() {
     status: "idle",
     message: "Use o teste para validar as credenciais atuais do Instagram.",
   });
+  const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
+  const [automationStatus, setAutomationStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [savingRuleId, setSavingRuleId] = useState<string>("");
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/comando?view=automation_rules")
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar automacoes.");
+        if (active) {
+          setAutomationRules(body.rules ?? []);
+          setAutomationStatus("ready");
+        }
+      })
+      .catch(() => {
+        if (active) setAutomationStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const hasInstagramOverride = Boolean(config.instagramAccessToken || config.instagramBusinessAccountId);
   const hasSupabaseOverride = Boolean(config.supabaseUrl || config.supabaseAnonKey);
@@ -126,6 +158,25 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function toggleAutomationRule(id: string, enabled: boolean) {
+    setSavingRuleId(id);
+    try {
+      const response = await fetch("/api/comando", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, enabled }),
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao atualizar automacao.");
+      setAutomationRules((rules) => rules.map((rule) => (rule.id === id ? { ...rule, enabled } : rule)));
+      setAutomationStatus("ready");
+    } catch {
+      setAutomationStatus("error");
+    } finally {
+      setSavingRuleId("");
+    }
+  }
+
   return (
     <section>
       <div className="page-header">
@@ -154,6 +205,9 @@ export default function ConfiguracoesPage() {
           </a>
           <a className="settings-panel-item" href="#preferencias">
             Preferencias
+          </a>
+          <a className="settings-panel-item" href="#automacoes">
+            Automacoes
           </a>
         </aside>
 
@@ -287,6 +341,36 @@ export default function ConfiguracoesPage() {
               label="Notificacoes push"
               onChange={(value) => updateConfig("pushNotifications", value)}
             />
+          </article>
+
+          <article className="settings-card" id="automacoes">
+            <div className="settings-card-header">
+              <div>
+                <div className="settings-section-title">Automacoes comerciais</div>
+                <div className="settings-section-desc">
+                  Ative regras prontas e auditaveis. Elas criam tarefas, prioridades, rascunhos, alertas ou pedidos de confirmacao; nunca enviam mensagem nem movem o deal.
+                </div>
+              </div>
+              <span className={`status-pill ${automationStatus === "ready" ? "active" : "inactive"}`}>
+                {automationStatus === "loading" ? "Carregando" : automationStatus === "error" ? "Indisponivel" : `${automationRules.filter((rule) => rule.enabled).length} ativas`}
+              </span>
+            </div>
+
+            {automationRules.map((rule) => (
+              <PreferenceToggle
+                key={rule.id}
+                checked={rule.enabled}
+                description={`${rule.description} Evento: ${rule.eventType}. Acao: ${rule.action.type}. Versao ${rule.version}.`}
+                label={savingRuleId === rule.id ? `${rule.name} (salvando...)` : rule.name}
+                onChange={(enabled) => void toggleAutomationRule(rule.id, enabled)}
+              />
+            ))}
+            {automationStatus === "ready" && automationRules.length === 0 ? (
+              <div className="connection-status fallback">Nenhuma regra comercial cadastrada.</div>
+            ) : null}
+            {automationStatus === "error" ? (
+              <div className="connection-status error">Nao foi possivel carregar ou salvar as automacoes.</div>
+            ) : null}
           </article>
 
           <div className="settings-actions">

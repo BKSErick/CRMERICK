@@ -9,6 +9,21 @@ import {
   messageCompanyMismatch,
   type ResponseType,
 } from "@/lib/followup";
+import {
+  QUALIFICATION_FIELD_DEFINITIONS,
+  normalizeDealQualification,
+  summarizeDealQualification,
+  type QualificationField,
+  type QualificationFieldKey,
+} from "@/lib/dealQualification.mjs";
+import type { DealForecast } from "@/lib/dealForecast.mjs";
+import {
+  LOSS_REASON_CATALOG,
+  lossReasonLabel,
+  type LossHistoryRecord,
+  type LossReasonCode,
+  type LossReasonInput,
+} from "@/lib/dealLossReasons.mjs";
 
 const stages: Array<{ id: DealStage; label: string; hint: string; color: string }> = [
   { id: "prospect", label: "Prospect", hint: "Entrada", color: "#0091ff" },
@@ -68,7 +83,28 @@ const activityTypeLabels: Record<string, string> = {
   whatsapp_opened: "WhatsApp aberto",
   whatsapp_sent_sync: "WhatsApp enviado",
   whatsapp_received: "WhatsApp recebido",
+  automation_task_upserted: "Tarefa automatica",
+  automation_priority_set: "Prioridade automatica",
+  automation_draft_created: "Rascunho automatico",
+  automation_alert: "Alerta automatico",
+  automation_confirmation_requested: "Confirmacao pendente",
+  automation_event_failed: "Falha na automacao",
+  deal_health_recalculated: "Saude recalculada",
+  qualification_suggested: "Qualificacao sugerida",
+  qualification_confirmed: "Qualificacao confirmada",
+  qualification_cleared: "Qualificacao limpa",
+  deal_lost: "Perda registrada",
+  deal_reopened: "Negocio reaberto",
+  deal_loss_corrected: "Motivo corrigido",
 };
+
+function dealHealthColor(score?: number): { background: string; color: string } {
+  if (score == null) return { background: "#e8eef7", color: "#455a64" };
+  if (score >= 80) return { background: "#dff4e5", color: "#176b35" };
+  if (score >= 65) return { background: "#e8f5e9", color: "#2e7d32" };
+  if (score >= 45) return { background: "#fff4d6", color: "#8a5a00" };
+  return { background: "#fde7e7", color: "#b3261e" };
+}
 
 function activityLabel(type: string | null): string {
   return activityTypeLabels[type ?? "note"] ?? "Atividade";
@@ -98,8 +134,15 @@ export default function PipelinePage() {
   const [newDeal, setNewDeal] = useState({ company: "", title: "", value: "", phone: "" });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
+  const [selectedDealId, setSelectedDealId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const dealId = Number(new URLSearchParams(window.location.search).get("dealId"));
+    return Number.isInteger(dealId) && dealId > 0 ? dealId : null;
+  });
   const [draggedDealId, setDraggedDealId] = useState<number | null>(null);
+  const [pendingLoss, setPendingLoss] = useState<{ dealId: number; company: string } | null>(null);
+  const [lossSaving, setLossSaving] = useState(false);
+  const [lossError, setLossError] = useState<string | null>(null);
   // #5: busca em linguagem natural (a IA traduz a frase num filtro sobre deals+sinais).
   const [aiQuery, setAiQuery] = useState("");
   const [aiResults, setAiResults] = useState<Array<{ id: number; company: string; stage: string; points: number; segment: string; views: number; waClicks: number; hot: boolean }> | null>(null);
@@ -174,6 +217,31 @@ export default function PipelinePage() {
   }, [deals, query, stageFilter]);
 
   const selectedDeal = deals.find((deal) => deal.id === selectedDealId) ?? null;
+
+  async function requestStageChange(dealId: number, targetStage: DealStage) {
+    const deal = deals.find((item) => item.id === dealId);
+    if (!deal || deal.stage === targetStage) return;
+    if (targetStage === "lost" && deal.stage !== "lost") {
+      setLossError(null);
+      setPendingLoss({ dealId, company: deal.company });
+      return;
+    }
+    await updateDealStage(dealId, targetStage);
+  }
+
+  async function confirmLoss(reason: LossReasonInput) {
+    if (!pendingLoss) return;
+    setLossSaving(true);
+    setLossError(null);
+    try {
+      await updateDealStage(pendingLoss.dealId, "lost", reason);
+      setPendingLoss(null);
+    } catch (error) {
+      setLossError(error instanceof Error ? error.message : "Nao foi possivel registrar a perda.");
+    } finally {
+      setLossSaving(false);
+    }
+  }
 
   async function handleCreateDeal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -341,7 +409,7 @@ export default function PipelinePage() {
               key={stage.id}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => {
-                if (draggedDealId) void updateDealStage(draggedDealId, stage.id);
+                if (draggedDealId) void requestStageChange(draggedDealId, stage.id);
                 setDraggedDealId(null);
               }}
             >
@@ -393,9 +461,105 @@ export default function PipelinePage() {
               .catch(() => undefined);
           }}
           onClose={() => setSelectedDealId(null)}
+          onStageChange={requestStageChange}
+        />
+      ) : null}
+      {pendingLoss ? (
+        <LossReasonDialog
+          busy={lossSaving}
+          company={pendingLoss.company}
+          error={lossError}
+          onCancel={() => {
+            if (!lossSaving) {
+              setPendingLoss(null);
+              setLossError(null);
+            }
+          }}
+          onConfirm={confirmLoss}
+          title="Registrar razao da perda"
         />
       ) : null}
     </section>
+  );
+}
+
+function LossReasonForm({
+  busy,
+  error,
+  initial,
+  onCancel,
+  onConfirm,
+  submitLabel,
+}: {
+  busy: boolean;
+  error?: string | null;
+  initial?: LossReasonInput | null;
+  onCancel: () => void;
+  onConfirm: (reason: LossReasonInput) => Promise<void>;
+  submitLabel: string;
+}) {
+  const [code, setCode] = useState<LossReasonCode | "">((initial?.code as LossReasonCode | undefined) ?? "");
+  const [note, setNote] = useState(initial?.note ?? "");
+  const noteRequired = code === "other";
+  const valid = Boolean(code) && (!noteRequired || Boolean(note.trim()));
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (valid) void onConfirm({ code, note: note.trim() || null });
+      }}
+    >
+      <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
+        <span className="meta-label">Motivo</span>
+        <select className="settings-select" disabled={busy} onChange={(event) => setCode(event.target.value as LossReasonCode)} value={code}>
+          <option value="">Selecione uma razao</option>
+          {LOSS_REASON_CATALOG.reasons.map((reason) => <option key={reason.code} value={reason.code}>{reason.label}</option>)}
+        </select>
+      </label>
+      <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
+        <span className="meta-label">Nota {noteRequired ? "(obrigatoria)" : "(opcional)"}</span>
+        <textarea
+          className="settings-textarea"
+          disabled={busy}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Contexto objetivo que ajude na proxima abordagem."
+          style={{ minHeight: "90px" }}
+          value={note}
+        />
+      </label>
+      {error ? <div className="portfolio-status warning" style={{ marginBottom: "10px" }}>{error}</div> : null}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+        <button className="topbar-btn" disabled={busy} onClick={onCancel} type="button">Cancelar</button>
+        <button className="topbar-btn primary" disabled={busy || !valid} type="submit">{busy ? "Salvando..." : submitLabel}</button>
+      </div>
+    </form>
+  );
+}
+
+function LossReasonDialog({ busy, company, error, onCancel, onConfirm, title }: {
+  busy: boolean;
+  company: string;
+  error?: string | null;
+  onCancel: () => void;
+  onConfirm: (reason: LossReasonInput) => Promise<void>;
+  title: string;
+}) {
+  return (
+    <div className="deal-overlay open" onClick={onCancel}>
+      <div
+        className="deal-modal"
+        onClick={(event) => event.stopPropagation()}
+        style={{ display: "block", width: "min(520px, calc(100vw - 32px))", height: "auto", maxHeight: "calc(100vh - 48px)" }}
+      >
+        <div className="modal-main" style={{ borderRight: 0 }}>
+          <div className="deal-header" style={{ marginBottom: "16px" }}>
+            <div><div className="deal-breadcrumb">Pipeline / Lost</div><h2 style={{ margin: "4px 0" }}>{title}</h2><div className="muted-copy">{company}</div></div>
+          </div>
+          <LossReasonForm busy={busy} error={error} onCancel={onCancel} onConfirm={onConfirm} submitLabel="Confirmar perda" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -444,6 +608,15 @@ function DealCard({ deal, onDragEnd, onDragStart, onOpen }: DealCardProps) {
           {RESPONSE_TYPE_INFO[deal.responseType].label}
         </span>
       ) : null}
+      {deal.dealHealthScore != null ? (
+        <span
+          className="card-tag"
+          style={{ marginLeft: "6px", ...dealHealthColor(deal.dealHealthScore) }}
+          title={`Saude do negocio: ${deal.dealHealthClassification ?? "sem classificacao"}. Confianca ${deal.dealHealthConfidence ?? 0}%.`}
+        >
+          Saude {deal.dealHealthScore}
+        </span>
+      ) : null}
       <div className="card-title-text">{deal.name ?? deal.title ?? deal.company}</div>
       {deal.nextActionAt ? (
         <div className="card-next-action">
@@ -458,7 +631,7 @@ function DealCard({ deal, onDragEnd, onDragStart, onOpen }: DealCardProps) {
       <div className="card-meta">
         <div className="card-meta-left">
           <span className={`av-sm ${avatarClass}`}>{assignee.slice(0, 2)}</span>
-          <span className="card-pts">{deal.points ?? 1} pts</span>
+          <span className="card-pts">Lead score: {deal.points ?? 1}</span>
         </div>
         <span className="card-id">{deal.ticketId ?? `LEAD-${deal.id}`}</span>
       </div>
@@ -470,9 +643,175 @@ type DealDetailOverlayProps = {
   deal: Deal;
   onDelete: (dealId: number) => void;
   onClose: () => void;
+  onStageChange: (dealId: number, stage: DealStage) => Promise<void>;
 };
 
-function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) {
+type QualificationMutation =
+  | { action: "confirm"; field: QualificationFieldKey; value: string }
+  | { action: "clear"; field: QualificationFieldKey };
+
+function QualificationFieldEditor({
+  fieldKey,
+  label,
+  field,
+  busy,
+  onMutate,
+}: {
+  fieldKey: QualificationFieldKey;
+  label: string;
+  field: QualificationField;
+  busy: boolean;
+  onMutate: (mutation: QualificationMutation) => Promise<void>;
+}) {
+  const [value, setValue] = useState(field.value ?? "");
+  const statusLabel = field.status === "confirmed" ? "Confirmado" : field.status === "suggested" ? "Sugerido pela IA" : "Nao informado";
+
+  return (
+    <div style={{ border: "1px solid var(--color-cloud)", borderRadius: "8px", padding: "10px", display: "flex", flexDirection: "column", gap: "7px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center" }}>
+        <strong style={{ fontSize: "12px" }}>{label}</strong>
+        <span className="status-pill">{statusLabel}</span>
+      </div>
+      <textarea
+        className="settings-textarea"
+        onChange={(event) => setValue(event.target.value)}
+        placeholder={`Registrar ${label.toLowerCase()}...`}
+        style={{ minHeight: "64px" }}
+        value={value}
+      />
+      {field.evidence ? (
+        <div className="muted-copy" style={{ fontSize: "11px" }}>
+          <strong>Evidencia ({field.evidence.origin}):</strong> {field.evidence.text}
+        </div>
+      ) : (
+        <div className="muted-copy" style={{ fontSize: "11px" }}>Sem evidencia vinculada.</div>
+      )}
+      {field.updatedAt ? (
+        <div className="muted-copy" style={{ fontSize: "10px" }}>
+          Alterado por {field.updatedBy ?? "origem desconhecida"} em {new Date(field.updatedAt).toLocaleString("pt-BR")}.
+        </div>
+      ) : null}
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <button
+          className="topbar-btn primary"
+          disabled={busy || !value.trim()}
+          onClick={() => void onMutate({ action: "confirm", field: fieldKey, value: value.trim() })}
+          type="button"
+        >
+          {field.status === "confirmed" ? "Salvar correcao" : "Confirmar como operador"}
+        </button>
+        <button
+          className="topbar-btn"
+          disabled={busy || field.status === "not_informed"}
+          onClick={() => void onMutate({ action: "clear", field: fieldKey })}
+          type="button"
+        >
+          Limpar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QualificationEditor({ deal }: { deal: Deal }) {
+  const deals = useCRMStore((state) => state.deals);
+  const setDeals = useCRMStore((state) => state.setDeals);
+  const [busyField, setBusyField] = useState<QualificationFieldKey | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const qualification = normalizeDealQualification(deal.qualification);
+  const summary = summarizeDealQualification(qualification);
+
+  function replaceQualification(nextQualification: Deal["qualification"], nextSummary: Deal["qualificationSummary"]) {
+    setDeals(deals.map((item) => (
+      item.id === deal.id
+        ? { ...item, qualification: nextQualification, qualificationSummary: nextSummary }
+        : item
+    )));
+  }
+
+  async function mutateQualification(mutation: QualificationMutation) {
+    setBusyField(mutation.field);
+    setError(null);
+    try {
+      const response = await fetch("/api/deals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deal.id, qualificationMutation: mutation }),
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao atualizar a qualificacao.");
+      replaceQualification(body.deal.qualification, body.deal.qualificationSummary);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setBusyField(null);
+    }
+  }
+
+  async function suggestQualification() {
+    setSuggesting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "suggest-qualification", dealId: deal.id }),
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao sugerir a qualificacao.");
+      replaceQualification(body.qualification, body.qualificationSummary);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
+  return (
+    <article className="card" style={{ margin: "14px 0" }}>
+      <div className="card-header">
+        <div>
+          <div className="card-title">Qualificacao consultiva</div>
+          <div className="muted-copy" style={{ fontSize: "12px" }}>
+            {summary.confirmedCount}/{summary.totalFields} campos confirmados · {summary.completeness}% completo.
+          </div>
+        </div>
+        <button className="topbar-btn" disabled={suggesting || busyField !== null} onClick={() => void suggestQualification()} type="button">
+          {suggesting ? "Analisando..." : "Sugerir com IA"}
+        </button>
+      </div>
+      <div className="muted-copy" style={{ fontSize: "11px", margin: "6px 0 10px" }}>
+        A IA usa dados deste deal somente apos o clique e cria sugestoes; apenas o operador confirma.
+      </div>
+      {error ? <div className="portfolio-status warning" style={{ marginBottom: "10px" }}>{error}</div> : null}
+      <div className="grid-2col" style={{ gap: "10px" }}>
+        {QUALIFICATION_FIELD_DEFINITIONS.map((definition) => {
+          const field = qualification.fields[definition.key];
+          return (
+            <QualificationFieldEditor
+              busy={busyField !== null || suggesting}
+              field={field}
+              fieldKey={definition.key}
+              key={`${definition.key}:${field.updatedAt ?? "legacy"}:${field.value ?? "empty"}`}
+              label={definition.label}
+              onMutate={mutateQualification}
+            />
+          );
+        })}
+      </div>
+      {summary.pendingFields.length > 0 ? (
+        <div className="muted-copy" style={{ fontSize: "11px", marginTop: "10px" }}>
+          Pendencias: {summary.pendingFields.map((field) => field.label).join(", ")}.
+        </div>
+      ) : (
+        <div className="portfolio-status success" style={{ marginTop: "10px" }}>Qualificacao confirmada em todos os campos.</div>
+      )}
+    </article>
+  );
+}
+
+function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: DealDetailOverlayProps) {
   const stage = stages.find((item) => item.id === deal.stage) ?? stages[0];
   const reportHref = deal.analysisUrl ? `/${deal.analysisUrl}` : "";
   const cleanPhone = (deal.phone || deal.whatsapp || "").replace(/\D/g, "");
@@ -485,13 +824,15 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
 
   const [activities, setActivities] = useState<DealActivity[]>([]);
   const [activitiesStatus, setActivitiesStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [forecast, setForecast] = useState<DealForecast | null>(null);
+  const [forecastStatus, setForecastStatus] = useState<"loading" | "ready" | "error">("loading");
   const updateDeal = useCRMStore((state) => state.updateDeal);
   const storeDeals = useCRMStore((state) => state.deals);
+  const setDeals = useCRMStore((state) => state.setDeals);
   const knownCompanies = useMemo(
     () => storeDeals.map((item) => item.company),
     [storeDeals],
   );
-  const updateDealStage = useCRMStore((state) => state.updateDealStage);
   const [valueInput, setValueInput] = useState(String(deal.value ?? 0));
   const [recurring, setRecurring] = useState(Boolean(deal.recurring));
   const [descriptionInput, setDescriptionInput] = useState(deal.description || "");
@@ -508,6 +849,11 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
   const [insights, setInsights] = useState<Array<{ id: number; content: string; created_at: string }>>([]);
   const [insightLoading, setInsightLoading] = useState(false);
   const [insightError, setInsightError] = useState<string | null>(null);
+  const [lossHistory, setLossHistory] = useState<LossHistoryRecord[]>([]);
+  const [lossHistoryStatus, setLossHistoryStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [correctingLoss, setCorrectingLoss] = useState(false);
+  const [lossCorrectionBusy, setLossCorrectionBusy] = useState(false);
+  const [lossCorrectionError, setLossCorrectionError] = useState<string | null>(null);
 
 
 
@@ -551,6 +897,27 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
       nextActionNote: "Proxima acao agendada manualmente.",
       nextActionSource: "manual",
     });
+  }
+
+  async function correctLossReason(reason: LossReasonInput) {
+    setLossCorrectionBusy(true);
+    setLossCorrectionError(null);
+    try {
+      const response = await fetch("/api/deals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deal.id, lossReasonCorrection: reason }),
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao corrigir o motivo.");
+      setDeals(useCRMStore.getState().deals.map((item) => (item.id === deal.id ? body.deal : item)));
+      setLossHistory((body.lossHistory ?? []) as LossHistoryRecord[]);
+      setCorrectingLoss(false);
+    } catch (error) {
+      setLossCorrectionError(error instanceof Error ? error.message : "Falha ao corrigir o motivo.");
+    } finally {
+      setLossCorrectionBusy(false);
+    }
   }
 
   // Story 010: integracao de IA (rota /api/ai reabilitada apos QA PASS).
@@ -626,6 +993,28 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
 
   useEffect(() => {
     let cancelled = false;
+    async function loadLossHistory() {
+      setLossHistoryStatus("loading");
+      try {
+        const response = await fetch(`/api/deals?id=${encodeURIComponent(deal.id)}`);
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Historico de perdas indisponivel.");
+        if (!cancelled) {
+          setLossHistory((body.lossHistory ?? []) as LossHistoryRecord[]);
+          setLossHistoryStatus("ready");
+        }
+      } catch {
+        if (!cancelled) setLossHistoryStatus("error");
+      }
+    }
+    loadLossHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [deal.id, deal.lossRecordedAt]);
+
+  useEffect(() => {
+    let cancelled = false;
     fetch(`/api/insights?dealId=${encodeURIComponent(deal.id)}`)
       .then((response) => response.json().then((body) => ({ response, body })))
       .then(({ response, body }) => {
@@ -638,6 +1027,44 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
       cancelled = true;
     };
   }, [deal.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadForecast() {
+      setForecastStatus("loading");
+      try {
+        const response = await fetch(`/api/funnel?dealId=${encodeURIComponent(deal.id)}`);
+        const body = await response.json();
+        if (!response.ok || !body.ok || !body.dealForecast) throw new Error(body.error ?? "Forecast indisponivel.");
+        if (!cancelled) {
+          setForecast(body.dealForecast as DealForecast);
+          setForecastStatus("ready");
+        }
+      } catch {
+        if (!cancelled) {
+          setForecast(null);
+          setForecastStatus("error");
+        }
+      }
+    }
+    loadForecast();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    deal.close,
+    deal.dealHealthScore,
+    deal.id,
+    deal.lastInboundAt,
+    deal.lastOutboundAt,
+    deal.nextActionAt,
+    deal.prob,
+    deal.qualification,
+    deal.recurring,
+    deal.responseType,
+    deal.stage,
+    deal.value,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -713,7 +1140,192 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               <span>Prioridade</span>
               <strong>{deal.priority || "Normal"}</strong>
             </div>
+            <div>
+              <span>Saude do negocio</span>
+              <strong>{deal.dealHealthScore != null ? `${deal.dealHealthScore}/100` : "Sem calculo"}</strong>
+            </div>
           </div>
+
+          <article className="card" style={{ margin: "14px 0" }}>
+            <div className="card-header">
+              <div>
+                <div className="card-title">Saude explicavel do negocio</div>
+                <div className="muted-copy" style={{ fontSize: "12px" }}>
+                  Metrica comercial independente do Lead score de prospeccao.
+                </div>
+              </div>
+              <span className="status-pill" style={dealHealthColor(deal.dealHealthScore)}>
+                {deal.dealHealthScore != null
+                  ? `${deal.dealHealthScore}/100 · ${deal.dealHealthClassification ?? "sem classificacao"}`
+                  : "Aguardando calculo"}
+              </span>
+            </div>
+            {deal.dealHealthScore != null ? (
+              <>
+                <p className="muted-copy" style={{ margin: "8px 0" }}>
+                  Confianca da leitura: {deal.dealHealthConfidence ?? 0}%. Rubrica v{deal.dealHealthRubricVersion ?? 1}.
+                </p>
+                <div className="portfolio-status success" style={{ marginBottom: "10px" }}>
+                  Proxima acao recomendada: {deal.dealHealthRecommendedAction ?? "Revisar o negocio."}
+                </div>
+                <div className="grid-2col">
+                  <div>
+                    <strong style={{ fontSize: "12px" }}>Fatores positivos</strong>
+                    {(deal.dealHealthFactors ?? []).length === 0 ? (
+                      <p className="muted-copy">Nenhum fator positivo comprovado.</p>
+                    ) : (
+                      (deal.dealHealthFactors ?? []).map((factor) => (
+                        <div className="pref-desc" key={factor.key} style={{ marginTop: "6px" }}>
+                          <strong>+{factor.impact} · {factor.label}</strong> — {factor.evidence}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: "12px" }}>Riscos</strong>
+                    {(deal.dealHealthRisks ?? []).length === 0 ? (
+                      <p className="muted-copy">Nenhum risco objetivo encontrado.</p>
+                    ) : (
+                      (deal.dealHealthRisks ?? []).map((risk) => (
+                        <div className="pref-desc" key={risk.key} style={{ marginTop: "6px" }}>
+                          <strong>{risk.impact} · {risk.label}</strong> — {risk.evidence}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+                {(deal.dealHealthWarnings ?? []).length > 0 ? (
+                  <details style={{ marginTop: "10px" }}>
+                    <summary className="muted-copy" style={{ cursor: "pointer" }}>
+                      Dados ausentes ({deal.dealHealthWarnings?.length})
+                    </summary>
+                    <ul className="muted-copy">
+                      {(deal.dealHealthWarnings ?? []).map((warning) => <li key={warning}>{warning}</li>)}
+                    </ul>
+                  </details>
+                ) : null}
+                <div className="muted-copy" style={{ fontSize: "11px", marginTop: "8px" }}>
+                  Calculado em {deal.dealHealthCalculatedAt ? new Date(deal.dealHealthCalculatedAt).toLocaleString("pt-BR") : "data indisponivel"}.
+                </div>
+              </>
+            ) : (
+              <p className="muted-copy">Rode `npm run health:deals` para simular ou use `-- --go` para persistir.</p>
+            )}
+          </article>
+
+          <article className="card" style={{ margin: "14px 0" }}>
+            <div className="card-header">
+              <div>
+                <div className="card-title">Forecast explicavel</div>
+                <div className="muted-copy" style={{ fontSize: "12px" }}>
+                  Formula deterministica; IA nao define a probabilidade.
+                </div>
+              </div>
+              {forecast ? (
+                <span className="status-pill">{forecast.forecastStatus === "forecast" ? `${forecast.calculatedProbability}% calculada` : forecast.forecastStatus === "realized" ? "Realizado" : "Excluido"}</span>
+              ) : null}
+            </div>
+            {forecastStatus === "loading" ? <p className="muted-copy">Calculando a partir das evidencias do funil...</p> : null}
+            {forecastStatus === "error" ? <div className="portfolio-status warning">Nao foi possivel calcular o forecast deste deal.</div> : null}
+            {forecastStatus === "ready" && forecast ? (
+              <>
+                <div className="operational-strip" style={{ marginTop: "10px" }}>
+                  <div><span>Probabilidade calculada</span><strong>{forecast.calculatedProbability}%</strong></div>
+                  <div><span>Probabilidade manual</span><strong>{forecast.manualProbability == null ? "Nao informada" : `${forecast.manualProbability}%`}</strong></div>
+                  <div><span>Confianca</span><strong>{forecast.confidence}%</strong></div>
+                  <div><span>{forecast.forecastStatus === "realized" ? "Receita realizada" : "Receita ponderada"}</span><strong>{currencyFormatter.format(forecast.forecastStatus === "realized" ? forecast.realizedValue : forecast.weightedValue)}</strong></div>
+                </div>
+                <p className="muted-copy" style={{ fontSize: "11px", margin: "8px 0" }}>
+                  Fonte usada nos agregados: {forecast.probabilitySource}, rubrica v{forecast.rubricVersion}. Periodo {forecast.period.from} a {forecast.period.to}.
+                  {forecast.manualProbability != null && forecast.manualProbability !== forecast.calculatedProbability
+                    ? ` Divergencia de ${Math.abs(forecast.manualProbability - forecast.calculatedProbability)} p.p.; o valor manual foi preservado.`
+                    : ""}
+                </p>
+                <div className="grid-2col">
+                  <div>
+                    <strong style={{ fontSize: "12px" }}>Fatores que aumentam</strong>
+                    {forecast.factors.length === 0 ? <p className="muted-copy">Nenhum fator positivo comprovado.</p> : forecast.factors.map((factor) => (
+                      <div className="pref-desc" key={factor.key} style={{ marginTop: "6px" }}>
+                        <strong>+{factor.impact} · {factor.label}</strong> — {factor.evidence}
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: "12px" }}>Fatores que reduzem</strong>
+                    {forecast.risks.length === 0 ? <p className="muted-copy">Nenhum redutor objetivo encontrado.</p> : forecast.risks.map((risk) => (
+                      <div className="pref-desc" key={risk.key} style={{ marginTop: "6px" }}>
+                        <strong>{risk.impact} · {risk.label}</strong> — {risk.evidence}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {forecast.warnings.length > 0 ? (
+                  <details style={{ marginTop: "10px" }}>
+                    <summary className="muted-copy" style={{ cursor: "pointer" }}>Dados faltantes ({forecast.warnings.length})</summary>
+                    <ul className="muted-copy">{forecast.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+                  </details>
+                ) : null}
+              </>
+            ) : null}
+          </article>
+
+          {(deal.stage === "lost" || deal.lossReasonCode || lossHistory.length > 0) ? (
+            <article className="card" style={{ margin: "14px 0" }}>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">Razao da perda</div>
+                  <div className="muted-copy" style={{ fontSize: "12px" }}>
+                    Registro comercial auditavel; correcoes preservam a versao anterior.
+                  </div>
+                </div>
+                {deal.lossReasonCode ? (
+                  <button className="topbar-btn" disabled={lossCorrectionBusy} onClick={() => setCorrectingLoss(true)} type="button">Corrigir motivo</button>
+                ) : <span className="status-pill">Legado</span>}
+              </div>
+              <div className="portfolio-status warning" style={{ margin: "10px 0" }}>
+                <strong>{deal.lossReasonCode ? lossReasonLabel(deal.lossReasonCode) : "Motivo nao informado"}</strong>
+                {deal.lossReasonNote ? ` — ${deal.lossReasonNote}` : ""}
+                {deal.lossRecordedAt ? ` · ${deal.lossRecordedBy ?? "autor desconhecido"}, ${new Date(deal.lossRecordedAt).toLocaleString("pt-BR")}` : ""}
+              </div>
+              {!deal.lossReasonCode ? (
+                <p className="muted-copy" style={{ fontSize: "11px" }}>Deal perdido antes do catalogo. Nenhum motivo foi inferido; reabra e registre uma nova perda para classifica-lo.</p>
+              ) : null}
+              {correctingLoss ? (
+                <div style={{ borderTop: "1px solid var(--color-cloud)", paddingTop: "12px", marginTop: "12px" }}>
+                  <LossReasonForm
+                    busy={lossCorrectionBusy}
+                    error={lossCorrectionError}
+                    initial={{ code: deal.lossReasonCode ?? "", note: deal.lossReasonNote }}
+                    onCancel={() => {
+                      if (!lossCorrectionBusy) {
+                        setCorrectingLoss(false);
+                        setLossCorrectionError(null);
+                      }
+                    }}
+                    onConfirm={correctLossReason}
+                    submitLabel="Salvar correcao"
+                  />
+                </div>
+              ) : null}
+              {lossHistoryStatus === "loading" ? <p className="muted-copy">Carregando historico...</p> : null}
+              {lossHistoryStatus === "error" ? <p className="muted-copy">Historico indisponivel ate a migration ser aplicada.</p> : null}
+              {lossHistory.length > 0 ? (
+                <details style={{ marginTop: "10px" }}>
+                  <summary className="muted-copy" style={{ cursor: "pointer" }}>Historico de perdas ({lossHistory.length})</summary>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                    {lossHistory.map((record) => (
+                      <div className="pref-desc" key={record.id}>
+                        <strong>{record.reasonLabel}</strong>{record.note ? ` — ${record.note}` : ""}<br />
+                        <span>{record.recordedBy} · {new Date(record.recordedAt).toLocaleString("pt-BR")}{record.supersededReason === "corrected" ? " · corrigido" : record.supersededReason === "reopened" ? " · superado por reabertura" : " · atual"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+            </article>
+          ) : null}
+
+          <QualificationEditor deal={deal} />
 
           <div className="meta-grid">
             <div className="meta-row">
@@ -742,7 +1354,7 @@ function DealDetailOverlay({ deal, onClose, onDelete }: DealDetailOverlayProps) 
               <select
                 value={deal.stage}
                 onChange={async (e) => {
-                  await updateDealStage(deal.id, e.target.value as DealStage);
+                  await onStageChange(deal.id, e.target.value as DealStage);
                 }}
                 className="settings-select"
               >

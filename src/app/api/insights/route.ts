@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
+import { loadLossAnalysis } from "@/lib/dealLossService.mjs";
 
 // Repositorio de insights do loop de aprendizado. Escrita/leitura server-side via
 // service-role (tabela insights tem RLS deny-by-default). Insights sao gerados pela
@@ -17,6 +18,13 @@ function errorResponse(error: unknown, status = 500) {
 export async function GET(request: NextRequest) {
   try {
     const supabase = getCrmSupabaseAdmin();
+    if (request.nextUrl.searchParams.get("view") === "loss-summary") {
+      const losses = await loadLossAnalysis(supabase, {
+        from: request.nextUrl.searchParams.get("from") ?? undefined,
+        to: request.nextUrl.searchParams.get("to") ?? undefined,
+      });
+      return NextResponse.json({ ok: true, losses });
+    }
     const dealId = request.nextUrl.searchParams.get("dealId");
     let query = supabase.from("insights").select("*").order("created_at", { ascending: false });
     if (dealId) query = query.eq("deal_id", Number(dealId));

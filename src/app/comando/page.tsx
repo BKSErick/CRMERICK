@@ -50,6 +50,10 @@ type FollowupItem = {
   window: string;
   message: string;
   signal: LeadSignal | null;
+  healthReview: boolean;
+  health: { score: number; classification: string; confidence: number; recommendation: string } | null;
+  qualificationReview: boolean;
+  qualification: { completeness: number; confirmedCount: number; totalFields: number; pendingLabels: string[] } | null;
 };
 
 // Selo compacto do sinal: "abriu a pagina 4x, clicou no WhatsApp, ha 2h".
@@ -80,6 +84,13 @@ type Alerts = {
   sevenDayRule: { disparos7d: number; respostas: number; threshold: number; triggered: boolean };
   day20Rule: { day: number; pct: number; threshold: number; triggered: boolean };
 };
+type AutomationAlert = {
+  id: number;
+  dealId: number | null;
+  type: string;
+  description: string;
+  createdAt: string;
+};
 // Encaminhamento: o gatekeeper mandou o vCard do decisor. Melhor lead do funil,
 // porque chega com permissao dada e nome de quem indicou.
 type ReferralItem = {
@@ -93,12 +104,34 @@ type ReferralItem = {
   acionado: boolean;
   message: string;
 };
+type CommandForecast = {
+  rubricVersion: number;
+  probabilitySource: string;
+  period: { from: string; to: string };
+  predicted: { total: number; mrr: number; oneOff: number };
+  realized: { total: number };
+  attention: { revenueAtRisk: number; revenueWithoutNextAction: number };
+  relevantDeals: Array<{
+    dealId: number;
+    company: string;
+    stage: string;
+    closeDate: string | null;
+    recurring: boolean;
+    calculatedProbability: number;
+    confidence: number;
+    predictedValue: number;
+    isAtRisk: boolean;
+    withoutNextAction: boolean;
+  }>;
+};
 type Comando = {
   placar: Placar;
   alerts: Alerts;
   queue: QueueItem[];
   followupQueue: FollowupItem[];
   referralQueue: ReferralItem[];
+  automationAlerts: AutomationAlert[];
+  forecast?: CommandForecast;
 };
 
 function whatsappLink(phone: string, message: string) {
@@ -111,6 +144,7 @@ function whatsappLink(phone: string, message: string) {
 // (anti-ego, encaminhavel, pergunta de baixo custo).
 const { SALES_PLAYBOOK } = salesPlaybookModule;
 const offerPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.offer.currency });
+const forecastCurrency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const READY_MESSAGES: { title: string; text: string }[] = [
   {
@@ -337,6 +371,60 @@ export default function ComandoPage() {
             </article>
           </div>
 
+          {data.forecast ? (
+            <>
+              <div className="card-header" style={{ margin: "24px 0 12px" }}>
+                <div>
+                  <div className="card-title">Previsao comercial do periodo</div>
+                  <div className="muted-copy" style={{ fontSize: "11px" }}>
+                    {data.forecast.period.from} a {data.forecast.period.to} · fonte {data.forecast.probabilitySource} · rubrica v{data.forecast.rubricVersion}
+                  </div>
+                </div>
+              </div>
+              <div className="kpi-row">
+                <article className="kpi-card">
+                  <div className="kpi-label">Receita provavel</div>
+                  <div className="kpi-value">{forecastCurrency.format(data.forecast.predicted.total)}</div>
+                  <div className="kpi-trend">MRR {forecastCurrency.format(data.forecast.predicted.mrr)} · one-off {forecastCurrency.format(data.forecast.predicted.oneOff)}</div>
+                </article>
+                <article className="kpi-card">
+                  <div className="kpi-label">Receita em risco</div>
+                  <div className="kpi-value">{forecastCurrency.format(data.forecast.attention.revenueAtRisk)}</div>
+                  <div className="kpi-trend">Somente previsto; realizado: {forecastCurrency.format(data.forecast.realized.total)}</div>
+                </article>
+                <article className="kpi-card">
+                  <div className="kpi-label">Receita sem proxima acao</div>
+                  <div className="kpi-value">{forecastCurrency.format(data.forecast.attention.revenueWithoutNextAction)}</div>
+                  <div className="kpi-trend">Deals do periodo sem agenda definida</div>
+                </article>
+              </div>
+              <div className="card-header" style={{ margin: "18px 0 10px" }}>
+                <div className="card-title">Negocios relevantes no periodo</div>
+              </div>
+              {data.forecast.relevantDeals.length === 0 ? (
+                <div className="connection-status fallback">Nenhum deal com valor e fechamento dentro do periodo.</div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr><th>Empresa</th><th>Etapa</th><th>Previsao</th><th>Probabilidade</th><th>Confianca</th><th>Acao</th></tr></thead>
+                    <tbody>
+                      {data.forecast.relevantDeals.slice(0, 10).map((item) => (
+                        <tr key={item.dealId}>
+                          <td>{item.company}{item.isAtRisk ? <span className="status-pill" style={{ marginLeft: "6px" }}>Risco</span> : null}</td>
+                          <td><span className={`status-pill ${item.stage}`}>{item.stage}</span></td>
+                          <td>{forecastCurrency.format(item.predictedValue)}{item.recurring ? " MRR" : " one-off"}</td>
+                          <td>{item.calculatedProbability}% calculada</td>
+                          <td>{item.confidence}%</td>
+                          <td><a className="topbar-btn" href={`/pipeline?dealId=${item.dealId}`}>{item.withoutNextAction ? "Definir acao" : "Revisar deal"}</a></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : null}
+
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Alertas de regra</div>
           </div>
@@ -378,6 +466,31 @@ export default function ComandoPage() {
               )}
             </article>
           </div>
+
+          <article className="card" style={{ marginTop: "12px" }}>
+            <div className="card-header">
+              <div className="card-title">Automacoes recentes</div>
+              <span className="card-badge">{data.automationAlerts.length}</span>
+            </div>
+            {data.automationAlerts.length === 0 ? (
+              <p className="muted-copy">Nenhuma tarefa ou alerta automatico registrado ainda.</p>
+            ) : (
+              data.automationAlerts.map((alert) => (
+                <div className="pref-row" key={alert.id}>
+                  <div>
+                    <div className="pref-label">{alert.description}</div>
+                    <div className="pref-desc">
+                      {alert.dealId ? `Deal #${alert.dealId} · ` : ""}
+                      {alert.createdAt ? new Date(alert.createdAt).toLocaleString("pt-BR") : "Sem data"}
+                    </div>
+                  </div>
+                  <span className={`status-pill ${alert.type === "automation_event_failed" ? "inactive" : "active"}`}>
+                    {alert.type === "automation_confirmation_requested" ? "confirmar" : alert.type === "automation_event_failed" ? "falhou" : "automatico"}
+                  </span>
+                </div>
+              ))
+            )}
+          </article>
 
           <details className="card" style={{ margin: "24px 0 0" }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>
@@ -472,7 +585,7 @@ export default function ComandoPage() {
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila de follow-up</div>
-            <span className="card-badge">na janela hoje</span>
+            <span className="card-badge">janelas, saude e qualificacao</span>
           </div>
           {(data.followupQueue ?? []).length === 0 ? (
             <div className="connection-status fallback">
@@ -496,6 +609,16 @@ export default function ComandoPage() {
                       <td>
                         <div>{item.company}{signalBadge(item.signal)}</div>
                         <span className={`status-pill ${item.stage}`}>{item.stage}</span>
+                        {item.health ? (
+                          <span className="status-pill" style={{ marginLeft: "6px" }}>
+                            Saude {item.health.score}/100
+                          </span>
+                        ) : null}
+                        {item.qualification ? (
+                          <span className="status-pill" style={{ marginLeft: "6px" }}>
+                            Qualificacao {item.qualification.completeness}%
+                          </span>
+                        ) : null}
                       </td>
                       <td>
                         {item.days === null ? "Sem registro" : item.days === 0 ? "Hoje" : `D+${item.days}`}
@@ -504,19 +627,29 @@ export default function ComandoPage() {
                       <td style={{ maxWidth: "420px" }}>
                         <strong style={{ fontSize: "12px" }}>{item.tierLabel}</strong>
                         <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>{item.window}</span>
-                        <div className="muted-copy" style={{ fontSize: "12px", marginTop: "4px" }}>{item.message}</div>
+                        <div className="muted-copy" style={{ fontSize: "12px", marginTop: "4px" }}>
+                          {item.healthReview
+                            ? item.health?.recommendation
+                            : item.qualificationReview
+                              ? `Lacunas de qualificacao: ${item.qualification?.pendingLabels.join(", ")}.`
+                              : item.message}
+                        </div>
                       </td>
-                      <td className="font-mono">+{item.phone}</td>
+                      <td className="font-mono">{item.phone ? `+${item.phone}` : "--"}</td>
                       <td>
-                        <a
-                          className="topbar-btn primary"
-                          href={whatsappLink(item.phone, item.message)}
-                          rel="noreferrer"
-                          target="_blank"
-                          onClick={() => handleFollowup(item)}
-                        >
-                          Abrir {item.tier}
-                        </a>
+                        {item.healthReview || item.qualificationReview ? (
+                          <a className="topbar-btn" href={`/pipeline?dealId=${item.id}`}>Revisar deal</a>
+                        ) : (
+                          <a
+                            className="topbar-btn primary"
+                            href={whatsappLink(item.phone, item.message)}
+                            rel="noreferrer"
+                            target="_blank"
+                            onClick={() => handleFollowup(item)}
+                          >
+                            Abrir {item.tier}
+                          </a>
+                        )}
                       </td>
                     </tr>
                   ))}

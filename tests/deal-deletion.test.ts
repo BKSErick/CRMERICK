@@ -21,10 +21,18 @@ test("preserva mensagens, atividades e reunioes ao excluir um deal", () => {
   );
   const setNullDealReferences =
     schema.match(/deal_id\s+integer references public\.deals\(id\) on delete set null/gi) ?? [];
-  assert.equal(setNullDealReferences.length, 3);
+  assert.ok(setNullDealReferences.length >= 5);
   assert.match(
     schema,
     /create table if not exists public\.calendar_events[\s\S]*deal_id\s+integer references public\.deals\(id\) on delete set null/i,
+  );
+  assert.match(
+    schema,
+    /create table if not exists public\.commercial_events[\s\S]*deal_id\s+integer references public\.deals\(id\) on delete set null/i,
+  );
+  assert.match(
+    schema,
+    /create table if not exists public\.commercial_automation_runs[\s\S]*deal_id\s+integer references public\.deals\(id\) on delete set null/i,
   );
 });
 

@@ -41,6 +41,8 @@ export function buildRunPlan(input) {
   });
   plan.push({ name: "first-contact", script: "scripts/uazapi-send-batch.mjs", args: [limit, ...go] });
   plan.push({ name: "followup", script: "scripts/uazapi-followup-batch.mjs", args: [limit, ...go] });
+  plan.push({ name: "commercial-automation", script: "scripts/commercial-automation.mjs", args: ["--scan-due", ...go] });
+  plan.push({ name: "deal-health", script: "scripts/deal-health.mjs", args: [...go] });
   return plan;
 }
 

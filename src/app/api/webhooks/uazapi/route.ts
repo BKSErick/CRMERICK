@@ -1,6 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 
 import { aiComplete } from "@/lib/aiComplete";
+import { processCommercialEventBestEffort } from "@/lib/commercialAutomationService.mjs";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import {
   classifyInboundResponse,
@@ -393,14 +394,24 @@ export async function POST(request: NextRequest) {
         operationalUpdate.response_type = responseType;
         operationalUpdate.response_type_source = "automatic";
       }
-      if (deal.next_action_source !== "manual") {
-        operationalUpdate.next_action_at = plan.at;
-        operationalUpdate.next_action_type = indicatedContact ? "contactar_responsavel" : plan.type;
-        operationalUpdate.next_action_note = plan.note;
-        operationalUpdate.next_action_source = "automatic";
-      }
       const updated = await supabase.from("deals").update(operationalUpdate).eq("id", deal.id);
       if (updated.error) throw updated.error;
+      await processCommercialEventBestEffort(supabase, {
+        id: `uazapi:${message.provider}:${message.providerMessageId}:received`,
+        type: "message.received",
+        dealId: deal.id,
+        occurredAt: message.occurredAt,
+        source: "webhook/uazapi",
+        payload: {
+          messageId: inserted.data.id,
+          responseType,
+          suggestedTask: {
+            at: plan.at,
+            type: indicatedContact ? "contactar_responsavel" : plan.type,
+            note: plan.note,
+          },
+        },
+      }, { apply: true });
     } else {
       const outboundCount = await supabase
         .from("messages")
@@ -416,14 +427,20 @@ export async function POST(request: NextRequest) {
       const operationalUpdate: Record<string, unknown> = {
         last_outbound_at: message.occurredAt,
       };
-      if (deal.next_action_source !== "manual") {
-        operationalUpdate.next_action_at = plan.at;
-        operationalUpdate.next_action_type = plan.type;
-        operationalUpdate.next_action_note = plan.note;
-        operationalUpdate.next_action_source = "automatic";
-      }
       const updated = await supabase.from("deals").update(operationalUpdate).eq("id", deal.id);
       if (updated.error) throw updated.error;
+      await processCommercialEventBestEffort(supabase, {
+        id: `uazapi:${message.provider}:${message.providerMessageId}:sent`,
+        type: "message.sent",
+        dealId: deal.id,
+        occurredAt: message.occurredAt,
+        source: "webhook/uazapi",
+        payload: {
+          messageId: inserted.data.id,
+          responseType: deal.response_type === "bot" ? "bot" : "sem_resposta",
+          suggestedTask: { at: plan.at, type: plan.type, note: plan.note },
+        },
+      }, { apply: true });
     }
 
     if (message.direction === "received" && !message.content.startsWith("[")) {

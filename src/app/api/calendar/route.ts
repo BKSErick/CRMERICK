@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { processCommercialEventBestEffort } from "@/lib/commercialAutomationService.mjs";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import {
   MEETING_STATUSES,
@@ -97,15 +98,15 @@ export async function PATCH(request: NextRequest) {
 
     const meetingStatusProvided = (MEETING_STATUSES as readonly string[]).includes(body.meetingStatus);
     const needsCurrentEvent = typeof body.done === "boolean" || typeof body.kind === "string" || meetingStatusProvided;
-    let currentEvent: { kind: Kind; meeting_status: MeetingStatus | null } | null = null;
+    let currentEvent: { kind: Kind; meeting_status: MeetingStatus | null; deal_id: number | null } | null = null;
     if (needsCurrentEvent) {
       const current = await supabase
         .from("calendar_events")
-        .select("kind, meeting_status")
+        .select("kind, meeting_status, deal_id")
         .eq("id", id)
         .single();
       if (current.error) throw current.error;
-      currentEvent = current.data as { kind: Kind; meeting_status: MeetingStatus | null };
+      currentEvent = current.data as { kind: Kind; meeting_status: MeetingStatus | null; deal_id: number | null };
     }
 
     const updates: Record<string, unknown> = {};
@@ -146,6 +147,23 @@ export async function PATCH(request: NextRequest) {
 
     const { data, error } = await supabase.from("calendar_events").update(updates).eq("id", id).select(SELECT).single();
     if (error) throw error;
+
+    if (currentEvent?.meeting_status !== data.meeting_status && data.kind === "reuniao" && data.deal_id) {
+      const occurredAt = new Date().toISOString();
+      await processCommercialEventBestEffort(supabase, {
+        id: `meeting:${id}:status:${currentEvent?.meeting_status ?? "none"}:${data.meeting_status ?? "none"}`,
+        type: "meeting.status_changed",
+        dealId: Number(data.deal_id),
+        occurredAt,
+        source: "api/calendar",
+        payload: {
+          meetingId: id,
+          previousStatus: currentEvent?.meeting_status ?? null,
+          status: data.meeting_status,
+          startsAt: data.starts_at,
+        },
+      }, { apply: true });
+    }
 
     return NextResponse.json({ ok: true, event: data });
   } catch (error) {

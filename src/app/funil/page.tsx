@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useCRMStore, type DealStage } from "@/store/useCRMStore";
+import type { LossAnalysis } from "@/lib/dealLossReasons.mjs";
 
 type InstagramState =
   | { status: "loading"; reach: null; message: string }
@@ -48,6 +49,16 @@ type OperationalFunnelState = {
 
 type VariantResult = { variant: "A" | "B"; counts: OperationalFunnelState["counts"]; rates: OperationalFunnelState["rates"] };
 
+type ForecastState = {
+  rubricVersion: number;
+  probabilitySource: string;
+  period: { from: string; to: string };
+  pipeline: { gross: number; weighted: number; weightedRate: number };
+  predicted: { total: number; mrr: number; oneOff: number; periodCoverageRate: number };
+  realized: { total: number; mrr: number; oneOff: number };
+  counts: { missingValue: number; missingCloseDate: number };
+};
+
 const numberFormatter = new Intl.NumberFormat("pt-BR");
 
 const stageLabels: Record<DealStage, string> = {
@@ -85,6 +96,8 @@ export default function FunilPage() {
   const [crmSource, setCrmSource] = useState<"loading" | "ready" | "fallback">("loading");
   const [operational, setOperational] = useState<OperationalFunnelState | null>(null);
   const [variantResults, setVariantResults] = useState<VariantResult[]>([]);
+  const [forecast, setForecast] = useState<ForecastState | null>(null);
+  const [losses, setLosses] = useState<LossAnalysis | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,11 +169,15 @@ export default function FunilPage() {
         if (!cancelled) {
           setOperational(body.funnel as OperationalFunnelState);
           setVariantResults(body.variants as VariantResult[]);
+          setForecast(body.forecast as ForecastState);
+          setLosses((body.losses as LossAnalysis | null) ?? null);
         }
       } catch {
         if (!cancelled) {
           setOperational(null);
           setVariantResults([]);
+          setForecast(null);
+          setLosses(null);
         }
       }
     })();
@@ -537,6 +554,47 @@ export default function FunilPage() {
                 <div className="stage-row"><span>Receita one-off</span><strong>R$ {numberFormatter.format(operational.revenue.oneOff)}</strong></div>
               </div>
             ) : <p>Aguardando migration ou dados do funil operacional.</p>}
+          </article>
+          <article>
+            <span>Forecast explicavel</span>
+            {forecast ? (
+              <div className="stage-list">
+                <div className="stage-row"><span>Pipeline bruto</span><strong>R$ {numberFormatter.format(forecast.pipeline.gross)}</strong></div>
+                <div className="stage-row"><span>Pipeline ponderado</span><strong>R$ {numberFormatter.format(forecast.pipeline.weighted)}</strong></div>
+                <div className="stage-row"><span>Receita provavel no periodo</span><strong>R$ {numberFormatter.format(forecast.predicted.total)}</strong></div>
+                <div className="stage-row"><span>MRR provavel</span><strong>R$ {numberFormatter.format(forecast.predicted.mrr)}</strong></div>
+                <div className="stage-row"><span>One-off provavel</span><strong>R$ {numberFormatter.format(forecast.predicted.oneOff)}</strong></div>
+                <div className="stage-row"><span>Realizado no periodo</span><strong>R$ {numberFormatter.format(forecast.realized.total)}</strong></div>
+                <p className="muted-copy" style={{ fontSize: "11px" }}>
+                  Ponderacao {forecast.pipeline.weightedRate.toFixed(1).replace(".", ",")}% · cobertura do periodo {forecast.predicted.periodCoverageRate.toFixed(1).replace(".", ",")}%.
+                  Previsto e realizado permanecem separados. Fonte: {forecast.probabilitySource}, rubrica v{forecast.rubricVersion}.
+                  {forecast.counts.missingValue + forecast.counts.missingCloseDate > 0
+                    ? ` Pendencias: ${forecast.counts.missingValue} sem valor e ${forecast.counts.missingCloseDate} sem data.`
+                    : ""}
+                </p>
+              </div>
+            ) : <p>Forecast indisponivel neste ambiente.</p>}
+          </article>
+          <article>
+            <span>Razoes de perda</span>
+            {losses ? (
+              <div className="stage-list">
+                <div className="stage-row"><span>Perdas observadas</span><strong>{numberFormatter.format(losses.totalLosses)}</strong></div>
+                {losses.byReason.slice(0, 5).map((reason) => (
+                  <div className="stage-row" key={reason.code}>
+                    <span>{reason.label}</span>
+                    <strong>{reason.count} · {reason.sharePct.toFixed(1).replace(".", ",")}%</strong>
+                  </div>
+                ))}
+                {losses.bySegment[0] ? <div className="stage-row"><span>Segmento mais observado</span><strong>{losses.bySegment[0].key}</strong></div> : null}
+                {losses.byOrigin[0] ? <div className="stage-row"><span>Origem mais observada</span><strong>{losses.byOrigin[0].key}</strong></div> : null}
+                <p className="muted-copy" style={{ fontSize: "11px" }}>
+                  Periodo {losses.period.from} a {losses.period.to}. {losses.caveat}
+                  {!losses.baseSufficient ? ` Base pequena: minimo recomendado de ${losses.minimumSampleSize} perdas.` : ""}
+                  {losses.legacyWithoutReason.length > 0 ? ` ${losses.legacyWithoutReason.length} deal(s) legado(s) sem motivo informado.` : ""}
+                </p>
+              </div>
+            ) : <p>Aguardando migration ou dados de perdas.</p>}
           </article>
           <article>
             <span>Teste de abertura A/B</span>

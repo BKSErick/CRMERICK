@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import type { Contact, Deal, DealStage } from "@/lib/crmRecords";
+import type { LossReasonInput } from "@/lib/dealLossReasons.mjs";
 
 export type { Contact, Deal, DealStage };
 
@@ -15,21 +16,10 @@ type CRMState = {
   createDeal: (deal: Omit<Deal, "id">) => Promise<Deal>;
   updateDeal: (dealId: number, updates: Partial<Deal>) => Promise<void>;
   deleteDeal: (dealId: number) => Promise<void>;
-  updateDealStage: (dealId: number, stage: DealStage) => Promise<void>;
+  updateDealStage: (dealId: number, stage: DealStage, lossReason?: LossReasonInput | null) => Promise<void>;
   createContact: (contact: Omit<Contact, "id">) => Promise<Contact>;
   updateContact: (contactId: number, updates: Partial<Contact>) => Promise<void>;
   deleteContact: (contactId: number) => Promise<void>;
-};
-
-const STAGE_LABELS: Record<DealStage, string> = {
-  prospect: "Prospect",
-  abordado: "Abordado",
-  followup: "Follow-up",
-  qualified: "Qualified",
-  proposal: "Proposal",
-  negotiation: "Negotiation",
-  won: "Won",
-  lost: "Lost",
 };
 
 async function readApi<T>(response: Response, fallbackMessage: string): Promise<T> {
@@ -118,22 +108,32 @@ export const useCRMStore = create<CRMState>((set, get) => ({
       throw error;
     }
   },
-  updateDealStage: async (dealId, stage) => {
-    await get().updateDeal(dealId, { stage });
-    // Registra atividade real (server-side) da mudanca de etapa. Best-effort: se a mudanca
-    // ja persistiu, uma falha ao logar a atividade nao deve reverter nem quebrar o move.
+  updateDealStage: async (dealId, stage, lossReason = null) => {
+    const previousDeals = get().deals;
+    const updatedAt = new Date().toISOString();
+    set((state) => ({
+      deals: state.deals.map((deal) => (
+        deal.id === dealId ? { ...deal, stage, updated_at: updatedAt } : deal
+      )),
+      lastError: null,
+    }));
+
     try {
-      await fetch("/api/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dealId,
-          type: "stage_change",
-          description: `Movido para ${STAGE_LABELS[stage] ?? stage}`,
+      const body = await readApi<{ deal: Deal }>(
+        await fetch("/api/deals", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: dealId, stage, lossReason }),
         }),
-      });
-    } catch {
-      // atividade e complementar ao move; ignore falha de log aqui.
+        "Nao foi possivel mudar a etapa do deal.",
+      );
+      set((state) => ({
+        deals: state.deals.map((deal) => (deal.id === dealId ? body.deal : deal)),
+      }));
+    } catch (error) {
+      set({ deals: previousDeals });
+      setFailure(set, error);
+      throw error;
     }
   },
   createContact: async (contact) => {

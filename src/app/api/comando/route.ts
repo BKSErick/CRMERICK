@@ -1,5 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { listCommercialAutomationRules } from "@/lib/commercialAutomationService.mjs";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
+import { DEAL_HEALTH_RISK_MAX_SCORE } from "@/lib/dealHealth.mjs";
+import { calculateForecastFromSupabase } from "@/lib/dealForecastService.mjs";
+import { QUALIFICATION_REVIEW_STAGES, summarizeDealQualification } from "@/lib/dealQualification.mjs";
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
 import { diagnoseLead } from "@/lib/leadScoring";
 import { TIER_INFO, followupMessage, mensagemDecisorIndicado, tierForDays } from "@/lib/followup";
@@ -21,9 +25,12 @@ function cleanPhone(value?: string | null): string {
   return (value ?? "").replace(/\D/g, "");
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = getCrmSupabaseAdmin();
+    if (request.nextUrl.searchParams.get("view") === "automation_rules") {
+      return NextResponse.json({ ok: true, rules: await listCommercialAutomationRules(supabase) });
+    }
     const goals = loadGoals();
     const now = new Date();
     const todayStart = startOfToday(now);
@@ -164,12 +171,32 @@ export async function GET() {
 
     // Fila de follow-up: quem ja foi contatado (abordado/followup) e esta na janela
     // (M1 D+2, M2 D+5 com prova, M3 D+10 breakup). Mais atrasado primeiro.
-    const { data: fuRows, error: fuErr } = await supabase
-      .from("deals")
-      .select("id, company, phone, whatsapp, name, stage, contact_id")
-      .in("stage", ["abordado", "followup"])
-      .limit(1000);
-    if (fuErr) throw fuErr;
+    const followupSelect = "id, company, phone, whatsapp, name, stage, contact_id, deal_health_score, deal_health_classification, deal_health_confidence, deal_health_recommended_action, qualification";
+    const [cadenceRows, healthRiskRows, qualificationRows] = await Promise.all([
+      supabase
+        .from("deals")
+        .select(followupSelect)
+        .in("stage", ["abordado", "followup"])
+        .limit(1000),
+      supabase
+        .from("deals")
+        .select(followupSelect)
+        .in("stage", ["abordado", "followup", "qualified", "proposal", "negotiation"])
+        .lte("deal_health_score", DEAL_HEALTH_RISK_MAX_SCORE)
+        .order("deal_health_score", { ascending: true })
+        .limit(1000),
+      supabase
+        .from("deals")
+        .select(followupSelect)
+        .in("stage", [...QUALIFICATION_REVIEW_STAGES])
+        .limit(1000),
+    ]);
+    if (cadenceRows.error) throw cadenceRows.error;
+    if (healthRiskRows.error) throw healthRiskRows.error;
+    if (qualificationRows.error) throw qualificationRows.error;
+    const fuRows = [...(cadenceRows.data ?? []), ...(healthRiskRows.data ?? []), ...(qualificationRows.data ?? [])].filter(
+      (row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index,
+    );
 
     const followupQueue = (fuRows ?? [])
       .map((d) => {
@@ -182,9 +209,16 @@ export async function GET() {
           "";
         const wa = waByDeal.get(Number(d.id));
         const days = wa ? Math.floor((now.getTime() - wa.last) / 86400000) : null;
-        const tier = tierForDays(days);
+        const cadenceTier = tierForDays(days);
         const company = String(d.company ?? "Sem empresa");
         const signal = signalFor(company, d.name as string);
+        const healthScore = d.deal_health_score == null ? null : Number(d.deal_health_score);
+        const healthRisk = healthScore != null && healthScore <= DEAL_HEALTH_RISK_MAX_SCORE;
+        const healthReview = healthRisk && cadenceTier === "aguardar";
+        const qualificationSummary = summarizeDealQualification(d.qualification);
+        const hasQualificationGaps = QUALIFICATION_REVIEW_STAGES.includes(String(d.stage)) && qualificationSummary.pendingFields.length > 0;
+        const qualificationReview = hasQualificationGaps && cadenceTier === "aguardar" && !healthReview;
+        const tier = healthReview ? "saude" : qualificationReview ? "qualificacao" : cadenceTier;
         return {
           id: Number(d.id),
           company,
@@ -198,14 +232,34 @@ export async function GET() {
             : null,
           signalWeight: signalWeight(signal),
           tier,
-          tierLabel: tier === "aguardar" ? "Aguardar D+2" : TIER_INFO[tier].label,
-          window: tier === "aguardar" ? "" : TIER_INFO[tier].window,
-          message: tier === "aguardar" ? "" : followupMessage(tier, company),
+          tierLabel: healthReview ? "Revisar saude" : qualificationReview ? "Lacunas de qualificacao" : cadenceTier === "aguardar" ? "Aguardar D+2" : TIER_INFO[cadenceTier].label,
+          window: healthReview || qualificationReview ? "Sem envio automatico" : cadenceTier === "aguardar" ? "" : TIER_INFO[cadenceTier].window,
+          message: healthReview || qualificationReview ? "" : cadenceTier === "aguardar" ? "" : followupMessage(cadenceTier, company),
+          healthReview,
+          qualificationReview,
+          health: healthScore == null ? null : {
+            score: healthScore,
+            classification: String(d.deal_health_classification ?? "sem_calculo"),
+            confidence: Number(d.deal_health_confidence ?? 0),
+            recommendation: String(d.deal_health_recommended_action ?? "Revisar o negocio no Pipeline."),
+          },
+          qualification: hasQualificationGaps ? {
+            completeness: qualificationSummary.completeness,
+            confirmedCount: qualificationSummary.confirmedCount,
+            totalFields: qualificationSummary.totalFields,
+            pendingLabels: qualificationSummary.pendingFields.map((field) => field.label),
+          } : null,
         };
       })
-      .filter((d) => d.tier !== "aguardar" && d.phone && isWhatsappMobile(d.phone))
+      .filter((d) => d.tier !== "aguardar" && (d.healthReview || d.qualificationReview || (d.phone && isWhatsappMobile(d.phone))))
       // Sinal primeiro, atraso depois: quem reabriu a pagina vale mais que quem so envelheceu.
-      .sort((a, b) => b.signalWeight - a.signalWeight || (b.days ?? 0) - (a.days ?? 0))
+      .sort((a, b) => {
+        if (a.healthReview !== b.healthReview) return Number(b.healthReview) - Number(a.healthReview);
+        if (a.healthReview && b.healthReview) return (a.health?.score ?? 101) - (b.health?.score ?? 101);
+        if (a.qualificationReview !== b.qualificationReview) return Number(b.qualificationReview) - Number(a.qualificationReview);
+        if (a.qualificationReview && b.qualificationReview) return (a.qualification?.completeness ?? 100) - (b.qualification?.completeness ?? 100);
+        return b.signalWeight - a.signalWeight || (b.days ?? 0) - (a.days ?? 0);
+      })
       .slice(0, 50);
 
     // FILA DE ENCAMINHAMENTOS (10/08/2026). Encaminhamento e o melhor lead do
@@ -270,6 +324,22 @@ export async function GET() {
 
     // Alerta dia 20: usa a agregacao da meta (mesma da North Star).
     const northStar = await computeNorthStar(now);
+    const forecastResult = await calculateForecastFromSupabase(supabase, { now: now.toISOString() });
+    const automationActivityTypes = [
+      "automation_task_upserted",
+      "automation_priority_set",
+      "automation_draft_created",
+      "automation_alert",
+      "automation_confirmation_requested",
+      "automation_event_failed",
+    ];
+    const { data: automationRows, error: automationError } = await supabase
+      .from("activities")
+      .select("id, deal_id, type, description, metadata, created_at")
+      .in("type", automationActivityTypes)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (automationError) throw automationError;
 
     return NextResponse.json({
       ok: true,
@@ -295,10 +365,53 @@ export async function GET() {
       queue,
       followupQueue,
       referralQueue,
+      automationAlerts: (automationRows ?? []).map((row) => ({
+        id: Number(row.id),
+        dealId: row.deal_id == null ? null : Number(row.deal_id),
+        type: String(row.type ?? "automation_alert"),
+        description: String(row.description ?? "Automacao comercial executada."),
+        metadata: row.metadata ?? {},
+        createdAt: String(row.created_at ?? ""),
+      })),
+      forecast: {
+        rubricVersion: forecastResult.rubricVersion,
+        probabilitySource: forecastResult.probabilitySource,
+        period: forecastResult.period,
+        pipeline: forecastResult.pipeline,
+        predicted: forecastResult.predicted,
+        realized: forecastResult.realized,
+        attention: forecastResult.attention,
+        counts: forecastResult.counts,
+        relevantDeals: forecastResult.relevantDeals,
+      },
     });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Erro na agregacao do Comando" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const id = typeof body?.id === "string" ? body.id.trim() : "";
+    if (!id || typeof body?.enabled !== "boolean") {
+      return NextResponse.json({ ok: false, error: "id e enabled sao obrigatorios." }, { status: 400 });
+    }
+    const supabase = getCrmSupabaseAdmin();
+    const result = await supabase
+      .from("commercial_automation_rules")
+      .update({ enabled: body.enabled })
+      .eq("id", id)
+      .select("id, name, description, version, event_type, conditions, action_type, action_payload, enabled")
+      .single();
+    if (result.error) throw result.error;
+    return NextResponse.json({ ok: true, rule: result.data });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Falha ao atualizar regra." },
       { status: 500 },
     );
   }

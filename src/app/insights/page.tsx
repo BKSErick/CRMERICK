@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { LossAnalysis } from "@/lib/dealLossReasons.mjs";
 
 // Aba Achados = repositorio dos aprendizados do loop (tabela insights).
 // Registro manual de achados (copy, funil, dor, objecao, conversao), edicao inline,
@@ -23,6 +24,8 @@ export default function InsightsPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("todos");
+  const [losses, setLosses] = useState<LossAnalysis | null>(null);
+  const [lossesStatus, setLossesStatus] = useState<"loading" | "ready" | "error">("loading");
 
   // form de novo achado
   const [newContent, setNewContent] = useState("");
@@ -58,6 +61,25 @@ export default function InsightsPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadLossLearning() {
+      try {
+        const response = await fetch("/api/insights?view=loss-summary");
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Resumo de perdas indisponivel.");
+        if (!cancelled) {
+          setLosses(body.losses as LossAnalysis);
+          setLossesStatus("ready");
+        }
+      } catch {
+        if (!cancelled) setLossesStatus("error");
+      }
+    }
+    loadLossLearning();
+    return () => { cancelled = true; };
   }, []);
 
   async function createAchado() {
@@ -159,6 +181,30 @@ export default function InsightsPage() {
           <div className="label">Achados</div>
           <div className="value">{insights.length}</div>
         </div>
+      </div>
+
+      <div className="card" style={{ padding: "14px", marginBottom: "16px" }}>
+        <div style={{ fontWeight: 600, fontSize: "13px", marginBottom: "8px" }}>Aprendizado das perdas</div>
+        {lossesStatus === "loading" ? <div className="muted-copy">Calculando a distribuicao observada...</div> : null}
+        {lossesStatus === "error" ? <div className="muted-copy">Disponivel apos aplicar a migration de razoes de perda.</div> : null}
+        {lossesStatus === "ready" && losses ? (
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: "13px" }}>
+              {losses.totalLosses} perdas registradas entre {losses.period.from} e {losses.period.to}.
+            </p>
+            {losses.byReason.length > 0 ? (
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {losses.byReason.map((reason) => (
+                  <span className="status-pill" key={reason.code}>{reason.label}: {reason.count} ({reason.sharePct.toFixed(1).replace(".", ",")}%)</span>
+                ))}
+              </div>
+            ) : <div className="muted-copy">Ainda nao ha perdas estruturadas neste periodo.</div>}
+            <p className="muted-copy" style={{ fontSize: "11px", margin: "8px 0 0" }}>
+              {losses.caveat} {!losses.baseSufficient ? `Amostra abaixo de ${losses.minimumSampleSize}; evite generalizacoes.` : ""}
+              {losses.legacyWithoutReason.length > 0 ? ` ${losses.legacyWithoutReason.length} deal(s) legado(s) permanecem com motivo nao informado.` : ""}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <div className="card" style={{ padding: "14px", marginBottom: "16px" }}>

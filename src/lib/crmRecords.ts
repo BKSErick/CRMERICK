@@ -1,4 +1,12 @@
 import type { NextActionType, ResponseType, ResponseTypeSource } from "./followup.ts";
+import type { DealHealthClassification, DealHealthEvidence } from "./dealHealth.mjs";
+import type { LossReasonCode } from "./dealLossReasons.mjs";
+import {
+  normalizeDealQualification,
+  summarizeDealQualification,
+  type DealQualification,
+  type QualificationSummary,
+} from "./dealQualification.mjs";
 
 export type DealStage = "prospect" | "abordado" | "followup" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
 
@@ -30,6 +38,7 @@ export type Deal = {
   closedAt?: string;
   updated_at?: string;
   priority?: string;
+  prioritySource?: "automatic" | "manual";
   description?: string;
   pains?: string;
   leadMessages?: string;
@@ -49,6 +58,22 @@ export type Deal = {
   copyVariant?: "A" | "B";
   offerVersion?: string;
   experimentId?: string;
+  stageEnteredAt?: string;
+  dealHealthScore?: number;
+  dealHealthClassification?: DealHealthClassification;
+  dealHealthConfidence?: number;
+  dealHealthFactors?: DealHealthEvidence[];
+  dealHealthRisks?: DealHealthEvidence[];
+  dealHealthWarnings?: string[];
+  dealHealthRecommendedAction?: string;
+  dealHealthCalculatedAt?: string;
+  dealHealthRubricVersion?: number;
+  qualification?: DealQualification;
+  qualificationSummary?: QualificationSummary;
+  lossReasonCode?: LossReasonCode;
+  lossReasonNote?: string;
+  lossRecordedAt?: string;
+  lossRecordedBy?: string;
 };
 
 export type Contact = {
@@ -76,6 +101,16 @@ function asNumber(value: unknown, fallback = 0) {
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : undefined;
+}
+
+function asHealthEvidence(value: unknown): DealHealthEvidence[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is DealHealthEvidence => Boolean(item) && typeof item === "object" && typeof item.key === "string")
+    : [];
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 function asDealStage(value: unknown): DealStage {
@@ -133,6 +168,7 @@ export function mapDealFromRow(row: DealRow): Deal {
     closedAt: asString(row.closed_at ?? row.closedAt),
     updated_at: asString(row.updated_at),
     priority: asString(row.priority),
+    prioritySource: asString(row.priority_source ?? row.prioritySource) as Deal["prioritySource"],
     description: asString(row.description),
     pains: asString(row.pains),
     leadMessages: asString(row.lead_messages ?? row.leadMessages),
@@ -155,6 +191,22 @@ export function mapDealFromRow(row: DealRow): Deal {
     copyVariant: asString(row.copy_variant ?? row.copyVariant) as Deal["copyVariant"],
     offerVersion: asString(row.offer_version ?? row.offerVersion),
     experimentId: asString(row.experiment_id ?? row.experimentId),
+    stageEnteredAt: asString(row.stage_entered_at ?? row.stageEnteredAt),
+    dealHealthScore: row.deal_health_score == null ? undefined : asNumber(row.deal_health_score),
+    dealHealthClassification: asString(row.deal_health_classification) as Deal["dealHealthClassification"],
+    dealHealthConfidence: row.deal_health_confidence == null ? undefined : asNumber(row.deal_health_confidence),
+    dealHealthFactors: asHealthEvidence(row.deal_health_factors),
+    dealHealthRisks: asHealthEvidence(row.deal_health_risks),
+    dealHealthWarnings: asStringArray(row.deal_health_warnings),
+    dealHealthRecommendedAction: asString(row.deal_health_recommended_action),
+    dealHealthCalculatedAt: asString(row.deal_health_calculated_at),
+    dealHealthRubricVersion: row.deal_health_rubric_version == null ? undefined : asNumber(row.deal_health_rubric_version),
+    qualification: normalizeDealQualification(row.qualification),
+    qualificationSummary: summarizeDealQualification(row.qualification),
+    lossReasonCode: asString(row.loss_reason_code ?? row.lossReasonCode) as LossReasonCode | undefined,
+    lossReasonNote: asString(row.loss_reason_note ?? row.lossReasonNote),
+    lossRecordedAt: asString(row.loss_recorded_at ?? row.lossRecordedAt),
+    lossRecordedBy: asString(row.loss_recorded_by ?? row.lossRecordedBy),
   };
 }
 
@@ -200,6 +252,7 @@ export function mapDealToRow(deal: Partial<Deal>) {
     recurring: deal.recurring,
     closed_at: deal.closedAt,
     priority: deal.priority,
+    priority_source: deal.prioritySource,
     description: deal.description,
     pains: deal.pains,
     lead_messages: deal.leadMessages,

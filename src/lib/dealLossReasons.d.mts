@@ -1,0 +1,37 @@
+export type LossReasonCode = "no_budget" | "no_priority" | "no_response" | "no_decision_maker_access" | "bad_timing" | "competitor" | "bad_offer" | "no_fit" | "invalid_channel_data" | "other";
+export type LossReasonInput = { code: LossReasonCode | string; note?: string | null };
+export type LossHistoryRecord = {
+  id: number;
+  dealId: number | null;
+  episodeId: string;
+  reasonCode: LossReasonCode;
+  reasonLabel: string;
+  note: string | null;
+  previousStage: string;
+  recordedBy: string;
+  recordedAt: string;
+  supersededAt: string | null;
+  supersededBy: string | null;
+  supersededReason: "corrected" | "reopened" | null;
+  supersedesId: number | null;
+};
+export type LossDistributionItem = { key: string; code: string; label: string; count: number; sharePct: number };
+export type LossAnalysis = {
+  catalogVersion: number;
+  period: { from: string; to: string };
+  minimumSampleSize: number;
+  baseSufficient: boolean;
+  totalLosses: number;
+  activeLosses: number;
+  reopenedLosses: number;
+  byReason: Array<Omit<LossDistributionItem, "key">>;
+  bySegment: LossDistributionItem[];
+  byOrigin: LossDistributionItem[];
+  legacyWithoutReason: Array<{ dealId: number; company: string }>;
+  caveat: string;
+};
+export const LOSS_REASON_CATALOG: { version: number; metric: string; minimumSampleSize: number; reasons: readonly Array<{ code: LossReasonCode; label: string }> };
+export function lossReasonLabel(code?: string | null): string;
+export function validateLossReason(input: LossReasonInput): { code: LossReasonCode; label: string; note: string | null };
+export function requiresLossReason(previousStage?: string | null, targetStage?: string | null): boolean;
+export function buildLossAnalysis(input?: { deals?: Array<Record<string, unknown>>; records?: Array<Record<string, unknown>>; period?: { from?: string; to?: string }; now?: string | Date }): LossAnalysis;
