@@ -1,0 +1,59 @@
+[
+  {
+    "name": "Ciclo Soluções Inteligentes",
+    "categoria": "locacao de equipamentos industrial",
+    "phone": "+55 31 99702-9747",
+    "phone_fixo": "+55 31 3852-8086",
+    "website": "https://ciclojm.com.br",
+    "address": "Avenida Alberto Lima, 2613 B - Campos Elísios, João Monlevade - MG, 35931-200, Brasil",
+    "email": "contabil@ciclojm.com.br",
+    "nota": "Ciclo Rental. Locacao de plataformas elevatorias, geradores e torres de iluminacao. 17 anos. Ja tem site bom: NAO ofertar site, ofertar sistema."
+  },
+  {
+    "name": "Fusão Ligas Minas",
+    "categoria": "metalurgia ligas e reciclados",
+    "phone": "+55 31 3852-2383",
+    "website": "https://www.fusaoligas.com.br",
+    "address": "Avenida B, 201 BR381-KM337 - Cruzeiro Celeste, João Monlevade - MG, 35931-349, Brasil"
+  },
+  {
+    "name": "Brilharte",
+    "categoria": null,
+    "phone": "+55 31 98966-5010",
+    "phone_fixo": "+55 31 3851-0412",
+    "website": "http://www.brilhartemg.com.br",
+    "address": "Rua Joaquim Villar Drumond, 41 - José de Alencar, João Monlevade - MG, 35930-278, Brasil",
+    "nota": "Ramo NAO confirmado. Conferir o que fazem antes de escrever copy."
+  },
+  {
+    "name": "Café Monlevade",
+    "categoria": "alimentos",
+    "phone": "+55 31 99963-2680",
+    "website": "https://www.cafemonlevade.com.br",
+    "address": "Rua Angelim, 605 - Burian, João Monlevade - MG, 35930-000, Brasil",
+    "email": "sac@cafemonlevade.com.br"
+  },
+  {
+    "name": "IdealPan Alimentos",
+    "categoria": "alimentos",
+    "phone": "+55 31 3851-8248",
+    "website": "https://www.idealpan.com.br",
+    "address": "Rua Angelim, 396 - Estância Burian, João Monlevade - MG, 35931-540, Brasil",
+    "email": "contato@idealpan.com.br"
+  },
+  {
+    "name": "Mel Naturalis",
+    "categoria": "alimentos",
+    "phone": "+55 31 3851-3007",
+    "website": null,
+    "address": "Rua Campestre, 233 - São Jorge, João Monlevade - MG, 35930-237, Brasil",
+    "email": "melnaturalis@yahoo.com.br"
+  },
+  {
+    "name": "Du Pão e Cia",
+    "categoria": "alimentos",
+    "phone": "+55 31 3852-1336",
+    "website": null,
+    "address": "Rua 18, 372 - Loanda, João Monlevade - MG, 35930-004, Brasil"
+  }
+]
