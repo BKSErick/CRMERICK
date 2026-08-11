@@ -19,6 +19,14 @@ type AutomationRule = {
   action: { type: string };
 };
 
+const SECTIONS = [
+  { id: "fontes", label: "Fontes" },
+  { id: "instagram", label: "Instagram" },
+  { id: "supabase", label: "Supabase" },
+  { id: "preferencias", label: "Preferencias" },
+  { id: "automacoes", label: "Automacoes" },
+] as const;
+
 const boolToStorage = (value: boolean) => (value ? "true" : "false");
 const storageToBool = (value: string | null, fallback: boolean) => (value == null ? fallback : value === "true");
 
@@ -54,6 +62,27 @@ export default function ConfiguracoesPage() {
   const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
   const [automationStatus, setAutomationStatus] = useState<"loading" | "ready" | "error">("loading");
   const [savingRuleId, setSavingRuleId] = useState<string>("");
+  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
+
+  // O menu lateral marcava "Fontes" para sempre. Agora acompanha a secao visivel.
+  useEffect(() => {
+    const elements = SECTIONS.map((section) => document.getElementById(section.id)).filter(
+      (element): element is HTMLElement => element !== null,
+    );
+    if (elements.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top)[0];
+        if (visible) setActiveSection(visible.target.id);
+      },
+      { rootMargin: "-90px 0px -55% 0px", threshold: 0 },
+    );
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -194,21 +223,15 @@ export default function ConfiguracoesPage() {
 
       <div className="settings-shell">
         <aside className="settings-panel">
-          <a className="settings-panel-item active" href="#fontes">
-            Fontes
-          </a>
-          <a className="settings-panel-item" href="#instagram">
-            Instagram
-          </a>
-          <a className="settings-panel-item" href="#supabase">
-            Supabase
-          </a>
-          <a className="settings-panel-item" href="#preferencias">
-            Preferencias
-          </a>
-          <a className="settings-panel-item" href="#automacoes">
-            Automacoes
-          </a>
+          {SECTIONS.map((section) => (
+            <a
+              className={`settings-panel-item${activeSection === section.id ? " active" : ""}`}
+              href={`#${section.id}`}
+              key={section.id}
+            >
+              {section.label}
+            </a>
+          ))}
         </aside>
 
         <div className="settings-main">
@@ -315,7 +338,7 @@ export default function ConfiguracoesPage() {
             </div>
 
             <div className="pref-row">
-              <div>
+              <div className="pref-row-text">
                 <div className="pref-label">Tema</div>
                 <div className="pref-desc">Preferencia visual local para proximas telas migradas.</div>
               </div>
@@ -356,14 +379,38 @@ export default function ConfiguracoesPage() {
               </span>
             </div>
 
+            {automationStatus === "loading" ? (
+              <div className="connection-status fallback">Carregando as regras comerciais...</div>
+            ) : null}
+
             {automationRules.map((rule) => (
-              <PreferenceToggle
-                key={rule.id}
-                checked={rule.enabled}
-                description={`${rule.description} Evento: ${rule.eventType}. Acao: ${rule.action.type}. Versao ${rule.version}.`}
-                label={savingRuleId === rule.id ? `${rule.name} (salvando...)` : rule.name}
-                onChange={(enabled) => void toggleAutomationRule(rule.id, enabled)}
-              />
+              <div className="pref-row" key={rule.id}>
+                <div className="pref-row-text">
+                  <div className="pref-label">
+                    {rule.name}
+                    {savingRuleId === rule.id ? <span className="rule-saving">salvando...</span> : null}
+                  </div>
+                  <div className="pref-desc">{rule.description}</div>
+                  <div className="rule-meta">
+                    <span className="rule-badge">
+                      evento <strong>{rule.eventType}</strong>
+                    </span>
+                    <span className="rule-badge">
+                      acao <strong>{rule.action.type}</strong>
+                    </span>
+                    <span className="rule-badge">v{rule.version}</span>
+                  </div>
+                </div>
+                <label className="toggle">
+                  <input
+                    checked={rule.enabled}
+                    disabled={savingRuleId === rule.id}
+                    onChange={(event) => void toggleAutomationRule(rule.id, event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
             ))}
             {automationStatus === "ready" && automationRules.length === 0 ? (
               <div className="connection-status fallback">Nenhuma regra comercial cadastrada.</div>
@@ -373,14 +420,22 @@ export default function ConfiguracoesPage() {
             ) : null}
           </article>
 
-          <div className="settings-actions">
+          {/* Sticky: a pagina e longa e o Salvar ficava fora de alcance no fim dela.
+              As automacoes salvam sozinhas no toggle; este botao e so do bloco local. */}
+          <div className="settings-actions sticky">
             <button className="topbar-btn primary" type="button" onClick={saveConfig}>
               Salvar configuracoes
             </button>
             <button className="topbar-btn" type="button" onClick={clearConfig}>
               Limpar overrides
             </button>
-            {savedAt ? <span className="settings-saved">Salvo as {savedAt}</span> : null}
+            {savedAt ? (
+              <span className="settings-saved">Salvo as {savedAt}</span>
+            ) : (
+              <span className="settings-saved settings-hint">
+                Vale para Instagram, Supabase e Preferencias. As automacoes salvam no proprio toggle.
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -398,7 +453,7 @@ type PreferenceToggleProps = {
 function PreferenceToggle({ checked, description, label, onChange }: PreferenceToggleProps) {
   return (
     <div className="pref-row">
-      <div>
+      <div className="pref-row-text">
         <div className="pref-label">{label}</div>
         <div className="pref-desc">{description}</div>
       </div>

@@ -1397,6 +1397,185 @@ select.pref-select {
   cursor: pointer;
 }
 
+select.pref-select:focus {
+  border-color: var(--color-brand-violet);
+  box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.1);
+}
+
+/* ======================
+   Configuracoes
+   As classes abaixo eram usadas no JSX da tela mas nunca existiram no CSS: a pagina
+   caia em texto corrido e o toggle ficava invisivel. Precisam vir ANTES do media query
+   de 768px, senao a regra base sobrescreve o empilhamento do mobile.
+   ====================== */
+
+.settings-section-title {
+  color: var(--color-midnight-ink);
+  font: 600 14px/1.3 var(--font-plus-jakarta);
+}
+
+.settings-section-desc {
+  color: var(--color-slate);
+  font: 500 12px/1.5 var(--font-inter);
+  margin-top: 4px;
+  max-width: 68ch;
+}
+
+/* Ancora do menu lateral nao pode parar embaixo da topbar fixa. */
+.settings-main > [id] {
+  scroll-margin-top: calc(var(--topbar-h) + 24px);
+}
+
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.source-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+}
+
+.source-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.source-card-name {
+  color: var(--color-midnight-ink);
+  font: 600 13px/1 var(--font-plus-jakarta);
+}
+
+.source-card-desc {
+  color: var(--color-slate);
+  font: 500 11px/1.5 var(--font-inter);
+}
+
+.source-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--radius-pill);
+  font: 500 11px/1 var(--font-inter);
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.source-status.connected {
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--color-success);
+}
+
+.source-status.pending {
+  background: rgba(100, 100, 100, 0.1);
+  color: var(--color-slate);
+}
+
+.source-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.source-status-dot.connected {
+  background: var(--color-success);
+}
+
+.source-status-dot.pending {
+  background: var(--color-slate);
+}
+
+/* Linha de preferencia: rotulo e descricao a esquerda, controle a direita. */
+.pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+}
+
+.pref-row + .pref-row {
+  border-top: 1px solid var(--color-linen);
+}
+
+.pref-row:last-child {
+  padding-bottom: 0;
+}
+
+.pref-row-text {
+  min-width: 0;
+}
+
+.pref-label {
+  color: var(--color-charcoal);
+  font: 600 13px/1.3 var(--font-inter);
+}
+
+.pref-desc {
+  color: var(--color-slate);
+  font: 500 12px/1.5 var(--font-inter);
+  margin-top: 3px;
+  max-width: 64ch;
+}
+
+/* Metadados da regra de automacao: evento, acao e versao viram etiqueta, nao frase. */
+.rule-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.rule-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  color: var(--color-slate);
+  font: 500 10px/1 var(--font-mono);
+  padding: 4px 7px;
+}
+
+.rule-badge strong {
+  color: var(--color-charcoal);
+  font-weight: 600;
+}
+
+.rule-saving {
+  color: var(--color-brand-violet);
+  font: 500 11px/1 var(--font-inter);
+  margin-left: 8px;
+}
+
+/* Barra de acoes fixa no rodape: salvar nunca fica fora de alcance. Ela flutua sobre o
+   conteudo, entao a coluna precisa de folga embaixo para nada ficar coberto pra sempre. */
+.settings-actions.sticky {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-pure-white);
+  border-top: 1px solid var(--color-cloud);
+  margin-top: 4px;
+  padding: 14px 0;
+  z-index: 2;
+}
+
+.settings-main:has(.settings-actions.sticky) {
+  padding-bottom: 8px;
+}
+
+.settings-main:has(.settings-actions.sticky) > .settings-card:last-of-type {
+  margin-bottom: 56px;
+}
+
 @media (max-width: 768px) {
   .topbar-search-btn kbd {
     display: none;
@@ -1441,6 +1620,12 @@ select.pref-select {
   .pref-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  /* A dica da barra fixa e longa demais para 390px: comeria meia tela de altura.
+     O "Salvo as HH:MM" continua aparecendo, porque e feedback de acao. */
+  .settings-hint {
+    display: none;
   }
 
   .funnel-layout {
