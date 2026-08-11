@@ -25,6 +25,17 @@ Alternativa, quando o lead já está no Garimpo:
 node scripts/import-garimpo-leads.mjs --cidade="Ipatinga" --go
 ```
 
+Terceira fonte, lista de associação digitada à mão:
+
+```bash
+node scripts/import-acimon-leads.mjs        # dry-run
+node scripts/import-acimon-leads.mjs --go
+```
+
+Lê `data/acimon-industrias.json` (quadro de associados da ACIMON, João Monlevade). Sem cid do Maps e sem nota, então o dedupe cai para nome, telefone e domínio, e o score sai baixo por falta dos campos do Maps: **não leia o score como qualidade aqui**. Entra com `source = "acimon_associados"` para medir separado, porque lead de associação tem ponte institucional que lead de Maps não tem.
+
+Para outra associação, aponte o arquivo: `--arquivo=data/outra-lista.json`.
+
 ## 2. Confirmar quem atende no WhatsApp
 
 ```bash
@@ -98,7 +109,8 @@ Mede quem responde de verdade por segmento, DDD, cidade, reputação e variante 
 
 ## Regras que não mudam
 
-- **Nunca prospectar cliente ou case do Erick.** Lista em `data/nao-prospectar.json` (Jotta, Metalthec, OStrack e outros). A guarda existe porque na primeira puxada de Monlevade os dois únicos leads "novos" eram Jotta e Metalthec.
+- **Nunca prospectar cliente ou case do Erick.** Lista em `data/nao-prospectar.json` (Jotta, Metalthec, OStrack e outros). A guarda existe porque na primeira puxada de Monlevade os dois únicos leads "novos" eram Jotta e Metalthec. **A comparação é substring do nome normalizado**, então grafia com espaço não casa termo sem espaço: `"arcelormittal"` deixava passar `"ARCELOR MITTAL MONLEVADE"`. Ao adicionar empresa, cadastre as variantes.
+- **Fixo pode ser canal morto, não só canal frio.** A Usipool tinha autoresponder no fixo avisando que aquele número é exclusivo de vagas de emprego, com o comercial em outro número. A abordagem anterior morreu ali sem ninguém ler. Quando o lead nunca responde, cheque se o número é de RH antes de marcar como desinteresse.
 - **Nunca apontar falha no site do lead.** Só enquadramento positivo. Isso pega o ego do dono na hora.
 - **Nunca inventar número, selo ou certificação.** Só citar case que existe e cuja página vai ser realmente enviada.
 - **Sem travessão** na copy.
