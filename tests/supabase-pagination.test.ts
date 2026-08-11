@@ -7,6 +7,7 @@ import {
   cumulativeTargetForSlot,
   createProspectingApproval,
   manifestHash,
+  MAX_ATTEMPTS,
   remainingToTarget,
   validateProspectingApproval,
 } from "../src/lib/prospectingApproval.ts";
@@ -53,10 +54,49 @@ test("aprovacao pertence ao hash, data e slot e nao pode ser reutilizada", () =>
   };
   const approval = createProspectingApproval(manifest, "2026-08-10T20:05:00.000Z");
   assert.equal(approval.manifestHash, manifestHash(manifest));
-  assert.deepEqual(validateProspectingApproval(manifest, approval, "2026-08-11"), { ok: true });
+  assert.deepEqual(validateProspectingApproval(manifest, approval, "2026-08-11"), { ok: true, resuming: false });
   assert.equal(validateProspectingApproval({ ...manifest, firstContactIds: [99] }, approval, "2026-08-11").ok, false);
   assert.equal(validateProspectingApproval(manifest, { ...approval, consumedAt: "2026-08-11T12:00:00.000Z" }, "2026-08-11").ok, false);
   assert.equal(validateProspectingApproval(manifest, approval, "2026-08-12").ok, false);
+});
+
+test("lote interrompido no meio e retomado; lote em andamento nao e duplicado", () => {
+  const manifest = {
+    version: 1 as const,
+    date: "2026-08-11",
+    slot: "afternoon" as const,
+    cumulativeTarget: 40,
+    firstContactIds: [10, 11],
+    followupIds: [20, 21],
+    createdAt: "2026-08-10T20:00:00.000Z",
+  };
+  const approval = createProspectingApproval(manifest, "2026-08-11T11:30:00.000Z");
+  const now = new Date("2026-08-11T17:20:00.000Z");
+  const emAndamento = {
+    ...approval,
+    attempts: 1,
+    lease: { pid: 4321, startedAt: "2026-08-11T17:05:00.000Z", attempt: 1 },
+  };
+
+  // Runner vivo: o tick de 5 minutos precisa sair calado, senao dispara em dobro.
+  assert.deepEqual(validateProspectingApproval(manifest, emAndamento, "2026-08-11", { now, isRunnerAlive: () => true }), {
+    ok: false,
+    reason: "em_andamento",
+  });
+  // Runner morto (foi o caso de 11/08): o proximo tick termina o que faltou.
+  assert.deepEqual(validateProspectingApproval(manifest, emAndamento, "2026-08-11", { now, isRunnerAlive: () => false }), {
+    ok: true,
+    resuming: true,
+  });
+  // PID reciclado nao pode prender o lote para sempre: lease velho vence pela idade.
+  const velho = { ...emAndamento, lease: { pid: 4321, startedAt: "2026-08-11T09:00:00.000Z", attempt: 1 } };
+  assert.deepEqual(validateProspectingApproval(manifest, velho, "2026-08-11", { now, isRunnerAlive: () => true }), {
+    ok: true,
+    resuming: true,
+  });
+  // Lote que morre sempre no comeco para de retomar antes de queimar o teto do dia.
+  const esgotado = { ...emAndamento, attempts: MAX_ATTEMPTS, lease: null };
+  assert.equal(validateProspectingApproval(manifest, esgotado, "2026-08-11", { now }).ok, false);
 });
 
 test("scripts criticos usam a paginacao compartilhada", () => {
