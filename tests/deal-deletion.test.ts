@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { getApiErrorMessage } from "../src/lib/apiError.ts";
 
-test("preserva mensagens e atividades ao excluir um deal", () => {
+test("preserva mensagens, atividades e reunioes ao excluir um deal", () => {
   const migration = readFileSync(
     new URL("../scripts/migrations/20260729_fix_deal_deletion.sql", import.meta.url),
     "utf8",
@@ -21,7 +21,11 @@ test("preserva mensagens e atividades ao excluir um deal", () => {
   );
   const setNullDealReferences =
     schema.match(/deal_id\s+integer references public\.deals\(id\) on delete set null/gi) ?? [];
-  assert.equal(setNullDealReferences.length, 2);
+  assert.equal(setNullDealReferences.length, 3);
+  assert.match(
+    schema,
+    /create table if not exists public\.calendar_events[\s\S]*deal_id\s+integer references public\.deals\(id\) on delete set null/i,
+  );
 });
 
 test("exibe a mensagem real de erros estruturados do Supabase", () => {

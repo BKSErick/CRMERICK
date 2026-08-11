@@ -19,6 +19,7 @@ type CalEvent = {
   location: string | null;
   notes: string | null;
   done: boolean;
+  meeting_status: "scheduled" | "confirmed" | "held" | "no_show" | "cancelled" | null;
 };
 
 const KIND_META: Record<Kind, { label: string; color: string }> = {
@@ -201,7 +202,11 @@ export default function CalendarPage() {
     await fetch("/api/calendar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: e.id, done: !e.done }),
+      body: JSON.stringify({
+        id: e.id,
+        done: !e.done,
+        ...(e.kind === "reuniao" ? { meetingStatus: e.done ? "scheduled" : "held" } : {}),
+      }),
     });
     await load();
   }

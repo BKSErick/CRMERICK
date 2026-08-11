@@ -14,6 +14,15 @@ type CalEvent = {
   notes: string | null;
   deal_id: number | null;
   done: boolean;
+  meeting_status: "scheduled" | "confirmed" | "held" | "no_show" | "cancelled" | null;
+};
+
+const STATUS_LABELS: Record<NonNullable<CalEvent["meeting_status"]>, string> = {
+  scheduled: "Agendada",
+  confirmed: "Confirmada",
+  held: "Realizada",
+  no_show: "No-show",
+  cancelled: "Cancelada",
 };
 
 function fmtFull(iso: string) {
@@ -23,6 +32,20 @@ function fmtFull(iso: string) {
 export default function ReunioesPage() {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+
+  async function updateMeetingStatus(id: number, meetingStatus: NonNullable<CalEvent["meeting_status"]>) {
+    const response = await fetch("/api/calendar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, meetingStatus }),
+    });
+    const body = await response.json();
+    if (!response.ok || !body.ok) {
+      setStatus("error");
+      return;
+    }
+    setEvents((current) => current.map((event) => (event.id === id ? body.event : event)));
+  }
 
   useEffect(() => {
     (async () => {
@@ -40,7 +63,7 @@ export default function ReunioesPage() {
 
   const [now] = useState(() => Date.now());
   const proxima = useMemo(
-    () => events.filter((e) => new Date(e.starts_at).getTime() >= now && !e.done).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0] ?? null,
+    () => events.filter((e) => new Date(e.starts_at).getTime() >= now && !e.done && e.meeting_status !== "cancelled").sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0] ?? null,
     [events, now],
   );
   const passadas = useMemo(
@@ -74,6 +97,12 @@ export default function ReunioesPage() {
               {proxima.location ? <div className="muted-copy" style={{ marginTop: "4px", fontSize: "13px" }}>{proxima.location}</div> : null}
               {proxima.notes ? <div className="muted-copy" style={{ marginTop: "6px", fontSize: "13px" }}>{proxima.notes}</div> : null}
               {proxima.deal_id ? <div style={{ marginTop: "8px" }}><span className="status-pill">Lead #{proxima.deal_id}</span></div> : null}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "12px" }}>
+                <button className="topbar-btn" type="button" onClick={() => void updateMeetingStatus(proxima.id, "confirmed")}>Confirmada</button>
+                <button className="topbar-btn primary" type="button" onClick={() => void updateMeetingStatus(proxima.id, "held")}>Realizada</button>
+                <button className="topbar-btn" type="button" onClick={() => void updateMeetingStatus(proxima.id, "no_show")}>No-show</button>
+                <button className="topbar-btn" type="button" onClick={() => void updateMeetingStatus(proxima.id, "cancelled")}>Cancelada</button>
+              </div>
             </div>
           ) : (
             <div className="muted-copy" style={{ padding: "6px 2px" }}>Nenhuma reunião futura. Marque uma no Calendário.</div>
@@ -90,6 +119,7 @@ export default function ReunioesPage() {
                 <li key={e.id} style={{ borderLeft: "2px solid var(--line, #e0dcec)", paddingLeft: "12px" }}>
                   <div style={{ fontSize: "13px", fontWeight: 600 }}>{e.title}</div>
                   <div className="muted-copy font-mono" style={{ fontSize: "12px" }}>{fmtFull(e.starts_at)}</div>
+                  <span className="status-pill">{STATUS_LABELS[e.meeting_status ?? (e.done ? "held" : "scheduled")]}</span>
                   {e.notes ? <div className="muted-copy" style={{ fontSize: "12px" }}>{e.notes}</div> : null}
                 </li>
               ))}

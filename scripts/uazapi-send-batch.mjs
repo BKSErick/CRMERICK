@@ -28,9 +28,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
+import { fetchAllPages } from "./lib/supabaseRest.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { avaliarLead, carregarAprovados } = createRequire(import.meta.url)("./lib/triagemLead.js");
+const { activityExperimentMetadata, copyAssignmentForLead } = salesPlaybookModule;
 // Preenchido em carregarFila: o que a triagem de porte/tipo segurou fora da fila.
 let retidos = [];
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
@@ -48,6 +51,9 @@ const FORCE_HORA = process.argv.includes("--force-hora");
 // mao fecham a meta de 30 a 35 por dia. Bloco de 5 = duas metades com pausa no meio.
 const LIMITE = Number(arg("limit", 10));
 const IDS = arg("ids", "").split(",").map(Number).filter(Boolean);
+const EXCLUDE_IDS = new Set(arg("exclude-ids", "").split(",").map(Number).filter(Boolean));
+const STRICT_IDS = process.argv.includes("--strict-ids");
+const JSON_OUT = arg("json-out", "");
 const MIN_S = Number(arg("min", 90));
 const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
@@ -120,8 +126,10 @@ async function carregarFila() {
   const filtro = IDS.length
     ? `id=in.(${IDS.join(",")})`
     : `stage=eq.prospect&segment=in.(${SEGMENTOS_VALIDOS})`;
-  const deals = await (await supa(`deals?${filtro}&select=id,company,stage,copy_text,site_url`, { headers: { Range: "0-9999" } })).json();
-  const contatos = await (await supa("contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url", { headers: { Range: "0-9999" } })).json();
+  const [deals, contatos] = await Promise.all([
+    fetchAllPages(supa, `deals?${filtro}&select=id,company,stage,copy_text,site_url`),
+    fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url"),
+  ]);
   const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
 
   const fora = await carregarOptOuts();
@@ -130,6 +138,7 @@ async function carregarFila() {
   // classificacao do Maps, e ja chegaram a disparar (Lojas Singer, 06/08/2026).
   const aprovados = carregarAprovados(RAIZ);
   return deals
+    .filter((d) => !STRICT_IDS || d.stage === "prospect")
     .filter((d) => d.copy_text)
     .filter((d) => !fora.has(d.id))
     .filter((d) => {
@@ -147,10 +156,30 @@ async function carregarFila() {
       // um dos sinais mais fortes de spam para a plataforma, porque usuario de verdade
       // nao fica escrevendo para numero inexistente.
       const confianca = c?.whatsapp_jid ? 3 : c?.whatsapp_site ? 2 : 1;
-      return { ...d, fone: canalDoContato(c), confianca };
+      return {
+        ...d,
+        fone: canalDoContato(c),
+        confianca,
+        copyAssignment: copyAssignmentForLead({ id: d.id, company: d.company, copyText: d.copy_text }),
+      };
     })
     .filter((d) => d.fone)
+    // Canal NAO confirmado nao entra na fila (10/08/2026). Ate aqui a ordenacao
+    // por confianca so empurrava esses pro fim, mas eles continuavam disparando
+    // e gastando vaga do teto de 40/dia. Medicao do dia: de 347 fixos checados
+    // no /chat/check, apenas 10 tinham WhatsApp (2,9%). Ou seja, ~97% desses
+    // disparos batiam em numero inexistente -- exatamente o sinal de spam que o
+    // comentario acima descreve, e com o custo de queimar a cota do dia.
+    // Para recuperar um lead assim: rodar uazapi-check-numbers.mjs (grava o jid)
+    // ou scrape-site-whatsapp.mjs (grava whatsapp_site). --ids continua furando
+    // a regra de proposito, para o operador manter controle manual.
+    .filter((d) => {
+      if (d.confianca > 1 || (IDS.includes(d.id) && !STRICT_IDS)) return true;
+      retidos.push(`#${d.id} ${d.company} (canal nao confirmado)`);
+      return false;
+    })
     .filter((d) => IDS.length === 0 || IDS.includes(d.id))
+    .filter((d) => !EXCLUDE_IDS.has(d.id))
     .sort((a, b) => b.confianca - a.confianca);
 }
 
@@ -166,10 +195,7 @@ async function jaDisparado(dealId) {
 const OPT_OUT = /\b(n[aã]o (quero|tenho interesse|me interessa|insista)|pare de|para de me|sai(r)? da lista|remove|remover|descadastr|me tira|nao perturbe|n[aã]o envie|bloquear|spam|denunc)/i;
 
 async function carregarOptOuts() {
-  const acts = await (await supa(
-    "activities?type=eq.whatsapp_received&select=deal_id,description",
-    { headers: { Range: "0-9999" } },
-  )).json();
+  const acts = await fetchAllPages(supa, "activities?type=eq.whatsapp_received&select=deal_id,description");
   const fora = new Set();
   for (const a of Array.isArray(acts) ? acts : []) {
     if (a.deal_id && OPT_OUT.test(a.description || "")) fora.add(a.deal_id);
@@ -177,17 +203,29 @@ async function carregarOptOuts() {
   return fora;
 }
 
+// O teto do dia e orcamento de PROSPECCAO, nao contador de mensagem do aparelho. O
+// webhook sincroniza como whatsapp_sent_sync tudo que sai do celular do Erick, entao
+// conversa pessoal entra na conta: em 07/08/2026 o deal #970 (o proprio numero dele)
+// comeu 12 das 35 do dia sozinho e quase travou a fila antes das 11h. Deal marcado
+// com is_prospect=false nao gasta teto. Mesmo criterio do generate-copies-db.mjs.
+async function dealsNaoProspect() {
+  const j = await fetchAllPages(supa, "deals?is_prospect=is.false&select=id");
+  return new Set(Array.isArray(j) ? j.map((d) => d.id) : []);
+}
+
 // Conta no BANCO, nao na memoria do processo: se o script cair e for rodado de novo,
 // o teto do dia continua valendo e ele nao recomeca do zero.
 async function enviadosHoje() {
   const inicio = new Date();
   inicio.setHours(0, 0, 0, 0);
-  const r = await supa(
-    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at`,
-    { headers: { Range: "0-9999" } },
+  const j = await fetchAllPages(
+    supa,
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at,deal_id`,
   );
-  const j = await r.json();
-  return Array.isArray(j) ? j : [];
+  // Filtro em JS, nao com deal_id=not.in.(...) no PostgREST: la a atividade sem deal
+  // sairia da conta junto, porque NOT IN com NULL da NULL. Sem deal continua contando.
+  const fora = await dealsNaoProspect();
+  return Array.isArray(j) ? j.filter((a) => !fora.has(a.deal_id)) : [];
 }
 
 function naUltimaHora(lista) {
@@ -209,26 +247,42 @@ async function enviar(fone, texto) {
 // vindo do cliente para "whatsapp_opened" (o desenho antigo so aceitava confirmacao de
 // envio pelo webhook, que ignora o que sai pela API). Com isso o card nunca saia de
 // prospect. Aqui o envio ja foi confirmado pela resposta da Uazapi, entao vale sent.
-async function registrar(dealId, empresa) {
+async function registrar(deal) {
+  const metadata = activityExperimentMetadata(deal.copyAssignment, { channel: "whatsapp", touch: "first_contact" });
   const a = await supa("activities", {
     method: "POST",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({
-      deal_id: dealId,
+      deal_id: deal.id,
       type: "whatsapp_sent",
-      description: `Disparo automatico para ${empresa}`,
+      description: `Disparo automatico para ${deal.company} [${deal.copyAssignment.copyVersion}/${deal.copyAssignment.variant}]`,
+      metadata,
     }),
   });
-  // prospect -> abordado. O .eq no filtro impede rebaixar quem ja avancou.
-  await supa(`deals?id=eq.${dealId}&stage=eq.prospect`, {
+  const tracking = await supa(`deals?id=eq.${deal.id}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      copy_version: deal.copyAssignment.copyVersion,
+      copy_variant: deal.copyAssignment.variant,
+      offer_version: deal.copyAssignment.offerVersion,
+      experiment_id: deal.copyAssignment.experimentId,
+    }),
+  });
+  // prospect -> abordado. O filtro impede rebaixar quem ja avancou.
+  const stage = await supa(`deals?id=eq.${deal.id}&stage=eq.prospect`, {
     method: "PATCH",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({ stage: "abordado" }),
   });
-  return a.ok;
+  return a.ok && tracking.ok && stage.ok;
 }
 
 (async () => {
+  if (GO && JSON_OUT) {
+    console.error("--json-out e exclusivo da preparacao em dry-run; remova --go.");
+    process.exit(1);
+  }
   const status = await (await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })).json().catch(() => ({}));
   const conectada = status?.instance?.status === "connected";
   console.log(`Instancia: ${status?.instance?.status ?? "desconhecida"} (${status?.instance?.owner ?? "-"})`);
@@ -255,7 +309,7 @@ async function registrar(dealId, empresa) {
     if (GO) return;
     console.log("Dry-run segue so para voce conferir a fila; com --go nada seria enviado.\n");
   }
-  const disponivel = restaHoje || LIMITE;
+  const disponivel = JSON_OUT ? LIMITE : (restaHoje || LIMITE);
   const alvo = DIA_INTEIRO ? disponivel : Math.min(LIMITE, disponivel);
 
   const lote = [];
@@ -278,6 +332,18 @@ async function registrar(dealId, empresa) {
     if (!GO) console.log(l.copy_text.split("\n").map((x) => "    " + x).join("\n") + "\n");
   });
 
+  if (JSON_OUT) {
+    const destino = path.resolve(RAIZ, JSON_OUT);
+    fs.mkdirSync(path.dirname(destino), { recursive: true });
+    fs.writeFileSync(destino, JSON.stringify({
+      kind: "first_contact",
+      generatedAt: new Date().toISOString(),
+      ids: lote.map((lead) => lead.id),
+      candidates: lote.map((lead) => ({ id: lead.id, company: lead.company, confidence: lead.confianca })),
+    }, null, 2) + "\n");
+    console.log(`Candidatos gravados em ${destino}.`);
+  }
+
   if (!GO) {
     console.log("\nDry-run. Nada foi enviado. Rode de novo com --go para disparar.");
     return;
@@ -290,14 +356,20 @@ async function registrar(dealId, empresa) {
     const r = await enviar(lead.fone, lead.copy_text);
     if (r.ok) {
       falhasSeguidas = 0;
-      enviados++;
-      const logou = await registrar(lead.id, lead.company);
+      const logou = await registrar(lead);
       console.log(`${hhmm()} OK   #${lead.id} ${lead.company}${logou ? "" : " (atividade NAO registrada)"}`);
+      if (!logou) {
+        console.error("Envio confirmado, mas o CRM nao registrou a atividade. Parando para nao ultrapassar o teto real.");
+        process.exitCode = 2;
+        break;
+      }
+      enviados++;
     } else {
       falhasSeguidas++;
       console.log(`${hhmm()} FALHA #${lead.id} ${lead.company} -> ${r.status} ${JSON.stringify(r.corpo).slice(0, 120)}`);
       if (falhasSeguidas >= 2) {
         console.error("\nDuas falhas seguidas. Parando agora: e o primeiro sinal de bloqueio.");
+        process.exitCode = 2;
         break;
       }
     }

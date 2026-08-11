@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
 import { diagnoseLead } from "@/lib/leadScoring";
-import { TIER_INFO, followupMessage, tierForDays } from "@/lib/followup";
+import { TIER_INFO, followupMessage, mensagemDecisorIndicado, tierForDays } from "@/lib/followup";
 import { getCompanySignals, signalAliases, signalWeight, type CompanySignal } from "@/lib/sinais";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
@@ -208,6 +208,66 @@ export async function GET() {
       .sort((a, b) => b.signalWeight - a.signalWeight || (b.days ?? 0) - (a.days ?? 0))
       .slice(0, 50);
 
+    // FILA DE ENCAMINHAMENTOS (10/08/2026). Encaminhamento e o melhor lead do
+    // funil: o gatekeeper ja deu a permissao e o decisor chega com nome de quem
+    // indicou. Ate aqui extract-referrals.mjs gravava deals.referred_* e NINGUEM
+    // lia -- nenhuma fila, nenhum card, nenhum lembrete. Resultado medido em
+    // 10/08: dos 4 encaminhamentos capturados, 2 nunca receberam contato, e um
+    // deles (Vematech -> Tiele) foi pra "lost" sem ninguem falar com o decisor.
+    // Aqui eles viram fila de trabalho com a mensagem pronta.
+    const { data: referralRows } = await supabase
+      .from("deals")
+      .select("id, company, stage, referred_name, referred_phone, referred_by, referred_at")
+      .not("referred_phone", "is", null);
+
+    const referralIds = (referralRows ?? []).map((r) => Number(r.id));
+    const { data: referralActs } = referralIds.length
+      ? await supabase
+          .from("activities")
+          .select("deal_id, created_at")
+          .in("deal_id", referralIds)
+          .in("type", ["whatsapp_sent", "whatsapp_sent_sync"])
+      : { data: [] as { deal_id: number; created_at: string }[] };
+
+    // "Acionado" = houve disparo DEPOIS da indicacao chegar. Disparo anterior era
+    // para o gatekeeper, nao para o decisor indicado.
+    const enviosApos = new Map<number, number>();
+    for (const a of referralActs ?? []) {
+      const id = Number(a.deal_id);
+      const linha = (referralRows ?? []).find((r) => Number(r.id) === id);
+      if (!linha?.referred_at) continue;
+      if (String(a.created_at) > String(linha.referred_at)) {
+        enviosApos.set(id, (enviosApos.get(id) ?? 0) + 1);
+      }
+    }
+
+    const referralQueue = (referralRows ?? [])
+      .map((r) => {
+        const id = Number(r.id);
+        const phone = cleanPhone(String(r.referred_phone ?? ""));
+        const dias = r.referred_at
+          ? Math.floor((now.getTime() - new Date(String(r.referred_at)).getTime()) / 86400000)
+          : null;
+        return {
+          dealId: id,
+          company: String(r.company ?? ""),
+          stage: String(r.stage ?? ""),
+          decisor: String(r.referred_name ?? ""),
+          phone,
+          indicadoPor: r.referred_by ? String(r.referred_by) : null,
+          dias,
+          acionado: (enviosApos.get(id) ?? 0) > 0,
+          message: mensagemDecisorIndicado({
+            nomeDecisor: String(r.referred_name ?? ""),
+            empresa: String(r.company ?? ""),
+            quemIndicou: r.referred_by ? String(r.referred_by) : null,
+          }),
+        };
+      })
+      .filter((r) => r.phone)
+      // Nao acionado primeiro, e dentro disso o mais antigo, que e o que mais esfria.
+      .sort((a, b) => Number(a.acionado) - Number(b.acionado) || (b.dias ?? 0) - (a.dias ?? 0));
+
     // Alerta dia 20: usa a agregacao da meta (mesma da North Star).
     const northStar = await computeNorthStar(now);
 
@@ -234,6 +294,7 @@ export async function GET() {
       },
       queue,
       followupQueue,
+      referralQueue,
     });
   } catch (error) {
     return NextResponse.json(

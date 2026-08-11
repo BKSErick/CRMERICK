@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
+import {
+  MEETING_STATUSES,
+  meetingStatusUpdate,
+  type MeetingStatus,
+} from "@/lib/funnelMetrics";
 
 export const runtime = "nodejs";
 
@@ -9,7 +14,7 @@ export const runtime = "nodejs";
 const KINDS = ["reuniao", "lembrete", "compromisso"] as const;
 type Kind = (typeof KINDS)[number];
 
-const SELECT = "id, title, kind, starts_at, ends_at, deal_id, contact_id, location, notes, done, created_at";
+const SELECT = "id, title, kind, starts_at, ends_at, deal_id, contact_id, location, notes, done, meeting_status, confirmed_at, held_at, created_at";
 
 function errorResponse(error: unknown, status = 500) {
   return NextResponse.json(
@@ -56,7 +61,13 @@ export async function POST(request: NextRequest) {
     }
 
     const kind: Kind = (KINDS as readonly string[]).includes(body?.kind) ? body.kind : "compromisso";
-    const payload = {
+    const requestedMeetingStatus = (MEETING_STATUSES as readonly string[]).includes(body?.meetingStatus)
+      ? (body.meetingStatus as MeetingStatus)
+      : "scheduled";
+    const meetingFields: Record<string, unknown> = kind === "reuniao"
+      ? meetingStatusUpdate(requestedMeetingStatus)
+      : { meeting_status: null, confirmed_at: null, held_at: null };
+    const payload: Record<string, unknown> = {
       title,
       kind,
       starts_at: new Date(startsAt).toISOString(),
@@ -65,6 +76,7 @@ export async function POST(request: NextRequest) {
       contact_id: Number.isInteger(body?.contactId) ? body.contactId : null,
       location: typeof body?.location === "string" && body.location.trim() ? body.location.trim() : null,
       notes: typeof body?.notes === "string" && body.notes.trim() ? body.notes.trim() : null,
+      ...meetingFields,
     };
 
     const { data, error } = await supabase.from("calendar_events").insert(payload).select(SELECT).single();
@@ -83,15 +95,48 @@ export async function PATCH(request: NextRequest) {
     const id = Number(body?.id);
     if (!Number.isInteger(id) || id <= 0) return errorResponse(new Error("id valido e obrigatorio."), 400);
 
+    const meetingStatusProvided = (MEETING_STATUSES as readonly string[]).includes(body.meetingStatus);
+    const needsCurrentEvent = typeof body.done === "boolean" || typeof body.kind === "string" || meetingStatusProvided;
+    let currentEvent: { kind: Kind; meeting_status: MeetingStatus | null } | null = null;
+    if (needsCurrentEvent) {
+      const current = await supabase
+        .from("calendar_events")
+        .select("kind, meeting_status")
+        .eq("id", id)
+        .single();
+      if (current.error) throw current.error;
+      currentEvent = current.data as { kind: Kind; meeting_status: MeetingStatus | null };
+    }
+
     const updates: Record<string, unknown> = {};
     if (typeof body.title === "string") updates.title = body.title.trim();
-    if ((KINDS as readonly string[]).includes(body.kind)) updates.kind = body.kind;
+    if ((KINDS as readonly string[]).includes(body.kind)) {
+      updates.kind = body.kind;
+      if (body.kind !== "reuniao") {
+        Object.assign(updates, { meeting_status: null, confirmed_at: null, held_at: null });
+      } else if (currentEvent?.kind !== "reuniao" && !meetingStatusProvided) {
+        Object.assign(updates, meetingStatusUpdate("scheduled"));
+      }
+    }
     if (typeof body.startsAt === "string" && !Number.isNaN(new Date(body.startsAt).getTime())) {
       updates.starts_at = new Date(body.startsAt).toISOString();
     }
     if (body.endsAt === null) updates.ends_at = null;
     else if (typeof body.endsAt === "string") updates.ends_at = new Date(body.endsAt).toISOString();
-    if (typeof body.done === "boolean") updates.done = body.done;
+    const effectiveKind = (updates.kind as Kind | undefined) ?? currentEvent?.kind;
+    if (typeof body.done === "boolean") {
+      if (effectiveKind === "reuniao" && !meetingStatusProvided) {
+        Object.assign(updates, meetingStatusUpdate(body.done ? "held" : "scheduled"));
+      } else {
+        updates.done = body.done;
+      }
+    }
+    if (meetingStatusProvided) {
+      if (effectiveKind !== "reuniao") {
+        return errorResponse(new Error("Status de reuniao so pode ser usado em eventos do tipo reuniao."), 400);
+      }
+      Object.assign(updates, meetingStatusUpdate(body.meetingStatus as MeetingStatus));
+    }
     if (typeof body.location === "string") updates.location = body.location.trim() || null;
     if (typeof body.notes === "string") updates.notes = body.notes.trim() || null;
     if (body.dealId === null) updates.deal_id = null;

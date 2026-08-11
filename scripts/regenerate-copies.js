@@ -12,6 +12,7 @@
 const fs   = require('fs');
 const path = require('path');
 const { nomeCurto: nomeDaEmpresa } = require('./lib/nomeEmpresa.js');
+const SALES_PLAYBOOK = require('../content/sales-playbook.json');
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const LEADS_DIR  = path.join(__dirname, '..', 'huberick-temp');
@@ -167,13 +168,9 @@ function ctaLocal(seg) {
 //
 // A correcao NAO e cortar o elogio: ele existe porque listar defeito do site pega
 // o ego do dono e fecha a porta. E dizer QUEM FALA antes de dizer o que se viu.
-const PAPEL = 'faço página de vendas pra indústria';
-
 // Vizinho fala com vizinho: a abertura diz de onde ele e antes de qualquer pedido.
 function aberturaLocal(variante) {
-  return variante === 'B'
-    ? `Fala! Erick aqui, de Monlevade mesmo, ${PAPEL}.`
-    : `Oi, tudo bem? Erick aqui, de Monlevade mesmo, ${PAPEL}.`;
+  return SALES_PLAYBOOK.experiment.localOpenings[variante === 'B' ? 'B' : 'A'];
 }
 
 // Teste A/B da abertura (31/07). A = saudacao atual, ja com 1 resposta em 7 disparos.
@@ -181,7 +178,7 @@ function aberturaLocal(variante) {
 // identificacao aumenta denuncia. Alterna por empresa para dar leitura comparavel.
 // A declaracao de papel entra nas DUAS variantes, para nao contaminar o teste.
 function abertura(variante) {
-  return variante === 'B' ? `Fala! Erick aqui, ${PAPEL}.` : `Oi, tudo bem? Erick aqui, ${PAPEL}.`;
+  return SALES_PLAYBOOK.experiment.openings[variante === 'B' ? 'B' : 'A'];
 }
 
 // Segmento pelo nome da empresa. Serve para elogiar com a palavra certa e para

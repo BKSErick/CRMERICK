@@ -23,6 +23,31 @@ type PixelState = {
   };
 };
 
+type OperationalFunnelState = {
+  counts: {
+    leads: number;
+    approached: number;
+    validResponses: number;
+    referrals: number;
+    qualified: number;
+    meetingsScheduled: number;
+    meetingsHeld: number;
+    proposals: number;
+    negotiations: number;
+    won: number;
+  };
+  rates: {
+    responsePerApproach: number;
+    qualifiedPerResponse: number;
+    meetingHeldPerScheduled: number;
+    proposalPerHeldMeeting: number;
+    winPerProposal: number;
+  };
+  revenue: { mrr: number; oneOff: number };
+};
+
+type VariantResult = { variant: "A" | "B"; counts: OperationalFunnelState["counts"]; rates: OperationalFunnelState["rates"] };
+
 const numberFormatter = new Intl.NumberFormat("pt-BR");
 
 const stageLabels: Record<DealStage, string> = {
@@ -58,6 +83,8 @@ export default function FunilPage() {
     metrics: { views: 0, ctaClicks: 0, reportClicks: 0, ostrackClicks: 0, leads: 0, sales: 0 },
   });
   const [crmSource, setCrmSource] = useState<"loading" | "ready" | "fallback">("loading");
+  const [operational, setOperational] = useState<OperationalFunnelState | null>(null);
+  const [variantResults, setVariantResults] = useState<VariantResult[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +144,27 @@ export default function FunilPage() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/funnel");
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error ?? "Funil operacional indisponivel.");
+        if (!cancelled) {
+          setOperational(body.funnel as OperationalFunnelState);
+          setVariantResults(body.variants as VariantResult[]);
+        }
+      } catch {
+        if (!cancelled) {
+          setOperational(null);
+          setVariantResults([]);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -199,10 +247,10 @@ export default function FunilPage() {
 
   const funnel = useMemo(() => {
     const count = (stages: DealStage[]) => deals.filter((deal) => stages.includes(deal.stage)).length;
-    const won = count(["won"]);
-    const proposals = count(["proposal", "negotiation", "won"]);
-    const conversations = count(["qualified", "proposal", "negotiation", "won"]);
-    const leads = deals.length;
+    const won = operational?.counts.won ?? count(["won"]);
+    const proposals = operational?.counts.proposals ?? count(["proposal", "negotiation", "won"]);
+    const conversations = operational?.counts.validResponses ?? count(["qualified", "proposal", "negotiation", "won"]);
+    const leads = operational?.counts.leads ?? deals.length;
     const pixelViews = pixel.metrics.views;
     const pixelClicks = pixel.metrics.ctaClicks + pixel.metrics.reportClicks + pixel.metrics.ostrackClicks;
     // Sinais REAIS apenas: alcance do Instagram (Graph API) e cliques do Pixel/CAPI.
@@ -298,6 +346,7 @@ export default function FunilPage() {
     pixel.metrics,
     google.configured,
     google.metrics,
+    operational,
   ]);
 
   const stageCounts = useMemo(
@@ -462,6 +511,43 @@ export default function FunilPage() {
                   <strong>{numberFormatter.format(item.count)}</strong>
                 </div>
               ))}
+            </div>
+          </article>
+          <article>
+            <span>Fundo do funil</span>
+            {operational ? (
+              <div className="stage-list">
+                {[
+                  ["Abordagens", operational.counts.approached],
+                  ["Respostas validas", operational.counts.validResponses],
+                  ["Encaminhamentos", operational.counts.referrals],
+                  ["Qualificados", operational.counts.qualified],
+                  ["Reunioes agendadas", operational.counts.meetingsScheduled],
+                  ["Reunioes realizadas", operational.counts.meetingsHeld],
+                  ["Propostas", operational.counts.proposals],
+                  ["Negociacoes", operational.counts.negotiations],
+                  ["Vendas", operational.counts.won],
+                ].map(([label, value]) => (
+                  <div className="stage-row" key={label}>
+                    <span>{label}</span>
+                    <strong>{numberFormatter.format(Number(value))}</strong>
+                  </div>
+                ))}
+                <div className="stage-row"><span>MRR real</span><strong>R$ {numberFormatter.format(operational.revenue.mrr)}</strong></div>
+                <div className="stage-row"><span>Receita one-off</span><strong>R$ {numberFormatter.format(operational.revenue.oneOff)}</strong></div>
+              </div>
+            ) : <p>Aguardando migration ou dados do funil operacional.</p>}
+          </article>
+          <article>
+            <span>Teste de abertura A/B</span>
+            <div className="stage-list">
+              {variantResults.map((result) => (
+                <div className="stage-row" key={result.variant}>
+                  <span>Variante {result.variant}: {result.counts.validResponses}/{result.counts.approached} respostas</span>
+                  <strong>{result.rates.responsePerApproach.toFixed(1).replace(".", ",")}%</strong>
+                </div>
+              ))}
+              {variantResults.length === 0 ? <p>Sem amostra versionada ainda.</p> : null}
             </div>
           </article>
           <article>

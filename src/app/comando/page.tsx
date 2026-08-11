@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { logWhatsappOpened } from "@/lib/activityClient";
+import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
 
 // Sala de Comando = cockpit de cobranca diaria. Placar do dia (disparos/follow-ups/calls/deals
 // movidos), fila priorizada e alertas das regras (7 dias, dia 20), tudo da rota server-side
@@ -79,7 +80,26 @@ type Alerts = {
   sevenDayRule: { disparos7d: number; respostas: number; threshold: number; triggered: boolean };
   day20Rule: { day: number; pct: number; threshold: number; triggered: boolean };
 };
-type Comando = { placar: Placar; alerts: Alerts; queue: QueueItem[]; followupQueue: FollowupItem[] };
+// Encaminhamento: o gatekeeper mandou o vCard do decisor. Melhor lead do funil,
+// porque chega com permissao dada e nome de quem indicou.
+type ReferralItem = {
+  dealId: number;
+  company: string;
+  stage: string;
+  decisor: string;
+  phone: string;
+  indicadoPor: string | null;
+  dias: number | null;
+  acionado: boolean;
+  message: string;
+};
+type Comando = {
+  placar: Placar;
+  alerts: Alerts;
+  queue: QueueItem[];
+  followupQueue: FollowupItem[];
+  referralQueue: ReferralItem[];
+};
 
 function whatsappLink(phone: string, message: string) {
   const normalized = phone.startsWith("55") ? phone : `55${phone}`;
@@ -89,6 +109,9 @@ function whatsappLink(phone: string, message: string) {
 // Mensagens genericas (nao sao por lead): gatekeeper quando quem responde nao e o
 // dono, e follow-ups de reaquecimento. Seguem o Framework_Mensagem_Abordagem_Hormozi
 // (anti-ego, encaminhavel, pergunta de baixo custo).
+const { SALES_PLAYBOOK } = salesPlaybookModule;
+const offerPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.offer.currency });
+
 const READY_MESSAGES: { title: string; text: string }[] = [
   {
     title: "🚪 Quem responde nao e o dono (atendente / central)",
@@ -101,6 +124,20 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   {
     title: "🚪 Abrir pedindo o responsavel (numero de central)",
     text: "Oi! Falo com o responsavel comercial, ou com o dono? Fiz uma analise da presenca de voces no Google e queria mostrar pra quem decide sobre isso. E rapido.",
+  },
+  // BOT/IA e caso diferente do atendente humano acima: nao le nuance, nao
+  // encaminha e nao tem constrangimento social pra ignorar. Insistir no mesmo
+  // canal queima o numero sem chance de conversao -- `gatekeeper_bot` foi o que
+  // matou Manuttech e Fase a Fase. Regra: no maximo 2 mensagens, pede so o NOME
+  // (pergunta que bot as vezes responde) e troca de canal. Fixo NAO e descarte:
+  // metade dos fixos de industria pequena atende.
+  {
+    title: "🤖 Bot/IA respondendo: sair em 2 mensagens",
+    text: "Entendi! Só o nome de quem cuida do comercial já me ajuda — eu ligo direto e não tomo o tempo de vocês por aqui. Qual é?",
+  },
+  {
+    title: "🤖 Bot ignorou 2x: encerrar o canal (nao insistir)",
+    text: "Sem problema, vou tentar pelo telefone do site. Obrigado!",
   },
   {
     title: "📞 Respondeu → puxar pra reunião",
@@ -142,7 +179,7 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // a versao dinamica vive em mensagemExemplo() de src/lib/followup.ts.
   {
     title: "🎬 Msg 2: mandar o exemplo (depois do \"quer ver?\")",
-    text: "Show! Esse é de uma manutenção industrial aqui de Monlevade:\nhttps://sitejotta.vercel.app/\n\nO que faz diferença ali não é o visual, é a Ficha de Escopo. Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\nAí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\nPra [EMPRESA] seria a mesma ideia. Quer que eu monte a ficha com os serviços de vocês?",
+    text: "Show! Esse é de uma manutenção industrial aqui de Monlevade:\nhttps://sitejotta.vercel.app/\n\nO que faz diferença ali não é o visual, é a Ficha de Escopo. Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\nAí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\nPra [EMPRESA] seria a mesma ideia. Te mostro em 15 min como ficaria com os serviços de vocês e já te passo o valor fechado. Consegue amanhã de manhã, ou prefere à tarde?",
   },
   // Objecoes que apareceram na conversa REAL e nao tinham resposta pronta.
   // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?
@@ -155,7 +192,7 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // primeira cobranca extra. Preco de entrada, para subir depois.
   {
     title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
-    text: "Boa pergunta. A página é um valor único de R$ 1.000, e depois disso ela é sua. O mensal são R$ 150 e cobrem a hospedagem e as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer. Quer que eu te mande isso escrito?",
+    text: `Boa pergunta. A página é um valor único de ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)}, e depois disso ela é sua. O mensal são ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)} e cobrem a hospedagem e as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer. Quer que eu te mande isso escrito?`,
   },
   {
     title: "🤝 \"Já tenho quem faça isso pra mim\"",
@@ -364,6 +401,74 @@ export default function ComandoPage() {
               </div>
             ))}
           </details>
+
+          {/* Encaminhamentos vem ANTES do follow-up de proposito: e o lead mais
+              quente do funil e o que mais esfria parado. Ate 10/08/2026 os campos
+              referred_* eram gravados e nunca lidos, e 2 dos 4 capturados nunca
+              receberam contato -- um deles foi pra "lost" sem ninguem falar com
+              o decisor indicado. */}
+          <div className="card-header" style={{ margin: "24px 0 12px" }}>
+            <div className="card-title">Encaminhamentos</div>
+            <span className="card-badge">
+              {(data.referralQueue ?? []).filter((r) => !r.acionado).length} sem contato
+            </span>
+          </div>
+          {(data.referralQueue ?? []).length === 0 ? (
+            <div className="connection-status fallback">
+              Nenhum decisor indicado ainda. Quando o gatekeeper mandar o contato (vCard), rode
+              <code> node scripts/extract-referrals.mjs --go </code> que ele aparece aqui.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Decisor</th>
+                    <th>Indicacao</th>
+                    <th>Mensagem pronta</th>
+                    <th>Telefone</th>
+                    <th>Acao</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.referralQueue ?? []).map((item) => (
+                    <tr key={`ref-${item.dealId}`}>
+                      <td>
+                        <div>
+                          <strong>{item.decisor}</strong>
+                          {!item.acionado && (
+                            <span className="card-badge" style={{ marginLeft: "6px" }}>sem contato</span>
+                          )}
+                        </div>
+                        <div className="muted-copy" style={{ fontSize: "11px" }}>{item.company}</div>
+                        <span className={`status-pill ${item.stage}`}>{item.stage}</span>
+                      </td>
+                      <td>
+                        {item.dias === null ? "Sem data" : item.dias === 0 ? "Hoje" : `Ha ${item.dias}d`}
+                        {item.indicadoPor && (
+                          <div className="muted-copy" style={{ fontSize: "11px" }}>por {item.indicadoPor}</div>
+                        )}
+                      </td>
+                      <td style={{ maxWidth: "420px" }}>
+                        <div className="muted-copy" style={{ fontSize: "12px" }}>{item.message}</div>
+                      </td>
+                      <td className="font-mono">+{item.phone}</td>
+                      <td>
+                        <a
+                          className="topbar-btn primary"
+                          href={whatsappLink(item.phone, item.message)}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          Abrir
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila de follow-up</div>

@@ -45,6 +45,10 @@ export type Deal = {
   lastInboundAt?: string | null;
   lastOutboundAt?: string | null;
   responseTimeMinutes?: number | null;
+  copyVersion?: string;
+  copyVariant?: "A" | "B";
+  offerVersion?: string;
+  experimentId?: string;
 };
 
 export type Contact = {
@@ -147,6 +151,10 @@ export function mapDealFromRow(row: DealRow): Deal {
       row.response_time_minutes != null || row.responseTimeMinutes != null
         ? asNumber(row.response_time_minutes ?? row.responseTimeMinutes)
         : undefined,
+    copyVersion: asString(row.copy_version ?? row.copyVersion),
+    copyVariant: asString(row.copy_variant ?? row.copyVariant) as Deal["copyVariant"],
+    offerVersion: asString(row.offer_version ?? row.offerVersion),
+    experimentId: asString(row.experiment_id ?? row.experimentId),
   };
 }
 
@@ -204,6 +212,10 @@ export function mapDealToRow(deal: Partial<Deal>) {
     last_inbound_at: deal.lastInboundAt,
     last_outbound_at: deal.lastOutboundAt,
     response_time_minutes: deal.responseTimeMinutes,
+    copy_version: deal.copyVersion,
+    copy_variant: deal.copyVariant,
+    offer_version: deal.offerVersion,
+    experiment_id: deal.experimentId,
   });
 }
 

@@ -1,3 +1,5 @@
+import salesPlaybookModule from "./salesPlaybook.mjs";
+
 // Regras deterministicas da operacao de follow-up.
 // A engine e compartilhada por CLI, API e UI. Ela nunca envia mensagens nem move stages.
 
@@ -258,7 +260,7 @@ export function primeiroNome(nome: string) {
 //
 // REGRA ANTI-INVENCAO: o link citado tem que ser o que sera REALMENTE enviado.
 
-export const MECANISMO = "Ficha de Escopo";
+export const MECANISMO = salesPlaybookModule.SALES_PLAYBOOK.mechanism;
 
 const CASE_LINK = {
   usinagem: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de usinagem" },
@@ -278,7 +280,20 @@ export function exemploDoSegmento(segment?: string | null) {
  *   1. entrega o exemplo prometido (sem enrolar, ele disse sim pra isso)
  *   2. nomeia o MECANISMO e diz o que ele faz, em coisa concreta na tela
  *   3. traduz pro ganho operacional dele
- *   4. pergunta que pede um sim barato e ja projeta o trabalho
+ *   4. AGENDA: propoe call curta com valor na mesa, em escolha dupla
+ *
+ * O CTA mudou em 10/08/2026. Antes era "quer que eu monte a ficha?", um sim/nao
+ * que gerava trabalho pro Erick e nao marcava nada: das 11 respostas do funil,
+ * ZERO virou call agendada com preco na mesa. O fundo do funil nao existia --
+ * a venda era tentada no proprio chat, sem etapa de reuniao.
+ *
+ * Agora fecha em agendamento (Lead -> Qualificado -> Agendamento -> Reuniao ->
+ * Fechamento) e ja sinaliza que o valor sai na call, o que mata a negociacao
+ * improvisada por mensagem. Preco definido: R$1.000 a pagina + R$150/mes.
+ *
+ * NAO contamina a medicao dos 400 disparos: a msg 2 so roda DEPOIS que o lead
+ * responde, entao nao mexe na taxa de resposta da msg 1, que e a variavel
+ * isolada do teste.
  */
 export function mensagemExemplo(companyRaw: string, segment?: string | null) {
   const company = nomeCurto(companyRaw);
@@ -288,7 +303,8 @@ export function mensagemExemplo(companyRaw: string, segment?: string | null) {
     `O que faz diferença ali não é o visual, é a ${MECANISMO}. ` +
     `Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\n` +
     `Aí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\n` +
-    `Pra ${company} seria a mesma ideia. Quer que eu monte a ficha com os serviços de vocês?`
+    `Pra ${company} seria a mesma ideia. Te mostro em 15 min como ficaria com os serviços de vocês e já te passo o valor fechado. ` +
+    `Consegue amanhã de manhã, ou prefere à tarde?`
   );
 }
 
@@ -514,21 +530,7 @@ export function nomeCurto(company: string) {
   return palavras.slice(0, fim).join(" ") || company;
 }
 
-export function casoDoSegmento(segment?: string | null) {
-  return segment === "usinagem" || segment === "caldeiraria"
-    ? "uma metalúrgica de usinagem de precisão"
-    : "uma empresa de manutenção industrial";
-}
-
-// Textos alinhados a copy aprovada em 31/07: sem "diagnostico" e sem "leitura de 2
-// minutos", zero apontamento de falha, e o CTA sempre nomeia o que chega depois do sim.
-export function ehLocal(city?: string | null) {
-  return String(city ?? "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .includes("monlevade");
-}
+const { renderFollowupMessage } = salesPlaybookModule;
 
 export function followupMessage(
   tier: Exclude<FollowupTier, "aguardar">,
@@ -537,39 +539,5 @@ export function followupMessage(
   segment?: string | null,
   city?: string | null,
 ) {
-  const company = nomeCurto(companyRaw);
-  if (responseType === "bot") {
-    return `Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da ${company} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.`;
-  }
-  // CADA TOQUE LEVA ANGULO NOVO, nunca lembrete (revisto em 02/08).
-  // O M1 antigo era "te escrevi esses dias e imagino que tenha passado batido na
-  // correria, so retomando". Isso nao acrescenta motivo nenhum pra ele responder
-  // agora — e so cobranca, e cobranca de desconhecido se ignora. O dado sustenta:
-  // o follow-up resgatou 1 lead em 37. Cada tier agora carrega uma dor ou prova
-  // que a mensagem anterior nao tinha.
-
-  // M1 = dor do PROCESSO comercial, que e a que o industrial sente no bolso:
-  // orcamento chegando incompleto e o tecnico virando atendente.
-  if (tier === "M1") {
-    return `Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com ${casoDoSegmento(segment).replace(/^uma /, "")}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?`;
-  }
-  // M2 = prova + mecanismo nomeado. Sem nomear a Ficha de Escopo, "fiz uma pagina
-  // pra uma empresa do ramo" e o que todo mundo diz, e nao da ao lead nenhum
-  // motivo novo pra responder.
-  // M2 = prova NOMEADA + mecanismo + pedido de reuniao. O case anonimo ("uma
-  // metalurgica de usinagem") jogava fora a unica vantagem que essa prova tem: as
-  // duas empresas sao daqui e o dono provavelmente conhece. Quem e de perto recebe
-  // "passo ai", que pra dono de industria pequena e menos atrito que marcar chamada.
-  if (tier === "M2") {
-    const perto = ehLocal(city);
-    const onde = perto ? "aqui de João Monlevade" : "duas indústrias aqui do Vale do Aço";
-    const convite = perto
-      ? "Te mostro como ficou em 15 minutos. Passo aí ou prefere uma chamada rápida?"
-      : "Te mostro como ficou numa chamada de 15 minutos. Qual o melhor dia pra você?";
-    return `Oi! Fiz a página da Jotta Manutenções e da Metalthec, ${onde}. O que resolveu nas duas foi a ${MECANISMO}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. ${convite}`;
-  }
-  // M3 = breakup com porta especifica. "Me chama" generico nao volta; deixar UMA
-  // condicao concreta cria gancho pra ele voltar quando ela acontecer, e a reuniao
-  // curta fica como ultima porta aberta.
-  return `Oi! Última mensagem daqui, pra não virar chateação. Quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. Se quiser ver em 15 minutos o que fiz pra Jotta e pra Metalthec, é só falar. Caso contrário, sucesso aí!`;
+  return renderFollowupMessage({ tier, company: companyRaw, responseType, segment, city });
 }
