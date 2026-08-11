@@ -5,7 +5,9 @@ export type CommercialEventType =
   | "deal.stage_changed"
   | "deal.score_updated"
   | "deal.next_action_due"
-  | "meeting.status_changed";
+  | "meeting.status_changed"
+  | "deal.qualification_updated"
+  | "copilot.suggestion_accepted";
 
 export type CommercialActionType =
   | "task.upsert"

@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import { CopilotAnswerBody, CopilotPanel, fetchCopilotAnswer, type CopilotAnswer } from "@/components/CopilotPanel";
 import { logWhatsappOpened } from "@/lib/activityClient";
 import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
 
@@ -281,21 +282,17 @@ export default function ComandoPage() {
   const [data, setData] = useState<Comando | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   // #3: sugestao de proxima acao da IA por lead (sob demanda, nao no carregamento).
-  const [actions, setActions] = useState<Record<number, { loading: boolean; text?: string }>>({});
+  // Story 032: a mesma next-action agora responde pelo copiloto — a resposta chega com
+  // evidencia e cada frase rotulada, no lugar do paragrafo solto de antes.
+  const [actions, setActions] = useState<Record<number, { loading: boolean; answer?: CopilotAnswer; error?: string }>>({});
 
   async function suggestAction(dealId: number) {
     setActions((a) => ({ ...a, [dealId]: { loading: true } }));
-    try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "next-action", dealId }),
-      });
-      const body = await res.json();
-      setActions((a) => ({ ...a, [dealId]: { loading: false, text: body?.summary ?? "IA indisponível agora." } }));
-    } catch {
-      setActions((a) => ({ ...a, [dealId]: { loading: false, text: "IA indisponível agora." } }));
-    }
+    const result = await fetchCopilotAnswer({ action: "copilot-ask", question: "recommended_action", dealId });
+    setActions((a) => ({
+      ...a,
+      [dealId]: { loading: false, answer: result.answer ?? undefined, error: result.error ?? undefined },
+    }));
   }
 
   useEffect(() => {
@@ -658,6 +655,16 @@ export default function ComandoPage() {
             </div>
           )}
 
+          {/* Story 032: prioridades gerais na mesma superficie da fila, sob demanda.
+              Sem dashboard novo e sem bloquear o carregamento do cockpit. */}
+          <CopilotPanel
+            title="Prioridades de hoje (copiloto)"
+            question="attention_today"
+            allowSave
+            buttonLabel="Ver prioridades"
+            hint="Quem exige atencao agora, com o fator que disparou cada alerta."
+          />
+
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila do dia</div>
             <span className="card-badge">por score</span>
@@ -712,10 +719,16 @@ export default function ComandoPage() {
                           </button>
                         </td>
                       </tr>
-                      {actions[item.id]?.text ? (
+                      {actions[item.id]?.answer || actions[item.id]?.error ? (
                         <tr>
                           <td colSpan={6} style={{ background: "var(--panel-2, #f0eef7)", fontSize: "13px" }}>
-                            <strong>IA:</strong> {actions[item.id]?.text}
+                            {actions[item.id]?.answer ? (
+                              <CopilotAnswerBody answer={actions[item.id]!.answer!} allowSave />
+                            ) : (
+                              <span className="muted-copy">
+                                {actions[item.id]?.error} A fila e o placar acima continuam validos.
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ) : null}

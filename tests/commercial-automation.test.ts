@@ -43,6 +43,9 @@ test("contrato versionado aceita todos os eventos comerciais da Story 027", () =
     "deal.next_action_due",
     "meeting.status_changed",
     "deal.qualification_updated",
+    // Story 032: sugestao do copiloto aprovada pelo operador. O vocabulario de acoes
+    // segue o mesmo — o copiloto nao ganhou poder novo, so um tipo de evento.
+    "copilot.suggestion_accepted",
   ]);
   assert.deepEqual(ACTION_TYPES, [
     "task.upsert",

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CopilotPanel } from "@/components/CopilotPanel";
 import { useCRMStore, type Deal, type DealStage } from "@/store/useCRMStore";
 import { logWhatsappOpened } from "@/lib/activityClient";
 import {
@@ -1493,6 +1494,28 @@ function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: DealDetai
                 {ins.content}
               </div>
             ))}
+          </div>
+
+          {/* Story 032: explicacao contextual do deal no overlay que ja existe. A leitura
+              sai da saude, do forecast e da qualificacao ja calculados; a IA so narra. */}
+          <div style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>
+            <CopilotPanel
+              title="Copiloto: por que este deal esta quente ou frio"
+              question="deal_temperature"
+              dealId={deal.id}
+              allowSave
+              buttonLabel="Explicar o deal"
+              hint="Temperatura, saude e recencia da conversa, com a evidencia de cada fator."
+            />
+            <CopilotPanel
+              title="Copiloto: qual acao considerar"
+              question="recommended_action"
+              dealId={deal.id}
+              draft
+              allowSave
+              buttonLabel="Preparar proxima acao"
+              hint="Tarefa e rascunho como sugestao. Aplicar exige confirmar e passa pelo motor comercial."
+            />
           </div>
 
           <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>

@@ -8,6 +8,8 @@ export const EVENT_TYPES = Object.freeze([
   "deal.next_action_due",
   "meeting.status_changed",
   "deal.qualification_updated",
+  // Story 032: unica porta de entrada das sugestoes que o operador aprovou no copiloto.
+  "copilot.suggestion_accepted",
 ]);
 
 export const ACTION_TYPES = Object.freeze([

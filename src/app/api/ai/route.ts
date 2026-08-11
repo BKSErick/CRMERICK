@@ -1,11 +1,126 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE, verifyAdminSession } from "@/lib/adminAuth";
+import { aiComplete } from "@/lib/aiComplete";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { mapDealFromRow } from "@/lib/crmRecords";
 import { parseQualificationSuggestions } from "@/lib/dealQualification.mjs";
 import { updateDealQualification } from "@/lib/dealQualificationService.mjs";
+import { COPILOT_QUESTIONS } from "@/lib/salesCopilot.mjs";
+import {
+  answerCopilotQuestion,
+  applyCopilotSuggestion,
+  buildCopilotBriefing,
+  draftCopilotSuggestions,
+  saveCopilotLearning,
+} from "@/lib/salesCopilotService.mjs";
 import { getCompanySignals, signalAliases, type CompanySignal } from "@/lib/sinais";
 
 export const runtime = "nodejs";
+
+const COPILOT_ACTIONS = new Set([
+  "copilot-brief",
+  "copilot-ask",
+  "copilot-draft",
+  "copilot-apply",
+  "copilot-save-learning",
+]);
+const COPILOT_WRITE_ACTIONS = new Set(["copilot-apply", "copilot-save-learning"]);
+
+// O operador vem da sessao administrativa assinada, nunca do corpo do request: quem
+// aplica uma sugestao precisa estar logado e fica registrado com o proprio e-mail.
+async function resolveOperator(request: NextRequest) {
+  const session = await verifyAdminSession(
+    request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
+    process.env.CRM_AUTH_SECRET,
+  );
+  return session?.email ?? null;
+}
+
+// Story 032: superficie do copiloto. Le contexto ja calculado (Stories 027-031), responde
+// com evidencia e devolve sugestoes. Aplicar exige confirmacao explicita e passa pelo motor
+// da Story 027. Falha do provedor degrada para a resposta deterministica, nunca para 500.
+async function handleCopilotAction(
+  request: NextRequest,
+  body: Record<string, unknown>,
+  supabase: ReturnType<typeof getCrmSupabaseAdmin>,
+) {
+  const action = String(body.action);
+  const operator = await resolveOperator(request);
+
+  if (COPILOT_WRITE_ACTIONS.has(action) && !operator) {
+    return NextResponse.json(
+      { ok: false, error: "Sessao administrativa obrigatoria para aplicar sugestoes do copiloto." },
+      { status: 401 },
+    );
+  }
+
+  const shared = {
+    complete: aiComplete,
+    from: typeof body.from === "string" ? body.from : undefined,
+    to: typeof body.to === "string" ? body.to : undefined,
+    timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+  };
+
+  if (action === "copilot-brief") {
+    return NextResponse.json({ ok: true, briefing: await buildCopilotBriefing(supabase, shared) });
+  }
+
+  if (action === "copilot-ask") {
+    const question = typeof body.question === "string" ? body.question : "";
+    if (!COPILOT_QUESTIONS.some((item) => item.key === question)) {
+      return NextResponse.json(
+        { ok: false, error: `Pergunta invalida. Use uma de: ${COPILOT_QUESTIONS.map((item) => item.key).join(", ")}.` },
+        { status: 400 },
+      );
+    }
+    const answer = await answerCopilotQuestion(supabase, {
+      ...shared,
+      question,
+      dealId: body.dealId ? Number(body.dealId) : null,
+    });
+    return NextResponse.json({ ok: true, answer });
+  }
+
+  if (action === "copilot-draft") {
+    if (!body.dealId) {
+      return NextResponse.json({ ok: false, error: "copilot-draft exige dealId." }, { status: 400 });
+    }
+    const answer = await draftCopilotSuggestions(supabase, { ...shared, dealId: Number(body.dealId) });
+    return NextResponse.json({ ok: true, answer });
+  }
+
+  if (action === "copilot-apply") {
+    if (body.confirmed !== true) {
+      return NextResponse.json(
+        { ok: false, error: "Aplicar sugestao exige confirmacao explicita do operador." },
+        { status: 400 },
+      );
+    }
+    const result = await applyCopilotSuggestion(supabase, {
+      suggestion: body.suggestion as never,
+      actor: operator as string,
+      confirmed: true,
+      question: typeof body.question === "string" ? body.question : null,
+      source: "api/ai",
+    });
+    return NextResponse.json({ ok: true, ...result });
+  }
+
+  if (body.confirmed !== true) {
+    return NextResponse.json(
+      { ok: false, error: "Salvar em Achados exige confirmacao explicita do operador." },
+      { status: 400 },
+    );
+  }
+  const insight = await saveCopilotLearning(supabase, {
+    content: String(body.content ?? ""),
+    actor: operator as string,
+    confirmed: true,
+    dealId: body.dealId ? Number(body.dealId) : null,
+    company: typeof body.company === "string" ? body.company : null,
+  });
+  return NextResponse.json({ ok: true, insight }, { status: 201 });
+}
 
 const QUALIFICATION_MESSAGE_LIMIT = 20;
 const QUALIFICATION_MESSAGE_MAX_CHARS = 1500;
@@ -48,6 +163,10 @@ export async function POST(request: NextRequest) {
     const supabase = getCrmSupabaseAdmin();
     const body = await request.json();
     const { action, dealId } = body;
+
+    if (COPILOT_ACTIONS.has(action)) {
+      return await handleCopilotAction(request, body, supabase);
+    }
 
     if (!action || (action !== "compile-achados" && !dealId)) {
       return NextResponse.json(
@@ -264,7 +383,7 @@ Mensagens reais recentes:
 ${messageEvidence || "Nenhuma mensagem registrada."}${signalContext}`;
     } else {
       return NextResponse.json(
-        { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary', 'generate-insight', 'next-action', 'suggest-qualification' ou 'compile-achados'." },
+        { ok: false, error: "Ação inválida. Use 'generate-copy', 'generate-summary', 'generate-insight', 'next-action', 'suggest-qualification', 'compile-achados' ou as ações do copiloto ('copilot-brief', 'copilot-ask', 'copilot-draft', 'copilot-apply', 'copilot-save-learning')." },
         { status: 400 }
       );
     }

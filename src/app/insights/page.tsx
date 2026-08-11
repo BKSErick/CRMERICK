@@ -16,7 +16,9 @@ type Insight = {
   created_at: string;
 };
 
-const TYPES = ["todos", "geral", "copy", "funil", "dor", "objecao", "converteu", "compilado"] as const;
+// "copiloto" (Story 032) so entra por gesto explicito do operador no painel do copiloto,
+// por isso fica fora de NEW_TYPES: da para filtrar e reclassificar, nao para criar aqui.
+const TYPES = ["todos", "geral", "copy", "funil", "dor", "objecao", "converteu", "copiloto", "compilado"] as const;
 const NEW_TYPES = ["geral", "copy", "funil", "dor", "objecao", "converteu"] as const;
 
 export default function InsightsPage() {
@@ -326,7 +328,7 @@ export default function InsightsPage() {
                   />
                   <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     <select className="settings-input" value={editType} onChange={(e) => setEditType(e.target.value)} style={{ width: "auto" }}>
-                      {[...NEW_TYPES, "compilado"].map((t) => (
+                      {[...NEW_TYPES, "copiloto", "compilado"].map((t) => (
                         <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
