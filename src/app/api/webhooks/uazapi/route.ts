@@ -132,6 +132,24 @@ async function findOrCreateDeal(
     return existing;
   }
 
+  // Mesma varredura por sufixo que findOrCreateContact ja fazia. O deal nao tinha,
+  // entao deal com telefone nulo ou formatado ("(11) 99961-0509") nunca casava e
+  // virava card novo a cada resposta. Aconteceu com RC Performance e ATFM.
+  const sufixo = phone.replace(/\D/g, "").replace(/^55/, "").slice(-8);
+  if (sufixo.length === 8) {
+    const todos = await supabase.from("deals").select(`${dealOperationalSelect}, phone, whatsapp`);
+    if (todos.error) throw todos.error;
+    const porSufixo = (todos.data ?? []).filter((d) => {
+      const campos = [d.phone, d.whatsapp].filter(Boolean).join(" ");
+      return (campos.match(/\d{8,}/g) ?? []).some((n) => n.replace(/^55/, "").slice(-8) === sufixo);
+    });
+    if (porSufixo.length === 1) {
+      const existing = porSufixo[0] as DealRef;
+      await supabase.from("deals").update({ contact_id: contact.id }).eq("id", existing.id);
+      return existing;
+    }
+  }
+
   const name = contact.name || fallbackContactName(message);
   const created = await supabase
     .from("deals")
@@ -159,6 +177,32 @@ function activityDescription(message: UazapiMessage) {
   return `${label}: ${content}`;
 }
 
+// Sem isto a falha some. Mensagem sem ai_insight ficava indistinguivel de mensagem que
+// nem chegou a ser tentada, e nao havia como reprocessar com criterio depois.
+async function registrarFalhaAi(
+  supabase: SupabaseAdmin,
+  messageRowId: number,
+  motivo: string,
+) {
+  try {
+    const atual = await supabase
+      .from("messages")
+      .select("ai_attempts")
+      .eq("id", messageRowId)
+      .maybeSingle();
+    await supabase
+      .from("messages")
+      .update({
+        ai_error: motivo.slice(0, 500),
+        ai_attempts: (atual.data?.ai_attempts ?? 0) + 1,
+        ai_last_attempt_at: new Date().toISOString(),
+      })
+      .eq("id", messageRowId);
+  } catch (error) {
+    console.error("Falha ao registrar erro da leitura de IA:", error);
+  }
+}
+
 async function enrichWithAi(
   supabase: SupabaseAdmin,
   messageRowId: number,
@@ -178,7 +222,10 @@ async function enrichWithAi(
       .reverse()
       .map((item) => `${item.direction === "sent" ? "Erick" : "Lead"}: ${item.content}`)
       .join("\n");
-    if (!history.trim()) return;
+    if (!history.trim()) {
+      await registrarFalhaAi(supabase, messageRowId, "Sem historico de conversa para resumir.");
+      return;
+    }
 
     const result = await aiComplete(
       [
@@ -188,7 +235,12 @@ async function enrichWithAi(
       ].join(" "),
       `Deal: ${deal.company || deal.name || deal.id}\n\nConversa recente:\n${history}`,
     );
-    if (!result) return;
+    if (!result) {
+      // Caminho mais comum das 38 falhas de 29/07 e 07/08: aiComplete devolve null
+      // quando o provider esta fora ou sem chave, e antes isso sumia em silencio.
+      await registrarFalhaAi(supabase, messageRowId, "aiComplete retornou vazio (provider indisponivel ou sem chave).");
+      return;
+    }
 
     const insight = result.content.slice(0, 1500);
     const update = await supabase
@@ -198,6 +250,7 @@ async function enrichWithAi(
         ai_provider: result.provider,
         ai_model: result.model,
         ai_processed_at: new Date().toISOString(),
+        ai_error: null,
       })
       .eq("id", messageRowId);
     if (update.error) throw update.error;
@@ -210,6 +263,11 @@ async function enrichWithAi(
     if (activity.error) throw activity.error;
   } catch (error) {
     console.error("Falha best-effort ao enriquecer mensagem de WhatsApp:", error);
+    await registrarFalhaAi(
+      supabase,
+      messageRowId,
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }
 
