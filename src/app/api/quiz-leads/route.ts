@@ -99,11 +99,30 @@ function normalizeQuizLead(payload: QuizLeadPayload) {
   };
 }
 
+/**
+ * Erro do supabase-js e um objeto simples (PostgrestError), nao instancia de Error.
+ * Antes isso caia no fallback generico e toda falha de banco virava um
+ * "Erro inesperado" sem message, details nem code. Foi o que escondeu por semanas
+ * a colisao de deals_pkey que derrubava todo envio do quiz.
+ */
+function describeError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const candidate = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parts = [candidate.message, candidate.details, candidate.hint, candidate.code]
+      .map((part) => (typeof part === "string" && part.trim().length > 0 ? part.trim() : undefined))
+      .filter(Boolean);
+    if (parts.length > 0) return parts.join(" | ");
+  }
+  return "Erro inesperado em /api/quiz-leads";
+}
+
 function errorResponse(error: unknown, status = 500) {
+  console.error("[quiz-leads] falha na requisicao", error);
   return NextResponse.json(
     {
       ok: false,
-      error: error instanceof Error ? error.message : "Erro inesperado em /api/quiz-leads",
+      error: describeError(error),
     },
     { status, headers: corsHeaders },
   );
