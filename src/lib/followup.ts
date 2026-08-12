@@ -267,7 +267,7 @@ const CASE_LINK = {
   caldeiraria: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de fabricação e caldeiraria" },
   manutencao: { url: "https://sitejotta.vercel.app/", desc: "uma manutenção industrial aqui de Monlevade" },
   automacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção e automação industrial" },
-  climatizacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção predial" },
+  climatizacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção industrial" },
   geral: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção industrial" },
 } as const;
 

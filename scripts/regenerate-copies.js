@@ -126,7 +126,7 @@ const CASE_POR_SEGMENTO = {
   caldeiraria: 'pra uma metalúrgica de fabricação e caldeiraria',
   manutencao: 'pra uma empresa de manutenção industrial',
   automacao: 'pra uma empresa de manutenção e automação industrial',
-  climatizacao: 'pra uma empresa de manutenção predial',
+  climatizacao: 'pra uma empresa de manutenção industrial',
   geral: 'pra uma empresa do mesmo ramo',
 };
 
