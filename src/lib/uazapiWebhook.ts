@@ -12,6 +12,7 @@ export type UazapiMessage = {
   direction: "sent" | "received";
   messageType: string;
   content: string;
+  mediaUrl?: string;
   occurredAt: string;
 };
 
@@ -116,6 +117,14 @@ export function normalizeUazapiWebhook(payload: unknown): UazapiNormalizationRes
 
   const messageType = asString(message.messageType) || "unknown";
   const text = asString(message.text);
+  const mediaUrl =
+    asString(message.mediaUrl) ||
+    asString(message.audioUrl) ||
+    asString(message.media) ||
+    asString(message.url) ||
+    asString(data?.mediaUrl) ||
+    asString(envelope.mediaUrl) ||
+    undefined;
 
   return {
     kind: "message",
@@ -129,6 +138,7 @@ export function normalizeUazapiWebhook(payload: unknown): UazapiNormalizationRes
       direction: fromMe ? "sent" : "received",
       messageType,
       content: text || `[${messageType}]`,
+      mediaUrl,
       occurredAt: toIsoTimestamp(message.messageTimestamp),
     },
   };

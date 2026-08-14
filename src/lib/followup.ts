@@ -146,6 +146,17 @@ export function classifyInboundResponse(content: string): ResponseType {
     "digite 1",
     "nao responda esta mensagem",
     "aguarde que em breve",
+    "agradecemos seu contato",
+    "agradece seu contato",
+    "agradecemos o seu contato",
+    "agradece o seu contato",
+    "como podemos te ajudar",
+    "como podemos ajudar",
+    "em breve nossos consultores",
+    "seja bem vindo",
+    "seja bem-vindo",
+    "seja bem vinda",
+    "seja bem-vinda",
   ];
   if (botPatterns.some((pattern) => text.includes(pattern))) return "bot";
 

@@ -17,6 +17,7 @@ import {
   normalizeUazapiWebhook,
   type UazapiMessage,
 } from "@/lib/uazapiWebhook";
+import { transcribeAudio } from "@/lib/transcribeAudio";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -312,6 +313,20 @@ export async function POST(request: NextRequest) {
 
   try {
     const message = normalized.message;
+
+    // Transcrição automática de mensagens de voz/áudio via Groq Whisper
+    const isAudioType = ["audio", "ptt", "voice"].includes(message.messageType.toLowerCase());
+    if ((isAudioType || message.mediaUrl) && message.mediaUrl) {
+      try {
+        const transcribed = await transcribeAudio(message.mediaUrl, { timeoutMs: 15000 });
+        if (transcribed?.text) {
+          message.content = `🎤 [Áudio Transcrito]: ${transcribed.text}`;
+        }
+      } catch (err) {
+        console.warn("Falha ao transcrever áudio no webhook:", err);
+      }
+    }
+
     const duplicate = await supabase
       .from("messages")
       .select("id")
