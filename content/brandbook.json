@@ -1,29 +1,127 @@
 {
   "generatedAt": "",
-  "source": "conteudo real portado do brandbook v2.0 (legacy/modules/brandbook.html) - fonte de verdade da marca",
-  "version": "2.0",
-  "updatedLabel": "Atualizado em Junho/2026",
+  "source": "v4.0 reescrito em 17/08/2026. A v3.0 corrigiu o ICP da PESSOA (Erick Sena) mas deixou a EMPRESA (Mydrion) na v2.0: sem cercadinho, falando com founder e startup, enquanto a operacao real vende para industria. Esta versao resolve a hierarquia (Mydrion e a marca, Erick e a voz, OStrack e o produto proprio), da fronteira a Mydrion, alinha o arquetipo entre marca e rosto, e define posto arquetipico proprio para o OStrack. Decisao de 17/08: territorio geografico sai do posicionamento. Atendimento e Brasil inteiro, de qualquer lugar. Proximidade continua sendo recurso de conversa na abordagem fria, nunca atributo de marca.",
+  "version": "4.0",
+  "updatedLabel": "Atualizado em Agosto/2026",
   "hero": {
-    "name": "Erick Sena",
-    "role": "AI Architect / Builder",
-    "tagline": "Arquiteto de sistemas autonomos. Crio operacoes que escalam sem depender de mais gente, mais planilhas ou mais ferramentas desconectadas.",
-    "arquetipo": "Criador-Hacker",
-    "tese": "O futuro da operacao nao e mais gente - e sistema.",
-    "icp": "Founders, COOs, Heads de Growth",
-    "diferencial": "Sistemas reais, nao consultoria vazia de IA"
+    "name": "Mydrion",
+    "role": "Tecnologia sob medida para industria. Erick Sena e a voz e o rosto da marca.",
+    "tagline": "A Mydrion organiza o comercial e a operacao de quem fabrica. Da pagina que faz a triagem do pedido ao sistema que controla a ordem de servico, ate as automacoes que tiram o trabalho manual do meio.",
+    "arquetipo": "Mago dominante (o mecanismo), Governante na mesa (preco e escopo), Heroi no bastidor (a operacao rodando). Mesmo arquetipo para Mydrion e Erick Sena. OStrack inverte o posto: Governante dominante, Mago no mecanismo.",
+    "tese": "Cotacao nao precisa de mais gente atendendo. Precisa de triagem antes.",
+    "icp": "Donos e gestores de usinagem, caldeiraria, recuperacao, manutencao e automacao industrial. Brasil inteiro, entrega remota, sem recorte geografico.",
+    "diferencial": "Mecanismo proprio demonstravel (Ficha de Escopo e OStrack) e case industrial real, nao portfolio generico de software house"
   },
   "sections": [
+    {
+      "id": "cadeia",
+      "title": "A Cadeia: Marca, Rosto e Produto",
+      "layout": "cards",
+      "cards": [
+        {
+          "title": "Mydrion",
+          "badge": "A marca",
+          "body": "E a entidade que assina o trabalho e sustenta a autoridade de estrutura. Nao e software house generica: e a empresa que organiza o comercial e a operacao de quem fabrica. Toda entrega, seja pagina, sistema, produto ou automacao, e assinada por ela. A Mydrion nao abre porta na abordagem fria; ela da lastro depois que a conversa comeca e sustenta o degrau seguinte."
+        },
+        {
+          "title": "Erick Sena",
+          "badge": "A voz e o rosto",
+          "body": "Abordagem fria converte vinda de pessoa, nao de CNPJ. O industrial responde a gente. Erick e quem fala, assina a mensagem, senta na call e divulga a Mydrion. Nao e uma segunda marca disputando autoridade: e a encarnacao humana da mesma. Por isso o arquetipo e IDENTICO ao da Mydrion. Se a voz e a marca divergirem, o cliente sente e le como vendedor."
+        },
+        {
+          "title": "OStrack",
+          "badge": "O produto proprio",
+          "body": "Produto da Mydrion, nao marca irma. Gestao de ordem de servico com rastreabilidade, etapa, tempo parado e proxima acao, para recuperadoras, usinagens e oficinas industriais. E a prova mais densa do portfolio: a Mydrion nao so constroi para os outros, ela opera o proprio produto. Tem posto arquetipico proprio porque produto nao tem biografia."
+        },
+        {
+          "title": "Regra da cadeia",
+          "badge": "Um degrau nao pula o outro",
+          "body": "Erick abre. A Mydrion sustenta. O OStrack aparece quando o cliente encosta no gargalo da ordem de servico. Inverter essa ordem quebra a leitura: apresentar OStrack antes de resolver a entrada do pedido faz o dono ver mais um software, e apresentar Mydrion antes de Erick faz a mensagem fria parecer disparo de empresa."
+        }
+      ]
+    },
+    {
+      "id": "arquetipos",
+      "title": "Arquetipos e Cadeia do Ser",
+      "layout": "cards",
+      "cards": [
+        {
+          "title": "Mydrion e Erick Sena",
+          "badge": "Mago dominante",
+          "body": "O Mago transforma o caos do cliente em ordem, e a autoridade dele vem do mecanismo demonstrado, nunca do adjetivo. Aqui o caos e o pedido vago e a operacao tocada por planilha, WhatsApp e memoria. A ordem e a Ficha de Escopo preenchida e a fila unica com etapa e responsavel. Mago sem artefato na tela e charlatao: toda vez que o Mago fala, tem que ter tela, print ou antes e depois junto."
+        },
+        {
+          "title": "Governante na mesa",
+          "badge": "Segundo posto",
+          "body": "Entra na negociacao: preco, escopo, prazo e o que nao se entrega. E o arquetipo do cercadinho, de dizer com clareza para quem a Mydrion nao trabalha. Manifestacoes reais: nao dar desconto e reduzir escopo, descartar lead fora do ICP mesmo com verba, publicar o escopo do recorrente palavra por palavra. Governante nao demonstra ferramenta."
+        },
+        {
+          "title": "Heroi no bastidor",
+          "badge": "Terceiro posto",
+          "body": "A disciplina da operacao rodando: cadencia, cobertura, a rotina que nao falha. E o posto mais facil de exagerar e o que menos vende sozinho. Heroi so vai ao palco como prova de constancia, nunca como epico pessoal. Bastidor mostrado como trabalho, sem vitimismo e sem madrugada heroica."
+        },
+        {
+          "title": "OStrack",
+          "badge": "Governante dominante, Mago no mecanismo",
+          "body": "Produto de controle inverte o posto. O que o OStrack vende e ordem, visibilidade e governanca de uma operacao: quem e o responsavel, em que etapa esta, ha quanto tempo parou, o que vem agora. O Mago entra logo atras, no mecanismo: rastreabilidade por transicao de etapa, escopo aprovado sem vazamento de preco, databook que nasce dentro da OS. O OStrack NAO tem Heroi: produto nao tem biografia nem disciplina pessoal."
+        },
+        {
+          "title": "Cadeia do ser: Mago",
+          "badge": "Simbolos que pertencem ao posto",
+          "body": "A estrutura aparecendo onde antes tinha bagunca. O antes e o depois do que chega. A tela do mecanismo com campo real preenchido. O diagrama que organiza. A linha que separa o que estava misturado. NAO pertencem a esse posto: fundo neon, glassmorphism, dashboard descontextualizado, imagem de banco. Simbolo emprestado de estetica de startup derruba a densidade na industria."
+        },
+        {
+          "title": "Cadeia do ser: Governante",
+          "badge": "Simbolos que pertencem ao posto",
+          "body": "A fila. O painel. A etapa carimbada. A aprovacao. O documento que fecha. A coluna e a grade. Ordem visivel. Para o OStrack esses sao os simbolos primarios da comunicacao: mostre o quadro de controle, nao o codigo."
+        },
+        {
+          "title": "Regra do palco",
+          "badge": "Um por vez",
+          "body": "So um arquetipo em cena por peca. O Mago nunca fala preco e o Governante nunca demonstra ferramenta. Misturar os dois na mesma mensagem faz o cliente ver vendedor no lugar de especialista. Antes de publicar ou enviar qualquer coisa, a pergunta e: qual arquetipo esta no palco aqui, e ele esta sozinho?"
+        },
+        {
+          "title": "Arquetipos aposentados",
+          "badge": "Nao ressuscitar",
+          "body": "Criador-Hacker, AI Architect, Trickster, Bobo da Corte evoluido e Soberano/Rebelde. Vieram do documento posicionamento_estrategico.md, que descrevia um ICP de founder, COO e head de growth que a operacao nunca abordou. Para dono de metalurgica, hacker e quem invade sistema. Esse documento esta SUPERSEDED por este brandbook: se aparecer em qualquer prompt, agente ou copy, e fantasma e deve ser descartado."
+        }
+      ]
+    },
     {
       "id": "essencia",
       "title": "Essencia da Marca",
       "layout": "cards",
       "cards": [
-        { "title": "Arquetipo", "badge": "Criador-Hacker", "body": "Um criador tecnico que enxerga o sistema onde outros veem caos. Constroi ativos, nao dependencias. Hackeia o crescimento com engenharia operacional, nao com volume de post." },
-        { "title": "Persona", "badge": "Arquiteto de Sistemas Autonomos", "body": "A persona da marca nao e 'influencer de IA' nem 'consultor de crescimento'. E o arquiteto que projeta e constroi a operacao que roda sem ele. A figura que torna possivel escalar sem multiplicar o caos." },
-        { "title": "Tom de Voz", "badge": "Direto, Soberano, Ironia Elegante", "body": "Fala como quem ja resolveu o problema centenas de vezes. Nao humilha: expoe a ineficiencia do sistema antigo com precisao. Ironico sem ser cinico. Estrategico sem ser chato." },
-        { "title": "Promessa", "badge": "Escala sem quebrar", "body": "Transformar operacoes travadas em sistemas que escalam. Da captura ao fechamento, do conteudo ao compliance. A promessa nao e 'crescer': e crescer sem quebrar os proprios processos." },
-        { "title": "Tensao Central", "badge": "Presente vs. Passado", "body": "O mercado opera como se ainda estivesse no passado. Planilhas, processos manuais, ferramentas que nao conversam, decisoes baseadas em feeling. A tensao esta entre o que e possivel com sistemas modernos e o que as empresas ainda aceitam como normal." },
-        { "title": "Inimigo Comum", "badge": "Caos operacional", "body": "Planilhas, processos burros, operacao manual, sistemas desconectados. O inimigo nao e o concorrente: e o caos operacional normalizado. A planilha que trava. O processo que depende de WhatsApp. A ferramenta que nao integra." }
+        {
+          "title": "Persona",
+          "badge": "Quem organiza o comercial de quem fabrica",
+          "body": "Nao e 'quem faz site' nem 'consultor de IA' nem 'software house'. E quem entra numa industria, olha como o orcamento nasce e como a ordem de servico anda, e reorganiza os dois caminhos. A prova nao e portfolio visual: e o mecanismo funcionando em empresa real."
+        },
+        {
+          "title": "Tom de Voz",
+          "badge": "Direto, Soberano, Ironia Elegante",
+          "body": "Fala como quem ja viu o problema dezenas de vezes. Nao humilha o prospect nem aponta falha no site dele: expoe a ineficiencia do processo antigo com precisao. Linguagem de chao de fabrica, nao de agencia. Palavra que ele usa todo dia vale mais que termo tecnico."
+        },
+        {
+          "title": "Promessa",
+          "badge": "O pedido chega pronto, a OS para de sumir",
+          "body": "Na entrada: o cliente informa servico, equipamento, medida, material e urgencia, e anexa foto ou desenho, antes de falar com voce. Na operacao: a ordem de servico deixa de viver em planilha, WhatsApp e memoria da equipe e passa a ter etapa, responsavel, tempo parado e proxima acao. A promessa nao e 'mais cliente': e menos hora tecnica virando atendimento e menos prazo perdido no intervalo entre etapas."
+        },
+        {
+          "title": "Tensao Central",
+          "badge": "O comprador ja mudou, o fornecedor nao",
+          "body": "O comprador industrial pesquisa antes de ligar e decide com o que encontra. Do outro lado, o fornecedor ainda atende no grito, descobre a medida por mensagem e perde a cotacao para quem respondeu primeiro. A tensao esta entre como o comprador compra hoje e como o fornecedor ainda vende."
+        },
+        {
+          "title": "Inimigo Comum",
+          "badge": "O pedido sem escopo e o tempo invisivel",
+          "body": "O inimigo nao e o concorrente nem a falta de marketing. Sao dois custos que nao aparecem em relatorio nenhum: o pedido que chega vago ('quanto custa usinar uma peca?'), que consome hora tecnica e some antes da resposta, e o tempo que a peca passa parada entre etapas esperando aprovacao, terceiro ou uma resposta. Todo conteudo e toda copy atacam esses dois, nunca o prospect."
+        },
+        {
+          "title": "Territorio",
+          "badge": "Brasil inteiro, entrega remota",
+          "body": "Decisao de 17/08/2026: a marca NAO se posiciona por cidade nem por regiao. Atende o Brasil, de qualquer lugar, e a entrega e remota. Proximidade continua existindo como recurso de CONVERSA na abordagem fria, quando o lead e da regiao, e vive no sales-playbook em localOpenings. Nunca como atributo de marca, bio, headline ou pagina: cravar cidade cria teto onde nao existe."
+        }
       ]
     },
     {
@@ -34,23 +132,26 @@
         {
           "title": "ICP Ideal",
           "items": [
-            "Founders que ja validaram produto e precisam de estrutura para escalar",
-            "COOs que herdam processos manuais e precisam transformar a operacao",
-            "Heads de Growth que querem crescer sem multiplicar o caos",
-            "Negocios com gargalo operacional visivel (funil quebrado, pipeline manual, conteudo sem sistema)",
-            "Empresas que ja faturam e precisam de arquitetura, nao de mais ferramenta",
-            "Lideres que valorizam ativos proprios e avaliam retorno sobre sistema"
+            "Usinagem, caldeiraria, recuperacao industrial, manutencao e automacao",
+            "Brasil inteiro. Entrega remota, sem recorte geografico e sem exigencia de visita",
+            "Empresa que ja tem demanda e perde tempo qualificando pedido por WhatsApp",
+            "Dono ou gestor que responde orcamento pessoalmente",
+            "Operacao com servico tecnico variavel, onde medida e material mudam o preco",
+            "Operacao que toca ordem de servico em planilha, WhatsApp e memoria da equipe (porta de entrada do OStrack)",
+            "Quem ja atende cliente grande e precisa provar rastreabilidade, escopo aprovado e qualidade"
           ]
         },
         {
           "title": "Anti-ICP / Nao e para",
           "items": [
-            "Quem quer so um 'site bonito' ou landing page simples",
-            "Quem busca firula visual sem operacao por tras",
-            "Quem nao valoriza sistema e prefere 'fazer na raca'",
-            "Quem busca fornecedor barato e tatico (freela, agencia generica)",
-            "Quem quer hype de IA sem aplicacao real no negocio",
-            "Quem nao esta disposto a repensar processos para escalar de verdade"
+            "Quem quer so identidade visual, sem mudar como o pedido chega",
+            "Quem compara por preco de mercado de site e nao por hora tecnica economizada",
+            "Quem nao atende pedido tecnico (comercio, revenda simples, servico padronizado)",
+            "Oficina sem volume, sem cliente exigente e sem dor com prazo ou documento",
+            "Quem procura substituir ERP fiscal, financeiro ou de estoque",
+            "Startup, agencia e negocio digital procurando software house generica: nao e o territorio da Mydrion",
+            "Fora do ICP mesmo com verba: lead fora de perfil que fecha barato contamina a tabela por meses",
+            "Quem exige exclusividade regional sem contrapartida de volume"
           ]
         }
       ]
@@ -62,11 +163,11 @@
       "columns": [
         {
           "title": "Como soa",
-          "items": ["Direto", "Soberano", "Engenhoso", "Ironico com elegancia", "Estrategico", "Seguro", "Preciso", "Sem pressa"]
+          "items": ["Direto", "Soberano", "Tecnico sem ser hermetico", "Ironico com elegancia", "Seguro", "Preciso", "Sem pressa", "Dono conversando com dono"]
         },
         {
           "title": "Como nao soa",
-          "items": ["Professor generico", "Coach quantico", "Vendedor carente", "Dev tecnico demais", "Agencia corporativa fria", "Influencer de IA", "Hater disfarcado"]
+          "items": ["Agencia de marketing", "Software house generica", "Vendedor carente pedindo 3 minutinhos", "Coach quantico", "Dev tecnico demais", "Influencer de IA", "Quem aponta falha no site do prospect", "Corporativo frio"]
         }
       ]
     },
@@ -78,21 +179,27 @@
         {
           "title": "Frases aprovadas",
           "items": [
-            "O futuro da operacao nao e mais gente - e sistema.",
-            "Voce nao precisa de mais ferramenta. Voce precisa de arquitetura.",
-            "Enquanto voce resolve no grito, eu resolvo no codigo.",
-            "Crescer sem quebrar os proprios processos e a verdadeira escala.",
-            "O caos normalizado e o maior inimigo do crescimento silencioso."
+            "Eu faco o pedido do cliente chegar no seu WhatsApp ja com servico, medida e prazo definidos.",
+            "Cotacao nao precisa de mais gente atendendo. Precisa de triagem antes.",
+            "A Mydrion organiza o comercial e a operacao de quem fabrica.",
+            "O que faz diferenca ali nao e o visual, e a Ficha de Escopo.",
+            "Voce nao perde cliente por falta de demanda. Perde por descobrir a medida por mensagem.",
+            "O comprador ja decidiu digital. O fornecedor ainda atende no grito.",
+            "A sua maquina nao e o gargalo. O intervalo entre as etapas e.",
+            "Nao dou desconto. Reduzo escopo."
           ]
         },
         {
           "title": "Frases desalinhadas",
           "items": [
+            "Construimos o que nao existe pronto (promessa generica, sem cercadinho, qualquer software house assina)",
+            "Sistemas, sites e produtos digitais sob medida (nomeia mercadoria, nao nomeia problema)",
             "Vou transformar seu negocio com inteligencia artificial",
+            "Reparei que o site de voces esta desatualizado",
             "Se voce nao esta fazendo X, voce esta perdendo dinheiro",
+            "Tem 3 minutinhos pra um cafe virtual?",
             "Sou especialista em crescimento exponencial",
-            "Contrate minha consultoria e veja resultados em 7 dias",
-            "A IA vai substituir todo mundo que nao se adaptar"
+            "Faco pagina de vendas pra industria (posiciona como fornecedor tatico)"
           ]
         }
       ]
@@ -104,11 +211,11 @@
       "columns": [
         {
           "title": "Palavras-chave",
-          "items": ["Sistema", "Arquitetura", "Ativo", "Operacao", "Autonomia", "Escala", "Estrutura", "Engenharia", "Soberania", "Proprietario"]
+          "items": ["Ficha de Escopo", "Triagem", "Orcamento", "Cotacao", "Hora tecnica", "Ordem de servico", "Etapa", "Tempo parado", "Rastreabilidade", "Medida", "Prazo", "Escopo", "Operacao"]
         },
         {
           "title": "Palavras a evitar",
-          "items": ["Hackear o crescimento", "Disruptivo", "Revolucionario", "Metodo secreto", "Formula magica", "Resultado exponencial", "Game changer", "Nova economia"]
+          "items": ["Hackear o crescimento", "Hacker", "AI Architect", "Landing page", "Disruptivo", "Revolucionario", "Metodo secreto", "Formula magica", "Resultado exponencial", "Game changer", "Predial (o case Jotta e manutencao INDUSTRIAL)", "Sob medida usado sozinho, sem dizer para que problema"]
         }
       ]
     },
@@ -117,11 +224,36 @@
       "title": "Narrativa da Marca",
       "layout": "cards",
       "cards": [
-        { "title": "01 - O Bastidor Invisivel", "badge": "O que ninguem ve sustenta o que todos celebram", "body": "Antes do funil, antes do conteudo, antes do marketing, existe uma camada que ninguem mostra: a operacao. E nela que a maioria dos negocios trava. A narrativa comeca revelando o que esta oculto - o caos estrutural que impede o crescimento real, mesmo quando o marketing esta funcionando." },
-        { "title": "02 - A Virada", "badge": "De operador a arquiteto de sistemas", "body": "O momento em que o gestor percebe que nao precisa de mais gente - precisa de um sistema. A virada de chave: sair do modo 'apagar incendio' e entrar no modo 'projetar a operacao que roda sozinha'. Nao e sobre trabalhar mais. E sobre construir o que trabalha por voce." },
-        { "title": "03 - A Soberania", "badge": "Ativos proprios, nao dependencias", "body": "Terceirizar a operacao e terceirizar o controle. A soberania vem de construir sistemas proprietarios - ativos que voce possui, controla e escala. Plataformas alheias mudam. Algoritmos mudam. Seu sistema nao. O ativo mais valioso nao e seguidor, nao e trafego - e a arquitetura." },
-        { "title": "04 - Os Ativos Proprios", "badge": "Ecossistema de sistemas que geram valor recorrente", "body": "Captura automatizada, funis inteligentes, agentes de IA, dashboards de comando, pipelines autogerenciaveis. Cada ativo e uma peca de um ecossistema que gera resultado mesmo quando o fundador dorme. O valor nao esta no ativo isolado - esta na integracao entre eles." },
-        { "title": "05 - A Arquitetura como Tese de Negocio", "badge": "O maior diferencial competitivo e um sistema que ninguem copia", "body": "Nao e tecnologia por tecnologia. E engenharia operacional aplicada a negocios reais. A tese central do Hub Operacional e: o futuro da operacao nao e mais gente - e sistema. Enquanto o mercado vende ferramentas, a marca vende arquitetura. Enquanto o mercado cobra por hora, a marca cobra por sistema. Enquanto o mercado entrega relatorio, a marca entrega autonomia." }
+        {
+          "title": "01 - Onde o dinheiro vaza",
+          "badge": "O custo invisivel esta antes do orcamento",
+          "body": "Ninguem mede o tempo gasto para descobrir o que o cliente quer. A ida e volta de WhatsApp ate chegar em medida, material e prazo nao aparece em relatorio nenhum, mas consome a hora mais cara da empresa: a do tecnico ou a do dono. A narrativa comeca revelando esse vazamento."
+        },
+        {
+          "title": "02 - A virada",
+          "badge": "De atender pedido para receber pedido pronto",
+          "body": "O momento em que o dono percebe que nao precisa responder mais rapido, precisa receber melhor. Sair do modo 'descobrir o que ele quer' e entrar no modo 'ele ja me disse tudo antes de me chamar'. Nao e trabalhar mais. E mudar o que chega."
+        },
+        {
+          "title": "03 - O mecanismo",
+          "badge": "Ficha de Escopo",
+          "body": "A triagem tecnica que acontece antes do contato chegar no dono. Servico, equipamento, medida, material, urgencia, foto ou desenho anexados. Nao e o visual da pagina: o visual e commodity, a triagem nao. E o item que justifica o preco e o que separa a oferta de mais uma pagina."
+        },
+        {
+          "title": "04 - O segundo gargalo",
+          "badge": "A OS que vive na memoria da equipe",
+          "body": "Resolvida a entrada, aparece o gargalo seguinte e ele e maior: a ordem de servico tocada em planilha, WhatsApp e cabeca de gente. Ninguem sabe em que etapa a peca esta nem ha quanto tempo ela parou. O prazo nao se perde na maquina, se perde no intervalo. E ai que entra o OStrack."
+        },
+        {
+          "title": "05 - A prova",
+          "badge": "Cases reais e produto proprio",
+          "body": "Metalthec para usinagem e caldeiraria, Jotta Manutencoes para manutencao e automacao industrial, e o OStrack como produto proprio em operacao. Regra anti-invencao: so se cita o case que sera realmente enviado, e so se afirma o que tem prova. Claim sem lastro derruba a autoridade inteira."
+        },
+        {
+          "title": "06 - A escada",
+          "badge": "Da pagina ao produto e a automacao",
+          "body": "A pagina com Ficha de Escopo e a porta de entrada, nao o teto. Depois vem o OStrack para quem opera ordem de servico, e depois os sistemas e automacoes sob medida para o que sobrar de trabalho manual. A escada e uma so, e cada degrau so se sobe com o anterior entregue. Entrega remota, Brasil inteiro."
+        }
       ]
     },
     {
@@ -129,11 +261,41 @@
       "title": "Conteudo e Funil",
       "layout": "cards",
       "cards": [
-        { "title": "Topo de Funil", "badge": "Consciencia do problema", "body": "Conteudo que expoe a ineficiencia do sistema antigo. O caos operacional normalizado. O custo invisivel de processos manuais. Nao vender solucao - vender o diagnostico. O lead precisa sentir: 'isso e exatamente o que acontece aqui'." },
-        { "title": "Meio de Funil", "badge": "Arquitetura da solucao", "body": "Conteudo que mostra o sistema funcionando. Estudos de caso, bastidores de construcao, prints de dashboards, comparacao antes/depois da operacao. Mostrar a arquitetura, nao o resultado. O lead precisa entender como o sistema resolve o problema." },
-        { "title": "Fundo de Funil", "badge": "Decisao de arquitetura", "body": "Conteudo que valida a decisao. Chamadas diretas para diagnostico, proposta de sistema, construcao de ativo. Nao e 'compre agora' - e 'vamos arquitetar juntos'. A venda e sobre sistema, nao sobre preco." },
-        { "title": "Canal Principal", "badge": "Instagram Organico", "body": "Instagram e o motor de distribuicao. Conteudo em Reels (topo), Carrosseis (meio) e Stories/DM (fundo). YouTube e canal secundario para aprofundamento. Blog e e-mail sao ativos proprios de conversao." },
-        { "title": "Linhas Editoriais", "badge": "4 pilares de conteudo", "body": "1. Diagnostico - expor o caos operacional que ninguem ve. 2. Arquitetura - mostrar como sistemas resolvem problemas reais. 3. Engenharia - bastidores de construcao, ativos, automacoes. 4. Soberania - visao de longo prazo: ativos, sistemas, independencia." }
+        {
+          "title": "Motor de aquisicao",
+          "badge": "WhatsApp frio, medido no CRM",
+          "body": "100% das conversas reais ate hoje vieram de abordagem fria por WhatsApp, operada pelo CRM Erick com cadencia D+2 / D+5 / D+10 e teto diario. E o unico motor comprovado. Enquanto outro canal nao gerar conversa medida no CRM, ele nao e canal: e aposta."
+        },
+        {
+          "title": "Sustentacao de autoridade",
+          "badge": "Instagram, LinkedIn e site da Mydrion",
+          "body": "NAO sao motor. Sao onde o lead confere se voce existe DEPOIS da abordagem. O papel deles e confirmar em 3 segundos que do outro lado tem gente organizada. Perfil ou site que tenta vender no lugar da conversa soa como fornecedor pedindo espaco."
+        },
+        {
+          "title": "Aposta medida",
+          "badge": "Linkbio com quiz e tripwire",
+          "body": "Serve o funil que se QUER ter (entrada inbound com auto-qualificacao), nao o que paga hoje. Por isso fica isolado do motor e nao substitui o link direto de conversa nos perfis. Prazo de veredito: se em 90 dias nao gerar lead registrado no CRM com origem propria, reduz em vez de dobrar. Aposta honesta e aposta com data de julgamento."
+        },
+        {
+          "title": "Topo de Funil",
+          "badge": "Consciencia do problema",
+          "body": "Conteudo que expoe o custo do pedido sem escopo e do tempo parado entre etapas. Nao vender solucao, vender o diagnostico. O dono precisa sentir: 'isso acontece aqui toda semana'. Ataca o processo antigo, nunca o prospect."
+        },
+        {
+          "title": "Meio de Funil",
+          "badge": "O mecanismo na tela",
+          "body": "Ficha de Escopo funcionando, antes e depois de como o pedido chegava, print do WhatsApp com o pedido preenchido, fila do OStrack com etapa e tempo parado. Mostrar o artefato, nao o beneficio abstrato. Mago sem artefato e charlatao."
+        },
+        {
+          "title": "Fundo de Funil",
+          "badge": "Call de 15 minutos com valor na mesa",
+          "body": "O CTA nao e 'quer que eu monte a ficha?', que gera trabalho e nao marca nada. E agendamento em escolha dupla, com sinalizacao de que o valor sai na call. Isso mata a negociacao improvisada por mensagem."
+        },
+        {
+          "title": "Linhas Editoriais",
+          "badge": "3Ps: 50 / 30 / 20",
+          "body": "PROPORCAO CANONICA, unica valida, encerra a divergencia entre documentos: 50% Prova o que Entendo (Mago e Governante), 30% Prova Quem Sou (Heroi e Governante), 20% Prova o que Resolvo (Mago com artefato). Em 12 posts por mes: 6 de repertorio, 3 a 4 de quem voce e, 2 a 3 de prova. Qualquer doc que disser 50/20/30 esta desatualizado."
+        }
       ]
     },
     {
@@ -144,40 +306,44 @@
         {
           "title": "Claims que exigem prova",
           "items": [
-            "'Isso substitui time de marketing' - precisa mostrar caso real",
-            "'Aumenta conversao em X%' - precisa vir de dado do funil",
-            "'Sistema autonomo' - precisa mostrar funcionamento real",
-            "'IA aplicada' - precisa demonstrar o agente funcionando"
+            "'Reduz o tempo de cotacao' - precisa vir de cliente medindo, nao de estimativa",
+            "'Aumenta orcamento fechado em X%' - precisa vir de dado do funil do cliente",
+            "'Ficha de Escopo' - precisa mostrar a tela com os campos reais",
+            "'Rastreabilidade' e 'lead time' no OStrack - precisa vir de transicao de etapa registrada, nao de tela de demonstracao",
+            "Numero de leads, taxa de resposta, faturamento - so o que estiver no CRM"
           ]
         },
         {
           "title": "Riscos de exagero",
           "items": [
-            "Afirmar que sistema substitui completamente time humano",
-            "Prometer resultados sem prazo definido",
-            "Comparacao agressiva com concorrentes indiretos",
-            "Hype de IA sem lastro operacional"
+            "Prometer volume de cliente novo: a pagina melhora a entrada do pedido, nao gera demanda",
+            "Vender o mensal de R$150 como 'a Ficha de Escopo evoluindo': o escopo e hospedagem e troca de texto e foto",
+            "Generalizar a primeira venda (cliente pequeno) como referencia de mercado",
+            "Posicionar o OStrack como ERP ou como substituto de sistema fiscal",
+            "Citar case ou certificacao que nao existe"
           ]
         },
         {
           "title": "Contradicoes estrategicas",
           "items": [
-            "Pregar sistema proprio vs. depender de plataforma de terceiros",
-            "Pregar soberania vs. usar ferramenta generica sem personalizacao",
-            "Falar de escala sem mostrar estrutura que escala",
-            "Defender ativos proprios vs. vender servico recorrente sem entrega de ativo"
+            "Anunciar-se pela mercadoria ('faco pagina', 'construimos sistemas') e esperar tratamento de Governante",
+            "Empresa sem cercadinho cobrando preco de especialista: quem nao diz o que nao faz vira tabela comparada",
+            "Marca e voz com arquetipos diferentes: Mydrion e Erick precisam ler igual",
+            "Pregar triagem e escopo e negociar sem escopo definido",
+            "Dar desconto em vez de reduzir entrega: preco que cede uma vez cede sempre",
+            "Manter documento de posicionamento antigo vivo no vault: agente ou pessoa pega o errado e gera copy da marca morta"
           ]
         },
         {
           "title": "Checkpoints antes de publicar",
           "items": [
-            "O conteudo ataca o sistema antigo ou humilha o prospect? (se for contra o prospect, nao publique)",
-            "A frase tem prova ou e hype vazio? (toda afirmacao forte exige evidencia)",
-            "O tom e de arquiteto seguro ou de vendedor ansioso? (soberano vs. carente)",
-            "A oferta esta alinhada com o posicionamento? (sistema, nao servico generico)",
-            "O conteudo cabe neste estagio do funil? (nao pular etapas)",
-            "A copy usa palavra ou frase da lista de proibidas? (cacar termos de hype)",
-            "Existe chamada clara para o proximo passo? (nao deixar lead sem direcao)"
+            "Qual arquetipo esta no palco aqui, e ele esta sozinho? (Mago nao fala preco, Governante nao demonstra ferramenta)",
+            "O conteudo ataca o processo antigo ou aponta falha no prospect? (se for contra o prospect, nao publique)",
+            "A afirmacao tem prova no CRM ou no cliente? (claim forte exige evidencia)",
+            "O tom e de dono conversando com dono, ou de fornecedor pedindo espaco?",
+            "A copy usa palavra da lista de evitadas, ou crava cidade como atributo de marca?",
+            "Isso expoe o funil ou entrega o insight? (nunca publicar taxa de resposta ou nome de lead que nao e cliente)",
+            "Existe chamada clara para o proximo passo?"
           ]
         }
       ]
@@ -187,12 +353,36 @@
       "title": "Ativos e Ofertas",
       "layout": "cards",
       "cards": [
-        { "title": "Hub Operacional", "badge": "Ativo", "body": "Sistema proprietario de gestao operacional. Central de comando, funis, pipeline, conteudo, agentes, sinais, brandbook. O sistema que integra e automatiza a operacao." },
-        { "title": "Automacao de Captura e Funil", "badge": "Sistema", "body": "Da prospeccao ao nurturing. Fluxos automatizados de captura, qualificacao, distribuicao e follow-up. Reduz intervencao manual na operacao." },
-        { "title": "Agentes de IA Proprietarios", "badge": "SaaS / Ativo", "body": "Copy, Funil, Conteudo, Trafego, Vendas, Analise. Agentes treinados na operacao real, nao chatbots genericos. Executam tarefas operacionais com supervisao estrategica." },
-        { "title": "Estruturas de Captura e Paginas", "badge": "Ativo", "body": "Landing pages integradas ao sistema. Formularios inteligentes com roteamento automatico. Paginas de contrato, checkout e onboarding conectadas ao pipeline." },
-        { "title": "Oferta Principal", "badge": "Arquitetura de Sistema Operacional", "body": "Diagnostico, desenho, construcao e implantacao do sistema proprietario. Nao e servico recorrente - e construcao de ativo. Entrega: Hub Operacional configurado para o negocio do cliente." },
-        { "title": "Mecanismo", "badge": "Diagnostico de Caos Operacional", "body": "Analise estruturada do funil, pipeline, conteudo e operacao do lead. Entrega: relatorio com gargalos, oportunidades e roadmap de arquitetura. Mecanismo de entrada para a oferta principal." }
+        {
+          "title": "Oferta de Entrada",
+          "badge": "Pagina industrial com Ficha de Escopo",
+          "body": "R$997 de setup + R$150/mes. O mensal cobre hospedagem e troca de texto e foto; mudanca maior e combinada e cobrada a parte, sempre antes de executar. Ancora validada em 14/08/2026 com a primeira venda fechada. Cliente pequeno, entao a faixa esta provada, o teto nao."
+        },
+        {
+          "title": "Mecanismo",
+          "badge": "Ficha de Escopo",
+          "body": "Triagem tecnica antes do contato chegar no dono: servico, equipamento, medida, material, urgencia, foto ou desenho. Nomeia o artefato, nao o beneficio. O industrial ja usa a palavra 'ficha' todo dia, entao nao soa a marketing, e da pra pedir: 'me manda a ficha'."
+        },
+        {
+          "title": "Produto proprio",
+          "badge": "OStrack",
+          "body": "Gestao de ordem de servico para recuperadoras, usinagens e oficinas industriais: etapa, responsavel, tempo parado, proxima acao, escopo aprovado sem vazamento de preco, e base para documento industrial (foto, medicao, checklist, relatorio, databook). Nao se oferece na abordagem fria: aparece quando o cliente encosta no gargalo da OS."
+        },
+        {
+          "title": "Sistemas e automacoes",
+          "badge": "Degrau sob demanda",
+          "body": "Para o que sobra de trabalho manual depois que entrada e OS estao resolvidas. Escopo e ticket definidos caso a caso, entrega remota. Assinado pela Mydrion. Nao entra em abordagem fria nem em pagina de entrada: e conversa de quem ja e cliente."
+        },
+        {
+          "title": "Prova",
+          "badge": "Metalthec e Jotta Manutencoes",
+          "body": "Metalthec (fabricacao e usinagem) para leads de usinagem e caldeiraria. Jotta Manutencoes (manutencao industrial, nunca 'predial') para manutencao, automacao e climatizacao. Regra anti-invencao: o link citado tem que ser o que sera realmente enviado."
+        },
+        {
+          "title": "Operacao propria",
+          "badge": "CRM Erick",
+          "body": "Ferramenta interna, nao produto e nao vitrine. Prospeccao, cadencia, classificacao de conversa por segmento, fila de encaminhados, experimento de copy versionado. NAO se vende e nao se demonstra para lead: e o bastidor que sustenta o Heroi. Bastidor de codigo sim, tela com nome de empresa nao."
+        }
       ]
     },
     {
@@ -200,12 +390,38 @@
       "title": "Objecoes e Respostas",
       "layout": "list",
       "list": [
-        { "title": "'Isso nao e caro?'", "body": "A pergunta certa nao e 'quanto custa' - e 'quanto custa continuar operando no caos'. Um sistema proprietario substitui posicoes operacionais. O retorno nao esta no preco. Esta no custo de nao ter o sistema." },
-        { "title": "'Ja tenho ferramentas, por que preciso de um sistema?'", "body": "Toda ferramenta isolada e uma ilha. O que falta nao e mais ferramenta - e a arquitetura que integra o que ja existe. O sistema nao substitui suas ferramentas. Ele conecta, automatiza e orquestra o que voce ja tem." },
-        { "title": "'Nao tenho tempo para implementar um sistema agora'", "body": "O sistema foi feito exatamente para quem nao tem tempo. Ele nao e mais trabalho - e a substituicao de trabalho manual por arquitetura autonoma. Quanto mais tempo voce nao tem, mais precisa de sistema." },
-        { "title": "'Ja tentei automatizar e nao funcionou'", "body": "Automacao sem arquitetura e maquiagem de caos. O que provavelmente aconteceu: ferramenta nova sobre processo quebrado. O sistema primeiro reorganiza a operacao, depois automatiza. Automatizar caos so produz caos mais rapido." },
-        { "title": "'Minha operacao e muito especifica para um sistema padronizado'", "body": "Bom - porque o sistema nao e padronizado. A arquitetura e desenhada para o seu negocio. O que e padronizado e o metodo de construcao, nao o sistema entregue. Cada operacao tem seu desenho, seus fluxos, seus agentes." },
-        { "title": "'E se eu crescer e o sistema nao acompanhar?'", "body": "O sistema foi projetado para escalar com voce. Crescer nao significa reconstruir - significa adicionar camadas. A base arquitetural e a mesma do MVP ao enterprise. O que muda e o numero de agentes, fluxos e integracoes." }
+        {
+          "title": "'Ja tenho quem faca isso pra mim'",
+          "body": "Otimo, entao o visual ja esta resolvido. A pergunta nao e quem fez a pagina: e como o pedido chega em voce hoje. Se ainda chega 'quanto custa usinar uma peca?', o problema nao e a pagina, e a triagem. Isso da pra somar ao que voces ja tem."
+        },
+        {
+          "title": "'Nao e caro?'",
+          "body": "Compare com a hora que voce ou o tecnico gastam descobrindo medida, material e prazo por mensagem, numa cotacao que muitas vezes some antes da resposta. O valor da pagina e menor que um mes desse tempo. E o mensal cobre hospedagem e troca de texto e foto, sem letra miuda."
+        },
+        {
+          "title": "'Minha estrutura e pequena / trabalho sozinho'",
+          "body": "A pagina e do tamanho da operacao. A sua seria simples, com os servicos que voce atende e o WhatsApp direto. E o trabalho e meu: voce me passa o que atende e eu volto com ela pronta. Quem trabalha sozinho perde menos com falta de cliente e mais com tempo."
+        },
+        {
+          "title": "'Nao tenho tempo pra isso agora'",
+          "body": "E exatamente por isso. Voce nao vai preencher nada nem aprender ferramenta. O que muda e que o proximo pedido chega com servico, medida e prazo ja definidos, em vez de virar mais uma conversa que voce precisa conduzir."
+        },
+        {
+          "title": "'Site nao traz cliente pra mim'",
+          "body": "Concordo, e eu nao vendo isso. Quem traz cliente e o seu nome e a indicacao. O que a pagina faz e outra coisa: quando ele chega, chega dizendo o que precisa. E quando ele pesquisa antes de ligar, ele encontra alguem organizado do outro lado."
+        },
+        {
+          "title": "'Voces sao de onde? Precisa vir aqui?'",
+          "body": "A entrega e remota e eu atendo o Brasil inteiro. Nada do que eu faco depende de visita: a gente resolve por chamada e WhatsApp, e voce recebe pronto. Se der pra passar ai em algum momento, otimo, mas nunca e requisito."
+        },
+        {
+          "title": "'Ja uso planilha e da conta'",
+          "body": "Da conta ate o dia em que o cliente pergunta ha quanto tempo a peca dele esta parada. Planilha registra o que aconteceu, ela nao te diz onde travou nem ha quanto tempo. A diferenca nao e organizar melhor, e enxergar o intervalo que hoje ninguem mede."
+        },
+        {
+          "title": "'Vou pensar e te retorno'",
+          "body": "Tranquilo. Sao 15 minutos pra eu te mostrar como ficaria com os servicos de voces e ja te passar o valor fechado, sem compromisso. Se depois disso nao fizer sentido, eu mesmo encerro. Consegue amanha de manha, ou prefere a tarde?"
+        }
       ]
     },
     {
@@ -213,12 +429,46 @@
       "title": "Templates de Uso",
       "layout": "cards",
       "cards": [
-        { "title": "Bio do Instagram", "badge": "Template", "body": "Arquiteto de Sistemas Autonomos. Hub Operacional. Link no perfil - sistema." },
-        { "title": "CTA Padrao", "badge": "Template", "body": "'Quer entender como aplicar isso na sua operacao? Me manda um diagnostico que eu mostro o sistema.'" },
-        { "title": "Mini Manifesto", "badge": "Template", "body": "O futuro da operacao nao e mais gente - e sistema. Enquanto voce apaga incendio, eu construo o extintor. Arquitetura vence volume." },
-        { "title": "Estrutura de Post (Topo)", "badge": "Conteudo", "body": "Hook: diagnostico do caos. Problema: a planilha que todo mundo usa e ninguem confia. Solucao: o sistema que substitui a planilha. CTA: 'Ja passou por isso? Me conta nos comentarios.'" },
-        { "title": "Estrutura de Post (Meio)", "badge": "Conteudo", "body": "Hook: bastidor de construcao. Problema: como a operacao estava antes. Solucao: prints e explicacao do sistema. CTA: 'Quer ver como isso se aplica ao seu negocio?'" },
-        { "title": "Estrutura de Post (Fundo)", "badge": "Conteudo", "body": "Hook: resultado do sistema. Problema: o gargalo que o sistema resolveu. Solucao: print do dashboard + analise. CTA: 'Vamos diagnosticar sua operacao?'" }
+        {
+          "title": "Msg 1 (abordagem fria)",
+          "badge": "Template",
+          "body": "'Fala! Erick aqui. Eu faco o pedido do cliente chegar no seu WhatsApp ja com servico, medida e prazo definidos.' Assina PESSOA, nunca empresa. Variantes A/B vivem em content/sales-playbook.json. NAO cita o mecanismo aqui: ele entra na msg 2. Proximidade (localOpenings) so entra quando o lead e da regiao, como recurso de conversa."
+        },
+        {
+          "title": "Hero da Mydrion",
+          "badge": "Site institucional",
+          "body": "Eyebrow: TECNOLOGIA SOB MEDIDA PARA INDUSTRIA. Titulo: 'A gente organiza o comercial e a operacao de quem fabrica.' Subtitulo: 'O comprador industrial ja pesquisa antes de ligar. Do outro lado, o pedido ainda chega vago e a ordem de servico vive em planilha, WhatsApp e memoria da equipe. A Mydrion resolve os dois lados: a triagem na entrada e o controle na operacao.' CTA: 'Mapear meu projeto'. NAO usar 'construimos o que nao existe pronto' nem coordenada geografica."
+        },
+        {
+          "title": "Cercadinho da Mydrion",
+          "badge": "Secao obrigatoria no site",
+          "body": "Titulo: 'Onde a gente entra, e onde nao entra.' ENTRA: industria que atende pedido tecnico variavel, operacao que toca OS no manual, empresa que precisa provar rastreabilidade e escopo. NAO ENTRA: quem quer so identidade visual, quem compara com preco de mercado de site, comercio e revenda simples, quem procura substituir ERP fiscal, startup e agencia buscando software house generica. Essa secao e o que faz o resto do site ser lido como escolha, nao como necessidade."
+        },
+        {
+          "title": "Bio do Instagram",
+          "badge": "Template",
+          "body": "'Faco o pedido chegar no seu WhatsApp com servico, medida e prazo definidos. / Sistemas e paginas para industria. / Atendo o Brasil, entrega remota'. Categoria: Servico empresarial, nunca Criador digital. Sem cidade. Copy completa dos perfis em docs/PERFIS-publicos.md (o doc precisa ser atualizado para refletir a decisao de territorio de 17/08)."
+        },
+        {
+          "title": "CTA Padrao",
+          "badge": "Template",
+          "body": "'Te mostro em 15 min como ficaria com os servicos de voces e ja te passo o valor fechado. Consegue amanha de manha, ou prefere a tarde?' Sempre escolha dupla, sempre com sinalizacao de que o valor sai na call."
+        },
+        {
+          "title": "Estrutura de Post (Topo)",
+          "badge": "Conteudo - Mago",
+          "body": "Hook: o custo que ninguem mede. Problema: a ida e volta ate descobrir medida e material, ou o tempo parado entre etapas. Solucao: a triagem antes do contato, ou a fila com etapa e responsavel. CTA: 'acontece ai tambem?'."
+        },
+        {
+          "title": "Estrutura de Post (Meio)",
+          "badge": "Conteudo - Mago com artefato",
+          "body": "Hook: o pedido como ele chegava, ou a OS como ela vivia. Problema: o que faltava. Solucao: print da Ficha de Escopo preenchida no WhatsApp, ou a fila do OStrack com tempo parado. CTA: 'quer ver como ficaria pro seu servico?'."
+        },
+        {
+          "title": "Estrutura de Post (Fundo)",
+          "badge": "Conteudo - Governante",
+          "body": "Hook: uma decisao que voce tomou (lead descartado, desconto recusado, escopo reduzido em vez de preco). Problema: por que a alternativa era pior. Solucao: o principio. CTA: 'e assim que eu trabalho. Se fizer sentido, me chama'."
+        }
       ]
     }
   ]
