@@ -213,14 +213,17 @@ async function registrar(dealId, empresa, tier) {
   // mesmo WhatsApp, entao os dois contam no mesmo orcamento do dia.
   const inicio = new Date();
   inicio.setHours(0, 0, 0, 0);
+  // So whatsapp_sent: whatsapp_sent_sync e conversa vinda do aparelho, nao prospeccao
+  // fria, e costuma nem ter deal (em 17/08/2026 uma conversa de 14 mensagens com
+  // deal_id NULL levou o contador a 38/40 e matou o lote da tarde). Espelha
+  // uazapi-send-batch.mjs -- mudar aqui obriga a mudar la.
   const hoje = await fetchAllPages(
     supa,
-    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=id,deal_id`,
+    `activities?type=eq.whatsapp_sent&created_at=gte.${inicio.toISOString()}&select=id,deal_id`,
   );
-  // Deal com is_prospect=false nao gasta teto: o webhook sincroniza a conversa pessoal
-  // do Erick como whatsapp_sent_sync e ela comeu 12 das 35 do dia em 07/08/2026.
+  // Deal com is_prospect=false tambem nao gasta teto (achado de 07/08/2026).
   // Filtro em JS e nao com deal_id=not.in.(...) no PostgREST: la a atividade sem deal
-  // sairia da conta junto, porque NOT IN com NULL da NULL. Espelha uazapi-send-batch.mjs.
+  // sairia da conta junto, porque NOT IN com NULL da NULL.
   const naoProspect = await fetchAllPages(supa, "deals?is_prospect=is.false&select=id");
   const fora = new Set(Array.isArray(naoProspect) ? naoProspect.map((d) => d.id) : []);
   const jaHoje = Array.isArray(hoje) ? hoje.filter((a) => !fora.has(a.deal_id)).length : 0;

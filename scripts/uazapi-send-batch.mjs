@@ -215,17 +215,35 @@ async function dealsNaoProspect() {
 
 // Conta no BANCO, nao na memoria do processo: se o script cair e for rodado de novo,
 // o teto do dia continua valendo e ele nao recomeca do zero.
+//
+// So conta whatsapp_sent: e o que a maquina dispara e o que sai pelo CRM na mao. O
+// whatsapp_sent_sync vem da sincronizacao do aparelho, ou seja e CONVERSA, nao
+// prospeccao fria. Filtrar so por is_prospect=false nao resolvia porque conversa
+// pessoal costuma nem ter deal: em 17/08/2026 uma conversa de 14 mensagens com
+// deal_id NULL levou o contador a 38/40 antes das 14h, a tarde abriu com espaco para
+// 2 mensagens e as 30 primeiras do manifesto nao sairam.
 async function enviadosHoje() {
   const inicio = new Date();
   inicio.setHours(0, 0, 0, 0);
   const j = await fetchAllPages(
     supa,
-    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at,deal_id`,
+    `activities?type=eq.whatsapp_sent&created_at=gte.${inicio.toISOString()}&select=created_at,deal_id`,
   );
   // Filtro em JS, nao com deal_id=not.in.(...) no PostgREST: la a atividade sem deal
   // sairia da conta junto, porque NOT IN com NULL da NULL. Sem deal continua contando.
   const fora = await dealsNaoProspect();
   return Array.isArray(j) ? j.filter((a) => !fora.has(a.deal_id)) : [];
+}
+
+// O guard por hora continua olhando TUDO que saiu do numero, sync inclusive: ali o
+// risco e volume no aparelho, e conversa pesada tambem pesa.
+async function saidasRecentes() {
+  const limite = new Date(Date.now() - 3600000).toISOString();
+  const j = await fetchAllPages(
+    supa,
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${limite}&select=created_at,deal_id`,
+  );
+  return Array.isArray(j) ? j : [];
 }
 
 function naUltimaHora(lista) {
@@ -378,7 +396,7 @@ async function registrar(deal) {
       if (DIA_INTEIRO) {
         // Teto por hora: se ja bateu, espera virar a hora em vez de continuar. Rajada
         // concentrada e o que a plataforma enxerga, nao o total do dia.
-        const daHora = naUltimaHora(await enviadosHoje());
+        const daHora = naUltimaHora(await saidasRecentes());
         if (daHora >= TETO_HORA) {
           console.log(`     teto da hora (${daHora}/${TETO_HORA}). Pausa de 20min.`);
           await dormir(20 * 60 * 1000);

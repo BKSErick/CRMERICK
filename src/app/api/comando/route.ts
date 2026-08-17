@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     // (o ultimo contato alimenta a fila de follow-up).
     const { data: waRows, error: waErr } = await supabase
       .from("activities")
-      .select("deal_id, created_at")
+      .select("deal_id, created_at, type")
       .in("type", ["whatsapp_sent", "whatsapp_sent_sync"]);
     if (waErr) throw waErr;
 
@@ -49,8 +49,13 @@ export async function GET(request: NextRequest) {
     const waByDeal = new Map<number, { last: number; count: number }>();
     for (const r of waRows ?? []) {
       const ts = r.created_at ? new Date(r.created_at as string).getTime() : 0;
-      if (ts >= todayStart.getTime()) disparosToday++;
-      if (ts >= sevenDaysAgo.getTime()) disparos7d++;
+      // O placar conta so whatsapp_sent, mesmo criterio do teto em uazapi-send-batch.mjs:
+      // whatsapp_sent_sync e conversa sincronizada do aparelho, nao disparo. O waByDeal
+      // abaixo continua com os dois, porque resposta na mao TAMBEM e ultimo contato e
+      // precisa segurar o follow-up automatico.
+      const ehDisparo = r.type === "whatsapp_sent";
+      if (ehDisparo && ts >= todayStart.getTime()) disparosToday++;
+      if (ehDisparo && ts >= sevenDaysAgo.getTime()) disparos7d++;
       const dealId = Number(r.deal_id);
       if (dealId > 0 && ts > 0) {
         const entry = waByDeal.get(dealId) ?? { last: 0, count: 0 };
