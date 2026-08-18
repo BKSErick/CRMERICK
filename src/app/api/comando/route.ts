@@ -46,6 +46,11 @@ export async function GET(request: NextRequest) {
 
     let disparosToday = 0;
     let disparos7d = 0;
+    // Saidas do NUMERO hoje: disparo + conversa do aparelho. E o numero que o WhatsApp
+    // enxerga, e o que restringiu a conta por 24h em 18/08/2026 (52 saidas em 6h30
+    // enquanto o placar de prospeccao marcava 35). Fica ao lado do placar de proposito:
+    // o teto de prospeccao sozinho escondeu o risco ate a instancia cair.
+    let saidasNumeroToday = 0;
     const waByDeal = new Map<number, { last: number; count: number }>();
     for (const r of waRows ?? []) {
       const ts = r.created_at ? new Date(r.created_at as string).getTime() : 0;
@@ -54,6 +59,7 @@ export async function GET(request: NextRequest) {
       // abaixo continua com os dois, porque resposta na mao TAMBEM e ultimo contato e
       // precisa segurar o follow-up automatico.
       const ehDisparo = r.type === "whatsapp_sent";
+      if (ts >= todayStart.getTime()) saidasNumeroToday++;
       if (ehDisparo && ts >= todayStart.getTime()) disparosToday++;
       if (ehDisparo && ts >= sevenDaysAgo.getTime()) disparos7d++;
       const dealId = Number(r.deal_id);
@@ -352,6 +358,9 @@ export async function GET(request: NextRequest) {
         disparos: { done: disparosToday, target: goals.dailyInputs.disparos, splitLP: goals.dailyInputs.disparosLP, splitDFY: goals.dailyInputs.disparosDFY },
         respostas,
         aguardando,
+        // Freio de mao do numero, nao meta: quanto mais perto de 40, maior o risco de
+        // restricao. Mesmo teto que os scripts uazapi-*-batch.mjs usam para parar.
+        saidasNumero: { done: saidasNumeroToday, limit: 40 },
       },
       alerts: {
         sevenDayRule: {

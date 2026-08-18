@@ -67,6 +67,9 @@ const TAM_BLOCO = Number(arg("bloco", 5));
 const DIA_INTEIRO = process.argv.includes("--dia-inteiro");
 const TETO_DIA = Number(arg("teto-dia", 40));
 const TETO_HORA = Number(arg("teto-hora", 7));
+// Teto de SAIDA DO NUMERO: prospeccao + conversa do aparelho somadas. Existe porque
+// o WhatsApp conta o numero, nao a fila do CRM. Ver saidasDoNumeroHoje().
+const TETO_NUMERO = Number(arg("teto-numero", 40));
 // Espacamento alvo no modo dia inteiro. Sorteado entre os dois a cada envio, e nao
 // um valor fixo: cadencia regular e a assinatura mais obvia de automacao.
 const DIA_MIN_S = Number(arg("dia-min", 240));
@@ -235,6 +238,24 @@ async function enviadosHoje() {
   return Array.isArray(j) ? j.filter((a) => !fora.has(a.deal_id)) : [];
 }
 
+// GUARD DE SEGURANCA DO NUMERO (18/08/2026). Coisa diferente do teto de prospeccao
+// acima: aqui conta TUDO que saiu do numero hoje, sync inclusive e sem tirar
+// is_prospect=false, porque quem restringe a conta e o WhatsApp e ele nao sabe o que
+// e prospeccao e o que e conversa. Em 18/08/2026 o teto de prospeccao contou 35 e
+// autorizou a fila inteira, mas o aparelho tinha mandado outras 17: 52 saidas em 6h30
+// derrubaram a instancia as 14:42 ("401: logged out from another device") e a conta
+// ficou 24h sem poder iniciar conversa. O teto de prospeccao continua sendo orcamento
+// de quantas frias cabem no dia; este aqui e freio de mao do numero.
+async function saidasDoNumeroHoje() {
+  const inicio = new Date();
+  inicio.setHours(0, 0, 0, 0);
+  const j = await fetchAllPages(
+    supa,
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=created_at`,
+  );
+  return Array.isArray(j) ? j.length : 0;
+}
+
 // O guard por hora continua olhando TUDO que saiu do numero, sync inclusive: ali o
 // risco e volume no aparelho, e conversa pesada tambem pesa.
 async function saidasRecentes() {
@@ -327,7 +348,19 @@ async function registrar(deal) {
     if (GO) return;
     console.log("Dry-run segue so para voce conferir a fila; com --go nada seria enviado.\n");
   }
-  const disponivel = JSON_OUT ? LIMITE : (restaHoje || LIMITE);
+  // Freio de mao do numero: vale por cima do teto de prospeccao, porque conta tambem
+  // o que o Erick manda do celular. Nao vale para a montagem do manifesto (JSON_OUT):
+  // ali nada e enviado e o lote e congelado de vespera, quando o contador do dia do
+  // envio ainda nem existe.
+  const saidasNumero = await saidasDoNumeroHoje();
+  const restaNumero = Math.max(0, TETO_NUMERO - saidasNumero);
+  if (restaNumero === 0 && !JSON_OUT) {
+    console.log(`\nTeto de saida do numero atingido (${saidasNumero}/${TETO_NUMERO}), somando prospeccao e conversa do aparelho.`);
+    if (GO) return;
+    console.log("Dry-run segue so para voce conferir a fila; com --go nada seria enviado.\n");
+  }
+
+  const disponivel = JSON_OUT ? LIMITE : Math.min(restaHoje || LIMITE, restaNumero || LIMITE);
   const alvo = DIA_INTEIRO ? disponivel : Math.min(LIMITE, disponivel);
 
   const lote = [];
@@ -338,7 +371,7 @@ async function registrar(deal) {
   }
 
   const confirmados = lote.filter((l) => l.confianca === 3).length;
-  console.log(`\nFila elegivel: ${fila.length} | ja enviados hoje: ${hoje.length}/${TETO_DIA} | lote: ${lote.length}`);
+  console.log(`\nFila elegivel: ${fila.length} | ja enviados hoje: ${hoje.length}/${TETO_DIA} | saidas do numero: ${saidasNumero}/${TETO_NUMERO} | lote: ${lote.length}`);
   if (retidos.length) {
     console.log(`Retidos pela triagem de porte/tipo: ${retidos.length} (liberar em data/triagem-aprovados.json)`);
     retidos.slice(0, 8).forEach((r) => console.log(`   ${r}`));
@@ -371,6 +404,17 @@ async function registrar(deal) {
   let enviados = 0;
   for (let i = 0; i < lote.length; i++) {
     const lead = lote[i];
+    // Recheca a cada envio, nao so na largada: o lote leva horas para escoar e o Erick
+    // conversa no celular no meio disso. Em 18/08/2026 o aparelho mandou 17 mensagens
+    // durante a fila e so o total estourou; conferir uma vez no inicio nao teria pego.
+    if (i > 0) {
+      const saidas = await saidasDoNumeroHoje();
+      if (saidas >= TETO_NUMERO) {
+        console.error(`\n${hhmm()} Teto de saida do numero atingido (${saidas}/${TETO_NUMERO}). Parando para nao arriscar bloqueio.`);
+        process.exitCode = 2;
+        break;
+      }
+    }
     const r = await enviar(lead.fone, lead.copy_text);
     if (r.ok) {
       falhasSeguidas = 0;

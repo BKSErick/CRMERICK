@@ -47,6 +47,9 @@ const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
 const TAM_BLOCO = Number(arg("bloco", 5));
 const TETO_DIA = Number(arg("teto-dia", 40));
+// Teto de SAIDA DO NUMERO: prospeccao + conversa do aparelho somadas. Existe porque o
+// WhatsApp conta o numero, nao a fila do CRM.
+const TETO_NUMERO = Number(arg("teto-numero", 40));
 const IDS = new Set(arg("ids", "").split(",").map(Number).filter(Boolean));
 const EXCLUDE_IDS = new Set(arg("exclude-ids", "").split(",").map(Number).filter(Boolean));
 const JSON_OUT = arg("json-out", "");
@@ -233,10 +236,28 @@ async function registrar(dealId, empresa, tier) {
     return;
   }
 
+  // GUARD DE SEGURANCA DO NUMERO (18/08/2026), coisa diferente do teto acima. Aqui
+  // conta TUDO que saiu do numero hoje -- sync inclusive, sem tirar is_prospect=false
+  // -- porque quem restringe a conta e o WhatsApp, e ele nao separa prospeccao de
+  // conversa. Em 18/08 o teto de prospeccao marcou 35 e liberou a fila, mas o aparelho
+  // tinha mandado outras 17: as 52 saidas derrubaram a instancia as 14:42 e a conta
+  // ficou 24h sem poder iniciar conversa. Espelha uazapi-send-batch.mjs -- mudar aqui
+  // obriga a mudar la.
+  const saidasNumero = await fetchAllPages(
+    supa,
+    `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=id`,
+  );
+  const jaNumero = Array.isArray(saidasNumero) ? saidasNumero.length : 0;
+  const restaNumero = Math.max(0, TETO_NUMERO - jaNumero);
+  if (GO && restaNumero === 0) {
+    console.log(`\nTeto de saida do numero atingido (${jaNumero}/${TETO_NUMERO}), somando prospeccao e conversa do aparelho. Nada a enviar.`);
+    return;
+  }
+
   const fila = await carregarFila();
   const porTier = fila.reduce((a, d) => ({ ...a, [d.tier]: (a[d.tier] || 0) + 1 }), {});
-  const lote = fila.slice(0, Math.min(LIMITE, JSON_OUT ? LIMITE : restaHoje));
-  console.log(`Enviados hoje (disparo + follow-up): ${jaHoje}/${TETO_DIA}`);
+  const lote = fila.slice(0, Math.min(LIMITE, JSON_OUT ? LIMITE : Math.min(restaHoje, restaNumero)));
+  console.log(`Enviados hoje (disparo + follow-up): ${jaHoje}/${TETO_DIA} | saidas do numero: ${jaNumero}/${TETO_NUMERO}`);
 
   console.log(`\nFila de follow-up: ${fila.length} ${JSON.stringify(porTier)} | lote: ${lote.length} | modo: ${GO ? "ENVIO REAL" : "dry-run"}\n`);
   lote.forEach((l, i) => {
@@ -266,6 +287,20 @@ async function registrar(dealId, empresa, tier) {
   let enviados = 0;
   for (let i = 0; i < lote.length; i++) {
     const l = lote[i];
+    // Recheca a cada envio, nao so na largada: o lote leva horas para escoar e o Erick
+    // conversa no celular no meio disso. Conferir uma vez no inicio nao pegaria.
+    if (i > 0) {
+      const agora = await fetchAllPages(
+        supa,
+        `activities?type=in.(whatsapp_sent,whatsapp_sent_sync)&created_at=gte.${inicio.toISOString()}&select=id`,
+      );
+      const saidas = Array.isArray(agora) ? agora.length : 0;
+      if (saidas >= TETO_NUMERO) {
+        console.error(`\n${hhmm()} Teto de saida do numero atingido (${saidas}/${TETO_NUMERO}). Parando para nao arriscar bloqueio.`);
+        process.exitCode = 2;
+        break;
+      }
+    }
     const r = await enviar(l.fone, followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade));
     if (r.ok) {
       falhas = 0;
