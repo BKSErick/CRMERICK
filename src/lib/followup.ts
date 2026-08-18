@@ -157,6 +157,55 @@ export function classifyInboundResponse(content: string): ResponseType {
     "seja bem-vindo",
     "seja bem vinda",
     "seja bem-vinda",
+    // AMPLIADO em 14/08 depois do dry-run de extract-referrals: dois autoresponders
+    // estavam sendo classificados como ENCAMINHAMENTO porque a frase deles casa com
+    // "entrar em contato com" / "entre em contato com" da lista de repasse. Eram 2 dos
+    // 4 repasses por texto livre, ou seja 50% de falso positivo, inflando a taxa de
+    // encaminhamento do relatorio e sujando a fila do decisor indicado.
+    // Casos reais: RDL Eletrica ("Obrigado por entrar em contato com a RDL...") e
+    // Blukit Metalurgica ("Este canal e exclusivo para Televendas. Peco que entre em
+    // contato com..."). Bot e checado ANTES de encaminhamento, entao basta entrar aqui.
+    "obrigado por entrar em contato",
+    "obrigada por entrar em contato",
+    "obrigado pelo contato",
+    "obrigada pelo contato",
+    "canal e exclusivo",
+    "canal exclusivo",
+    "exclusivo para televendas",
+    "somente para televendas",
+    "atendimento automatico",
+    // AMPLIADO em 18/08/2026 medindo as 388 respostas recebidas da base. Dez
+    // autoresponders passavam como resposta HUMANA, o que (a) mantinha o lead na
+    // cadencia automatica esperando uma resposta escrita a mao e (b) inflava a taxa
+    // de resposta que realimenta o score. Cada padrao abaixo veio de um caso real,
+    // citado no comentario, nao de suposicao.
+    "aguardando atendimento", // #78 Blukit
+    "que legal ter voce aqui", // #672 Proeng
+    "nao consigo ajudar com isso", // #1008 JP e #1021 F&T, resposta da IA da Meta
+    "somos o rh", // #1227 Tesla
+    "informe seu nome", // #857 Union: "informe seu nome, empresa e localizacao"
+    "somos a empresa", // #1183 CASALTEC
+    "estou aqui para oferecer", // #1079 Automacao Monlevade
+    "nao estamos disponiveis no momento", // #1216 DM Refrigeracao
+    // Terceira pessoa de proposito: "esta a sua disposicao" e a empresa falando de si
+    // (#1203 TOHRU). "estou a sua disposicao", que e humano, nao casa com isso.
+    "esta a sua disposicao",
+    // Segunda rodada da mesma medicao: sobraram mensagens do MESMO autoresponder que
+    // escapavam por detalhe de redacao. "seja bem-vindo" nao pegava "Bem-vindo a
+    // Automon" (#1079); "agradece o seu contato" nao pegava "Agradeco o contato"
+    // (#1021, resposta escrita por IA); e faltava o horario em outra flexao.
+    "bem-vind",
+    "bem vind",
+    "horario de funcionamento",
+    "agradeco o contato",
+    "agradeco seu contato",
+    "agradeco pelo contato",
+    "protocolo de chamado", // #78 Blukit: numero de protocolo do bot de atendimento
+    // Menu interativo do WhatsApp Business. O webhook grava o placeholder do tipo, e
+    // botao nunca e gente escrevendo. [AudioMessage] fica de FORA de proposito: audio
+    // e humano e precisa ser ouvido.
+    "buttonsmessage",
+    "listmessage",
   ];
   if (botPatterns.some((pattern) => text.includes(pattern))) return "bot";
 
@@ -347,7 +396,7 @@ export function mensagemDecisorIndicado(input: {
 
   return (
     `Oi, ${primeiroNome(input.nomeDecisor)}! Erick aqui. ${ponte}. ` +
-    `Eu faço página de vendas para indústria: o comprador chega já sabendo o que vocês atendem e manda o pedido pelo WhatsApp com o serviço definido. ` +
+    `Eu faço o pedido do cliente chegar no WhatsApp de vocês já com serviço, medida e prazo definidos, sem a ida e volta pra descobrir o que ele precisa. ` +
     `Separei um exemplo de uma empresa do mesmo ramo. Quer ver?`
   );
 }

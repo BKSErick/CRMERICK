@@ -117,6 +117,30 @@ const AUTORESPONDER = new RegExp(
     "como (podemos|posso) (te )?ajudar|em que (posso|podemos)",
     "digite \\d|escolha (uma|a) opção|selecione (uma|a) opção|menu de atendimento",
     "faça seu cadastro",
+    // AMPLIADO em 18/08/2026 medindo as 388 respostas recebidas da base: dez
+    // autoresponders passavam como resposta HUMANA e tiravam o lead da cadencia,
+    // alem de inflar a taxa de resposta. Espelha src/lib/followup.ts (classify
+    // InboundResponse) -- mudar aqui obriga a mudar la. Cada padrao veio de um caso
+    // real: Blukit, Proeng, JP/F&T (IA da Meta), Tesla, Union, CASALTEC, Automacao
+    // Monlevade, DM Refrigeracao e TOHRU.
+    "aguardando atendimento",
+    "que legal ter voc[êe] aqui",
+    "n[ãa]o consigo ajudar com isso",
+    "somos o RH",
+    "informe seu nome",
+    "somos a empresa",
+    "estou aqui para oferecer",
+    "n[ãa]o estamos dispon[íi]veis no momento",
+    // Terceira pessoa de proposito: e a empresa falando de si. "estou à sua
+    // disposição", que e humano, nao casa.
+    "est[áa] a sua disposi[çc][ãa]o",
+    // Segunda rodada: mensagens do MESMO autoresponder que escapavam por redacao.
+    "horário de funcionamento|horario de funcionamento",
+    "agrade[çc]o (o|seu|pelo) contato",
+    "protocolo de chamado",
+    // Menu interativo do WhatsApp Business; botao nunca e gente escrevendo.
+    // [AudioMessage] fica de FORA de proposito: audio e humano e precisa ser ouvido.
+    "\\[ButtonsMessage\\]|\\[ListMessage\\]",
   ].join("|"),
   "i",
 );

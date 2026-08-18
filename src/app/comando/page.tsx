@@ -80,6 +80,10 @@ type Placar = {
   disparos: { done: number; target: number; splitLP: number; splitDFY: number };
   respostas: number;
   aguardando: number;
+  // Freio de mao do numero (nao e meta) e leads esperando replica. Opcionais para a
+  // tela nao quebrar contra um deploy antigo da API.
+  saidasNumero?: { done: number; limit: number };
+  bolaComVoce?: number;
 };
 type Alerts = {
   sevenDayRule: { disparos7d: number; respostas: number; threshold: number; triggered: boolean };
@@ -125,10 +129,21 @@ type CommandForecast = {
     withoutNextAction: boolean;
   }>;
 };
+// Lead que respondeu e ficou sem replica. Vem de activities, nao de estagio.
+type BolaComVoceItem = {
+  dealId: number;
+  company: string;
+  stage: string;
+  phone: string;
+  texto: string;
+  tipo: string;
+  horas: number | null;
+};
 type Comando = {
   placar: Placar;
   alerts: Alerts;
   queue: QueueItem[];
+  bolaComVoce: BolaComVoceItem[];
   followupQueue: FollowupItem[];
   referralQueue: ReferralItem[];
   automationAlerts: AutomationAlert[];
@@ -249,7 +264,7 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   },
   {
     title: "🎯 Decisor indicado (te passaram o contato dele)",
-    text: "Oi, [NOME]! Erick aqui. [QUEM_INDICOU] me passou seu contato. Eu faço página de vendas para indústria: o comprador chega já sabendo o que vocês atendem e manda o pedido pelo WhatsApp com o serviço definido. Separei um exemplo de uma empresa do mesmo ramo. Quer ver?",
+    text: "Oi, [NOME]! Erick aqui. [QUEM_INDICOU] me passou seu contato. Eu faço o pedido do cliente chegar no WhatsApp de vocês já com serviço, medida e prazo definidos, sem a ida e volta pra descobrir o que ele precisa. Separei um exemplo de uma empresa do mesmo ramo. Quer ver?",
   },
   {
     title: "🔥 Re-engajamento 45d (lead frio / perdido)",
@@ -364,7 +379,21 @@ export default function ComandoPage() {
             <article className="kpi-card">
               <div className="kpi-label">Respostas</div>
               <div className="kpi-value">{data.placar.respostas}</div>
-              <div className="kpi-trend">Avancaram alem de Abordado</div>
+              <div className="kpi-trend">Responderam como gente (bot nao conta)</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Bola com voce</div>
+              <div className={`kpi-value ${(data.placar.bolaComVoce ?? 0) > 0 ? "danger" : ""}`}>
+                {data.placar.bolaComVoce ?? 0}
+              </div>
+              <div className="kpi-trend">Responderam e estao sem replica</div>
+            </article>
+            <article className="kpi-card">
+              <div className="kpi-label">Saidas do numero hoje</div>
+              <div className="kpi-value">
+                {data.placar.saidasNumero?.done ?? 0} / {data.placar.saidasNumero?.limit ?? 40}
+              </div>
+              <div className="kpi-trend">Disparo + conversa do aparelho</div>
             </article>
           </div>
 
@@ -511,6 +540,72 @@ export default function ComandoPage() {
               </div>
             ))}
           </details>
+
+          {/* BOLA COM VOCE vem primeiro de todas: e a unica fila onde o lead ja fez a
+              parte dele. Ate 18/08/2026 isso nao existia em lugar nenhum -- quem
+              respondia continuava em "abordado" e o placar mostrava como "aguardando
+              resposta DELE". Medicao do dia: 38 conversas vivas paradas, incluindo
+              lead perguntando preco e lead pedindo orcamento. */}
+          <div className="card-header" style={{ margin: "24px 0 12px" }}>
+            <div className="card-title">Bola com voce</div>
+            <span className="card-badge">
+              {(data.bolaComVoce ?? []).length} esperando resposta
+            </span>
+          </div>
+          {(data.bolaComVoce ?? []).length === 0 ? (
+            <div className="connection-status">Nenhum lead esperando resposta. Fila limpa.</div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Empresa</th>
+                    <th>O que ele disse</th>
+                    <th>Parado ha</th>
+                    <th>Acao</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.bolaComVoce ?? []).map((item) => (
+                    <tr key={item.dealId}>
+                      <td>
+                        <strong>{item.company}</strong>
+                        <div className="muted-copy" style={{ fontSize: "11px" }}>
+                          #{item.dealId} · {item.stage}
+                          {item.tipo === "objecao" ? " · objecao" : ""}
+                          {item.tipo === "perdido" ? " · sem interesse" : ""}
+                        </div>
+                      </td>
+                      <td style={{ maxWidth: "320px" }}>
+                        <span className="muted-copy" style={{ fontSize: "12px" }}>{item.texto}</span>
+                      </td>
+                      <td>
+                        {item.horas == null
+                          ? "--"
+                          : item.horas >= 24
+                            ? `${Math.floor(item.horas / 24)}d`
+                            : `${item.horas}h`}
+                      </td>
+                      <td>
+                        {item.phone ? (
+                          <a
+                            className="btn-small"
+                            href={whatsappLink(item.phone, "")}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Abrir conversa
+                          </a>
+                        ) : (
+                          <span className="muted-copy" style={{ fontSize: "11px" }}>sem telefone</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Encaminhamentos vem ANTES do follow-up de proposito: e o lead mais
               quente do funil e o que mais esfria parado. Ate 10/08/2026 os campos

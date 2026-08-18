@@ -6,7 +6,13 @@ import { calculateForecastFromSupabase } from "@/lib/dealForecastService.mjs";
 import { QUALIFICATION_REVIEW_STAGES, summarizeDealQualification } from "@/lib/dealQualification.mjs";
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
 import { diagnoseLead } from "@/lib/leadScoring";
-import { TIER_INFO, followupMessage, mensagemDecisorIndicado, tierForDays } from "@/lib/followup";
+import {
+  TIER_INFO,
+  classifyInboundResponse,
+  followupMessage,
+  mensagemDecisorIndicado,
+  tierForDays,
+} from "@/lib/followup";
 import { getCompanySignals, signalAliases, signalWeight, type CompanySignal } from "@/lib/sinais";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
@@ -25,6 +31,16 @@ function cleanPhone(value?: string | null): string {
   return (value ?? "").replace(/\D/g, "");
 }
 
+// A description da activity guarda o texto com o prefixo do sincronismo da Uazapi
+// ("[UAZAPI-HISTORY <id>] WhatsApp recebido: ..."). Sem tirar isso, o texto na tela fica
+// ilegivel e o classificador de bot le o prefixo junto.
+function cleanInbound(value?: string | null): string {
+  return String(value ?? "")
+    .replace(/^\[UAZAPI-HISTORY[^\]]*\]\s*/, "")
+    .replace(/^WhatsApp recebido:\s*/i, "")
+    .trim();
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = getCrmSupabaseAdmin();
@@ -38,10 +54,15 @@ export async function GET(request: NextRequest) {
 
     // Disparos manuais e sincronizados: hoje, ultimos 7 dias e ultimo contato por deal
     // (o ultimo contato alimenta a fila de follow-up).
+    // whatsapp_received entra junto desde 18/08/2026 para montar a fila "Bola com voce".
+    // A verdade da conversa e derivada daqui, NAO de deals.last_inbound_at/last_outbound_at:
+    // essas colunas so sao escritas pelo webhook da Uazapi, e o disparo automatico grava
+    // activity direto no banco sem passar por la. Resultado medido em 18/08: 134 deals com
+    // last_outbound_at para 351 abordados, ou seja o campo mente para 2 de cada 3.
     const { data: waRows, error: waErr } = await supabase
       .from("activities")
-      .select("deal_id, created_at, type")
-      .in("type", ["whatsapp_sent", "whatsapp_sent_sync"]);
+      .select("deal_id, created_at, type, description")
+      .in("type", ["whatsapp_sent", "whatsapp_sent_sync", "whatsapp_received"]);
     if (waErr) throw waErr;
 
     let disparosToday = 0;
@@ -52,17 +73,41 @@ export async function GET(request: NextRequest) {
     // o teto de prospeccao sozinho escondeu o risco ate a instancia cair.
     let saidasNumeroToday = 0;
     const waByDeal = new Map<number, { last: number; count: number }>();
+    // Ultima mensagem HUMANA recebida por deal: base da fila "Bola com voce". E a
+    // humana, nao a ultima recebida, porque o autoresponder costuma FECHAR a conversa
+    // depois da pessoa falar ("A Blukit agradece o seu contato, ate breve!!"). Usando a
+    // ultima recebida, esse lead sumia da fila mesmo com a pergunta dele sem resposta.
+    const inboundByDeal = new Map<number, { last: number; text: string }>();
+    // Deals com pelo menos UMA resposta humana em qualquer momento. Separado do mapa
+    // acima de proposito: a ultima mensagem pode ser um autoresponder ("A Blukit
+    // agradece o seu contato") depois de uma resposta de gente, e nesse caso o lead
+    // respondeu de verdade mesmo que a ultima linha seja bot.
+    const respondeuHumano = new Set<number>();
     for (const r of waRows ?? []) {
       const ts = r.created_at ? new Date(r.created_at as string).getTime() : 0;
+      const dealId = Number(r.deal_id);
+      if (r.type === "whatsapp_received") {
+        if (dealId > 0 && ts > 0) {
+          const texto = cleanInbound(r.description as string);
+          if (texto && classifyInboundResponse(texto) !== "bot") {
+            respondeuHumano.add(dealId);
+            const prev = inboundByDeal.get(dealId);
+            if (!prev || ts > prev.last) {
+              inboundByDeal.set(dealId, { last: ts, text: texto });
+            }
+          }
+        }
+        continue;
+      }
       // O placar conta so whatsapp_sent, mesmo criterio do teto em uazapi-send-batch.mjs:
       // whatsapp_sent_sync e conversa sincronizada do aparelho, nao disparo. O waByDeal
       // abaixo continua com os dois, porque resposta na mao TAMBEM e ultimo contato e
-      // precisa segurar o follow-up automatico.
+      // precisa segurar o follow-up automatico. Recebida NAO entra em nenhum dos dois:
+      // no saidasNumero ela nao e saida, e no waByDeal ela adiaria o follow-up.
       const ehDisparo = r.type === "whatsapp_sent";
       if (ts >= todayStart.getTime()) saidasNumeroToday++;
       if (ehDisparo && ts >= todayStart.getTime()) disparosToday++;
       if (ehDisparo && ts >= sevenDaysAgo.getTime()) disparos7d++;
-      const dealId = Number(r.deal_id);
       if (dealId > 0 && ts > 0) {
         const entry = waByDeal.get(dealId) ?? { last: 0, count: 0 };
         entry.last = Math.max(entry.last, ts);
@@ -71,19 +116,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Placar lido do ESTADO REAL dos deals (nao do log de stage_change, que poluia com
-    // arrastes de teste): Respostas = avancaram alem de Abordado; No ar = contatados
-    // aguardando resposta (stage Abordado).
-    const { count: respostasCount } = await supabase
-      .from("deals")
-      .select("id", { count: "exact", head: true })
-      .in("stage", ["qualified", "proposal", "negotiation", "won"]);
-    const { count: aguardandoCount } = await supabase
+    // CORRIGIDO em 18/08/2026. Antes: `respostas` contava deals em qualified+ e
+    // `aguardando` contava abordado+followup. Isso media ESTAGIO, nao resposta, e nada
+    // no CRM move o estagio quando o LEAD responde (o auto-move so reage a envio). Ou
+    // seja: o lead respondia, continuava em `abordado`, e o placar mostrava ele como
+    // "aguardando resposta dele" -- o contrario da verdade. Foi assim que 38 conversas
+    // vivas ficaram invisiveis.
+    //
+    // Agora: Respostas = quem de fato respondeu como gente; No ar = quem foi abordado e
+    // ainda nao respondeu. O numero de respostas SOBE (de 11 para ~68) porque passou a
+    // medir a coisa certa; nao e bug.
+    const respostas = respondeuHumano.size;
+    const { count: abordadosCount } = await supabase
       .from("deals")
       .select("id", { count: "exact", head: true })
       .in("stage", ["abordado", "followup"]);
-    const respostas = respostasCount ?? 0;
-    const aguardando = aguardandoCount ?? 0;
+    const aguardando = Math.max(0, (abordadosCount ?? 0) - respostas);
 
     // Fila do dia: deals ativos com telefone, priorizados pelo score (points) ja persistido.
     const { data: dealRows, error: dealErr } = await supabase
@@ -273,6 +321,61 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 50);
 
+    // FILA "BOLA COM VOCE" (18/08/2026). O lead respondeu e ninguem voltou. Ate aqui
+    // isso era INVISIVEL: o placar contava `respostas` como deals em qualified+, e quem
+    // respondia continuava em `abordado`, ou seja aparecia na tela como "aguardando
+    // resposta DELE". Medicao da base no dia: de 68 deals com resposta humana, 38 nunca
+    // receberam replica, incluindo lead perguntando preco ("Sim. Qual preco?" #980) e
+    // pedindo orcamento (#1192).
+    //
+    // A logica de secao ja existe em queueSectionForDeal (src/lib/followup.ts), mas ela
+    // depende de deals.last_inbound_at/last_outbound_at, que so o webhook escreve --
+    // disparo automatico e clique no CRM nao atualizam. Por isso aqui a fila e derivada
+    // de activities, que e o registro que nunca mente.
+    const inboundIds = [...inboundByDeal.keys()];
+    const { data: inboundDealRows } = inboundIds.length
+      ? await supabase
+          .from("deals")
+          .select("id, company, name, stage, phone, whatsapp, contact_id, is_prospect, referred_phone")
+          .in("id", inboundIds)
+      : { data: [] as Record<string, unknown>[] };
+
+    const bolaComVoce = (inboundDealRows ?? [])
+      // Filtra ANTES de montar a linha. inboundByDeal ja so guarda mensagem humana, entao
+      // aqui sobra: quem ja recebeu replica depois de falar, encaminhamento (tem fila
+      // propria em referralQueue) e conversa que nao e prospeccao.
+      .filter((d) => {
+        const id = Number(d.id);
+        const inbound = inboundByDeal.get(id);
+        if (!inbound?.text) return false;
+        const saida = waByDeal.get(id);
+        if (saida && saida.last >= inbound.last) return false;
+        return d.is_prospect !== false && !d.referred_phone;
+      })
+      .map((d) => {
+        const id = Number(d.id);
+        const inbound = inboundByDeal.get(id);
+        const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
+        const phone =
+          own ||
+          (d.contact_id != null ? phoneById.get(Number(d.contact_id)) : undefined) ||
+          phoneByKey.get(keyOf(d.company as string)) ||
+          phoneByKey.get(keyOf(d.name as string)) ||
+          "";
+        const texto = inbound?.text ?? "";
+        return {
+          dealId: id,
+          company: String(d.company ?? "Sem empresa"),
+          stage: String(d.stage ?? ""),
+          phone,
+          texto,
+          tipo: classifyInboundResponse(texto),
+          horas: inbound ? Math.floor((now.getTime() - inbound.last) / 3600000) : null,
+        };
+      })
+      // Mais antigo primeiro: e o que mais esfriou e o que da mais vergonha responder tarde.
+      .sort((a, b) => (b.horas ?? 0) - (a.horas ?? 0));
+
     // FILA DE ENCAMINHAMENTOS (10/08/2026). Encaminhamento e o melhor lead do
     // funil: o gatekeeper ja deu a permissao e o decisor chega com nome de quem
     // indicou. Ate aqui extract-referrals.mjs gravava deals.referred_* e NINGUEM
@@ -361,6 +464,9 @@ export async function GET(request: NextRequest) {
         // Freio de mao do numero, nao meta: quanto mais perto de 40, maior o risco de
         // restricao. Mesmo teto que os scripts uazapi-*-batch.mjs usam para parar.
         saidasNumero: { done: saidasNumeroToday, limit: 40 },
+        // Quantos leads estao esperando VOCE. Numero mais acionavel do placar: cada
+        // unidade aqui e uma conversa viva parada por falta de replica.
+        bolaComVoce: bolaComVoce.length,
       },
       alerts: {
         sevenDayRule: {
@@ -377,6 +483,7 @@ export async function GET(request: NextRequest) {
         },
       },
       queue,
+      bolaComVoce,
       followupQueue,
       referralQueue,
       automationAlerts: (automationRows ?? []).map((row) => ({
