@@ -21,6 +21,7 @@ export const navItems: NavItem[] = [
   { label: "Brandbook", href: "/brandbook", module: "brandbook", group: "Navegacao", status: "migrated" },
   { label: "Agentes", href: "/agentes", module: "agentes", group: "Navegacao", status: "migrated" },
   { label: "Sinais", href: "/sinais", module: "sinais", group: "Navegacao", status: "migrated" },
+  { label: "Demandas", href: "/demandas", module: "demandas", group: "Gestao", status: "migrated" },
   { label: "Carteira", href: "/carteira", module: "carteira", group: "Gestao", status: "migrated" },
   { label: "Calendario", href: "/calendar", module: "calendar", group: "Gestao", status: "migrated" },
   { label: "Reunioes", href: "/reunioes", module: "reunioes", group: "Gestao", status: "migrated" },

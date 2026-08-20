@@ -1,0 +1,115 @@
+// Gerado por scripts/sync-aios-agent-dna.mjs. Nao editar manualmente.
+export const AI_AGENT_PUBLIC_SNAPSHOTS = Object.freeze([
+  {
+    "id": "crm-copilot",
+    "name": "CRM Copilot",
+    "alias": "@geral",
+    "type": "agent",
+    "version": "1.0.0",
+    "specialty": "Visao transversal, triagem e sintese do CRM",
+    "sourcePath": "src/lib/salesCopilot.mjs",
+    "sourceHash": "56861a87191926a6482036c6e5375a155d8ad46ab80edd53161de17e6662b629",
+    "disclosure": "Especialista de IA.",
+    "suggestions": [
+      "O que exige minha atencao hoje?",
+      "Onde o funil esta vazando?",
+      "Quais propostas estao em risco?"
+    ]
+  },
+  {
+    "id": "copy-chief",
+    "name": "Copy Chief",
+    "alias": "@copy",
+    "type": "agent",
+    "version": "1.0.0",
+    "specialty": "Copy, persuasao, paginas, anuncios, VSL e auditoria",
+    "sourcePath": ".aios-core/development/agents/copy-chief.md",
+    "sourceHash": "b6588724118a5317ec21b49a188d10e2998a2f23e950a6e033af6430723580dd",
+    "disclosure": "Especialista de IA.",
+    "suggestions": [
+      "Audite esta copy",
+      "Qual e a Big Idea mais forte?",
+      "Reescreva esta oferta com mais prova"
+    ]
+  },
+  {
+    "id": "willian-celso",
+    "name": "Willian Celso",
+    "alias": "@willian",
+    "type": "clone",
+    "version": "2.1.0",
+    "specialty": "Arquetipos, identidade, posicionamento e comunicacao de marca",
+    "sourcePath": "experts/willian_celso/clone_willian_celso.yaml",
+    "sourceHash": "ee5ca2ae1565b5acd99dd56da092a2f7b0d8b106f01ed22102fe9cf6937370a0",
+    "disclosure": "Clone de IA baseada na metodologia de Willian Celso.",
+    "suggestions": [
+      "Qual simbolo minha marca comunica?",
+      "Meu posicionamento tem densidade?",
+      "Como fechar o cercadinho da marca?"
+    ]
+  },
+  {
+    "id": "thiago-finch",
+    "name": "Thiago Finch",
+    "alias": "@finch",
+    "type": "clone",
+    "version": "2.1.0",
+    "specialty": "Funis, produto digital, aquisicao e escala",
+    "sourcePath": "experts/thiago_finch/clone_thiago_finch.yaml",
+    "sourceHash": "571d1ab04a9411885ecf341bb9981adc47323c256e9f6d0504f57b8d9f76cf58",
+    "disclosure": "Clone de IA baseada na metodologia de Thiago Finch.",
+    "suggestions": [
+      "Onde este funil quebra?",
+      "Qual mecanismo unico faz sentido?",
+      "Como melhorar monetizacao e LTV?"
+    ]
+  },
+  {
+    "id": "alex-hormozi",
+    "name": "Alex Hormozi",
+    "alias": "@hormozi",
+    "type": "clone",
+    "version": "3.1.0",
+    "specialty": "Oferta, pricing, aquisicao, leads, LTV e escala",
+    "sourcePath": "experts/alex_hormozi/clone_alex_hormozi.yaml",
+    "sourceHash": "619c7e35dc2e5da188e09a0ce37113aa41529d469bb40f64c86206e1a28c4350",
+    "disclosure": "Clone de IA baseada na metodologia de Alex Hormozi.",
+    "suggestions": [
+      "Fortaleca esta oferta",
+      "Onde a Value Equation esta fraca?",
+      "Meu LTV suporta este CAC?"
+    ]
+  },
+  {
+    "id": "webson-vendedor",
+    "name": "Webson Vendedor",
+    "alias": "@webson",
+    "type": "agent",
+    "version": "1.0.0",
+    "specialty": "Vendas consultivas, objecoes, follow-up e fechamento",
+    "sourcePath": ".aios-core/development/agents/webson-vendedor.md",
+    "sourceHash": "6a68a181532c12c2f35ab7a27ab2e6ae248fa90b63e5631091a2ce12e89ea739",
+    "disclosure": "Especialista de IA.",
+    "suggestions": [
+      "Analise esta objecao",
+      "Crie um rascunho de follow-up",
+      "Qual pergunta destrava este deal?"
+    ]
+  },
+  {
+    "id": "data-chief",
+    "name": "Data Chief",
+    "alias": "@dados",
+    "type": "agent",
+    "version": "1.0.0",
+    "specialty": "Metricas, relatorios, coortes, forecast e North Star",
+    "sourcePath": ".aios-core/development/agents/data-chief.md",
+    "sourceHash": "c12c9c2280e4e16b01f24c735997876d9e1189b14f10c0fcf07dc01472e3943a",
+    "disclosure": "Especialista de IA.",
+    "suggestions": [
+      "Explique o forecast",
+      "Qual metrica merece atencao?",
+      "Compare funil e receita prevista"
+    ]
+  }
+]);

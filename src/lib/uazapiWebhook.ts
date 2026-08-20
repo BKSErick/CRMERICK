@@ -138,7 +138,7 @@ export function normalizeUazapiWebhook(payload: unknown): UazapiNormalizationRes
       direction: fromMe ? "sent" : "received",
       messageType,
       content: text || `[${messageType}]`,
-      mediaUrl,
+      ...(mediaUrl ? { mediaUrl } : {}),
       occurredAt: toIsoTimestamp(message.messageTimestamp),
     },
   };

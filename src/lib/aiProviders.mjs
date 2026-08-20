@@ -8,6 +8,7 @@ const PROVIDERS = [
     url: "https://openrouter.ai/api/v1/chat/completions",
     getKey: () => process.env.OPENROUTER_API_KEY,
     models: ["google/gemini-2.5-flash:free", "meta-llama/llama-3-8b-instruct:free", "qwen/qwen-2-7b-instruct:free"],
+    requestOptions: { max_tokens: 1800 },
     getHeaders: (key) => ({
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
@@ -19,7 +20,8 @@ const PROVIDERS = [
     name: "Groq",
     url: "https://api.groq.com/openai/v1/chat/completions",
     getKey: () => process.env.GROQ_API_KEY,
-    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+    models: ["qwen/qwen3.6-27b"],
+    requestOptions: { reasoning_format: "hidden", reasoning_effort: "none", max_completion_tokens: 1800, temperature: 0.6 },
     getHeaders: (key) => ({ Authorization: `Bearer ${key}`, "Content-Type": "application/json" }),
   },
 ];
@@ -52,15 +54,35 @@ export async function aiComplete(systemPrompt, userPrompt, options) {
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt },
             ],
+            ...provider.requestOptions,
           }),
         });
-        if (!response.ok) continue;
+        if (!response.ok) {
+          console.warn("[ai-provider] request rejected", {
+            provider: provider.name,
+            model,
+            status: response.status,
+          });
+          if (response.status === 401 || response.status === 403) break;
+          continue;
+        }
         const data = await response.json();
         const content = data?.choices?.[0]?.message?.content;
         if (content) return { content: String(content).trim(), provider: provider.name, model };
+        console.warn("[ai-provider] empty completion", {
+          provider: provider.name,
+          model,
+          finishReason: data?.choices?.[0]?.finish_reason ?? null,
+          completionTokens: data?.usage?.completion_tokens ?? null,
+        });
       } catch (error) {
         // Abortou por timeout/cancelamento: nao adianta tentar o proximo modelo.
         if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) throw error;
+        console.warn("[ai-provider] request failed", {
+          provider: provider.name,
+          model,
+          reason: error instanceof Error ? error.name : "unknown",
+        });
         // Falha do provedor: tenta o proximo modelo/provedor.
       }
     }

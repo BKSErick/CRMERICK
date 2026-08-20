@@ -1,5 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
+import AgentChatWorkspace from "./AgentChatWorkspace";
+import { AI_AGENT_PUBLIC_REGISTRY } from "@/lib/aiAgentRegistry";
 
 // Agentes = catalogo dos copilotos especialistas do Hub Operacional (Copy, Funil, Conteudo,
 // Trafego, Vendas, Analise), alinhado ao Brandbook ("Agentes de IA Proprietarios").
@@ -7,20 +7,9 @@ import path from "node:path";
 // e feed de atividade do shell legado foram removidos por nao terem fonte real (o Erick popula
 // as metricas de execucao quando os agentes estiverem operando de fato).
 
-type AgentItem = { code: string; name: string; area: string; description: string };
-type AgentsData = { generatedAt: string; source: string; note: string; count: number; items: AgentItem[] };
-
-function loadAgents(): AgentsData {
-  try {
-    const raw = fs.readFileSync(path.join(process.cwd(), "content", "agentes.json"), "utf8");
-    return JSON.parse(raw) as AgentsData;
-  } catch {
-    return { generatedAt: "", source: "", note: "", count: 0, items: [] };
-  }
-}
-
 export default function AgentesPage() {
-  const data = loadAgents();
+  const agents = [...AI_AGENT_PUBLIC_REGISTRY];
+  const chatEnabled = process.env.AI_AGENTS_CHAT_ENABLED === "true";
 
   return (
     <section>
@@ -33,35 +22,33 @@ export default function AgentesPage() {
         </div>
         <div className="page-header-right">
           <div className="label">No catalogo</div>
-          <div className="value">{data.count}</div>
+          <div className="value">{agents.length}</div>
         </div>
       </div>
 
-      {data.items.length === 0 ? (
-        <div className="connection-status fallback">
-          content/agentes.json vazio. Rode: node scripts/sync-vault-content.mjs
+      {chatEnabled ? <AgentChatWorkspace agents={agents} /> : (
+        <div className="connection-status fallback" style={{ marginBottom: 24 }}>
+          O chat contextual esta desabilitado neste ambiente. Defina AI_AGENTS_CHAT_ENABLED=true para habilitar.
         </div>
-      ) : (
-        <>
+      )}
+
+      <div className="agents-catalog-heading">
+        <h2>Especialistas disponiveis</h2>
+        <p>Escolha um especialista no chat ou use o atalho indicado.</p>
+      </div>
           <div className="grid-2col">
-            {data.items.map((agent) => (
-              <article className="card" key={agent.code}>
+            {agents.map((agent) => (
+              <article className="card" key={agent.id}>
                 <div className="card-header">
                   <div className="card-title">{agent.name}</div>
-                  <span className="card-badge">{agent.area}</span>
+                  <span className="card-badge">{agent.alias}</span>
                 </div>
-                <p className="muted-copy">{agent.description}</p>
+                <p className="muted-copy">{agent.specialty}</p>
+                <small className="agent-disclosure">{agent.disclosure}</small>
+                <div className="agent-card-meta"><span>{agent.type === "clone" ? "Clone de IA" : "Especialista de IA"}</span><span>v{agent.version}</span><code>{agent.sourcePath}</code></div>
               </article>
             ))}
           </div>
-
-          {data.note ? (
-            <div className="connection-status fallback" style={{ marginTop: "24px" }}>
-              {data.note}
-            </div>
-          ) : null}
-        </>
-      )}
     </section>
   );
 }

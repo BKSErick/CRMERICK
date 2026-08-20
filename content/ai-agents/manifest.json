@@ -1,7 +1,6 @@
 {
+  "schemaVersion": 1,
   "generatedAt": "2026-08-20T15:35:44.726Z",
-  "source": "content/ai-agents/manifest.json",
-  "note": "Catalogo versionado dos especialistas disponiveis no chat contextual.",
   "count": 7,
   "items": [
     {
