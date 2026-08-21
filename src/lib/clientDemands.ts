@@ -19,6 +19,39 @@ export type DemandPriority = (typeof DEMAND_PRIORITIES)[number];
 export type DemandDestination = (typeof DEMAND_DESTINATIONS)[number];
 export type DemandScheduleGroup = "overdue" | "today" | "upcoming" | "no_due" | "completed";
 
+// Rotulos unicos da operacao. Ficam aqui para a pagina, o workspace e os scripts
+// lerem do mesmo lugar em vez de duplicar a copy em cada arquivo.
+export const DEMAND_STATUS_LABELS: Record<DemandStatus, string> = {
+  todo: "A iniciar",
+  in_progress: "Criando",
+  review: "Em aprovacao",
+  done: "Entregue",
+  cancelled: "Cancelada",
+};
+
+export const DEMAND_PRIORITY_LABELS: Record<DemandPriority, string> = {
+  low: "Baixa",
+  normal: "Normal",
+  high: "Alta",
+  urgent: "Urgente",
+};
+
+export const DEMAND_DESTINATION_LABELS: Record<DemandDestination, string> = {
+  instagram: "Instagram",
+  site: "Site",
+  whatsapp: "WhatsApp",
+  ads: "Anuncios",
+  presentation: "Apresentacao",
+  drive: "Drive",
+  other: "Outro",
+};
+
+export const DEMAND_CLOSED_STATUSES: readonly DemandStatus[] = ["done", "cancelled"];
+
+export function isClosedDemand(demand: { status: DemandStatus }) {
+  return DEMAND_CLOSED_STATUSES.includes(demand.status);
+}
+
 export type DemandDeal = {
   id: number;
   company: string;
@@ -73,6 +106,8 @@ export type DemandEvent = {
 export type ClientDemand = {
   id: number;
   dealId: number | null;
+  /** Pasta da arvore de organizacao; nulo = "Sem pasta". O caminho vem de demandTreePath. */
+  folderId: number | null;
   title: string;
   description: string;
   copyText: string;
@@ -157,6 +192,115 @@ export function groupDemandBySchedule(
   if (dueKey < todayKey) return "overdue";
   if (dueKey === todayKey) return "today";
   return "upcoming";
+}
+
+function dateKeyToUtcNoon(dateKey: string) {
+  // Meio-dia UTC mantem o mesmo dia do calendario em America/Sao_Paulo (UTC-3).
+  return new Date(`${dateKey}T12:00:00Z`);
+}
+
+function shiftDateKey(dateKey: string, days: number, timeZone = DEMAND_TIME_ZONE) {
+  return dateKeyInTimeZone(new Date(dateKeyToUtcNoon(dateKey).getTime() + days * 86400000), timeZone);
+}
+
+export function formatDemandDayLabel(dateKey: string, todayKey: string, timeZone = DEMAND_TIME_ZONE) {
+  const date = dateKeyToUtcNoon(dateKey);
+  const parts = new Intl.DateTimeFormat("pt-BR", { timeZone, day: "2-digit", month: "short" }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  const dateLabel = `${part("day")} ${part("month").replace(".", "")}`;
+
+  if (dateKey === todayKey) return { weekday: "Hoje", dateLabel };
+  if (dateKey === shiftDateKey(todayKey, 1, timeZone)) return { weekday: "Amanha", dateLabel };
+  const weekday = new Intl.DateTimeFormat("pt-BR", { timeZone, weekday: "long" }).format(date);
+  return { weekday: weekday.charAt(0).toLocaleUpperCase("pt-BR") + weekday.slice(1), dateLabel };
+}
+
+export type DemandOverviewDay = {
+  dateKey: string;
+  weekday: string;
+  dateLabel: string;
+  demands: ClientDemand[];
+};
+
+export type DemandOverview = {
+  windowDays: number;
+  overdue: ClientDemand[];
+  days: DemandOverviewDay[];
+  noDue: ClientDemand[];
+  beyondWindow: number;
+  scheduledTotal: number;
+};
+
+const PRIORITY_RANK: Record<DemandPriority, number> = { urgent: 3, high: 2, normal: 1, low: 0 };
+
+function compareDemands(left: ClientDemand, right: ClientDemand) {
+  const byDue = (left.dueAt ?? "").localeCompare(right.dueAt ?? "");
+  if (byDue !== 0) return byDue;
+  const byPriority = PRIORITY_RANK[right.priority] - PRIORITY_RANK[left.priority];
+  if (byPriority !== 0) return byPriority;
+  return left.id - right.id;
+}
+
+/**
+ * Recorta as demandas na janela do Overview: atrasadas primeiro, depois um bucket
+ * por dia dentro da janela, o que nao tem prazo e a contagem do que fica alem dela.
+ * Agrupa pelo prazo e ignora o status - quem decide se as entregues entram e o filtro.
+ */
+export function buildDemandOverview(
+  demands: ClientDemand[],
+  options: { windowDays?: number; now?: Date; timeZone?: string } = {},
+): DemandOverview {
+  const windowDays = Math.max(1, Math.trunc(options.windowDays ?? 7));
+  const timeZone = options.timeZone ?? DEMAND_TIME_ZONE;
+  const todayKey = dateKeyInTimeZone(options.now ?? new Date(), timeZone);
+  const lastKey = shiftDateKey(todayKey, windowDays - 1, timeZone);
+
+  const overdue: ClientDemand[] = [];
+  const noDue: ClientDemand[] = [];
+  const byDay = new Map<string, ClientDemand[]>();
+  let beyondWindow = 0;
+
+  for (const demand of demands) {
+    if (!demand.dueAt) {
+      noDue.push(demand);
+      continue;
+    }
+    const due = new Date(demand.dueAt);
+    if (Number.isNaN(due.getTime())) {
+      noDue.push(demand);
+      continue;
+    }
+    const dueKey = dateKeyInTimeZone(due, timeZone);
+    if (dueKey < todayKey) {
+      overdue.push(demand);
+    } else if (dueKey <= lastKey) {
+      const bucket = byDay.get(dueKey);
+      if (bucket) bucket.push(demand);
+      else byDay.set(dueKey, [demand]);
+    } else {
+      beyondWindow += 1;
+    }
+  }
+
+  overdue.sort(compareDemands);
+  noDue.sort(compareDemands);
+
+  const days = Array.from(byDay.entries())
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .map(([dateKey, items]) => ({
+      dateKey,
+      ...formatDemandDayLabel(dateKey, todayKey, timeZone),
+      demands: items.sort(compareDemands),
+    }));
+
+  return {
+    windowDays,
+    overdue,
+    days,
+    noDue,
+    beyondWindow,
+    scheduledTotal: overdue.length + days.reduce((total, day) => total + day.demands.length, 0),
+  };
 }
 
 export function transitionDemandStatus(
@@ -324,6 +468,7 @@ export function mapClientDemand(value: unknown): ClientDemand {
   return {
     id: asNumber(row.id),
     dealId: row.deal_id == null ? null : asNumber(row.deal_id),
+    folderId: row.folder_id == null ? null : asNumber(row.folder_id),
     title: asString(row.title),
     description: asString(row.description),
     copyText: asString(row.copy_text),

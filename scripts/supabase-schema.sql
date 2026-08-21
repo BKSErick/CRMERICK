@@ -865,6 +865,35 @@ create trigger client_demand_links_updated_at before update on public.client_dem
   for each row execute function public.set_client_demand_updated_at();
 
 -- ================================================================
+-- STORY 037: ARVORE DE PASTAS DAS DEMANDAS
+-- ================================================================
+-- Uma tabela auto-referenciada. Pasta raiz e o cliente; subpastas em qualquer
+-- profundidade; a demanda pode morar em qualquer nivel, nao so na folha.
+
+create table if not exists public.demand_folders (
+  id bigint generated always as identity primary key,
+  parent_id bigint references public.demand_folders(id) on delete cascade,
+  deal_id integer references public.deals(id) on delete set null,
+  name text not null check (length(trim(name)) between 1 and 120),
+  position integer not null default 0 check (position >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.client_demands
+  add column if not exists folder_id bigint references public.demand_folders(id) on delete set null;
+
+create index if not exists demand_folders_parent_position_idx on public.demand_folders (parent_id, position, id);
+create index if not exists demand_folders_deal_idx on public.demand_folders (deal_id) where deal_id is not null;
+create index if not exists client_demands_folder_idx on public.client_demands (folder_id) where folder_id is not null;
+
+alter table public.demand_folders enable row level security;
+
+drop trigger if exists demand_folders_updated_at on public.demand_folders;
+create trigger demand_folders_updated_at before update on public.demand_folders
+  for each row execute function public.set_client_demand_updated_at();
+
+-- ================================================================
 -- STORY 035: CHAT CONTEXTUAL MULTIAGENTE
 -- ================================================================
 

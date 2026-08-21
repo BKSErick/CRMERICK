@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  DEMAND_ATTACHMENTS_BUCKET,
   isDemandDestination,
   isDemandPriority,
   isDemandStatus,
@@ -13,6 +14,7 @@ import {
   DEMAND_DETAIL_SELECT,
   DEMAND_SUMMARY_SELECT,
   appendDemandEvent,
+  assertDemandFolderExists,
   boundedDemandText,
   demandErrorResponse,
   demandId,
@@ -59,10 +61,12 @@ export async function GET(request: NextRequest) {
     const priority = request.nextUrl.searchParams.get("priority");
     const destination = request.nextUrl.searchParams.get("destination");
     const assignee = request.nextUrl.searchParams.get("assignee");
+    const folderId = demandId(request.nextUrl.searchParams.get("folderId"));
     if (isDemandStatus(status)) query = query.eq("status", status);
     if (isDemandPriority(priority)) query = query.eq("priority", priority);
     if (isDemandDestination(destination)) query = query.eq("destination_type", destination);
     if (assignee) query = query.eq("assignee", assignee.slice(0, 160));
+    if (folderId) query = query.eq("folder_id", folderId);
 
     const result = await query.range(offset, offset + limit - 1);
     if (result.error) throw result.error;
@@ -95,9 +99,13 @@ export async function POST(request: NextRequest) {
     const dueAt = nullableIso(body?.dueAt, "Prazo");
     const startsAt = nullableIso(body?.startsAt, "Inicio");
     const completedAt = status === "done" ? new Date().toISOString() : null;
+    const folderId = demandId(body?.folderId);
+    if (body?.folderId != null && body.folderId !== "" && !folderId) throw new Error("folderId invalido.");
+    if (folderId) await assertDemandFolderExists(supabase, folderId);
 
     const insert = await supabase.from("client_demands").insert({
       deal_id: dealId,
+      folder_id: folderId,
       title,
       description: boundedDemandText(body?.description, 50000, "Descricao"),
       copy_text: boundedDemandText(body?.copyText, 50000, "Copy"),
@@ -117,7 +125,7 @@ export async function POST(request: NextRequest) {
       actor: auth.session.email,
       eventType: "created",
       description: "Demanda criada.",
-      metadata: { dealId },
+      metadata: { dealId, folderId },
     });
     const demand = await loadDemand(supabase, id);
     return NextResponse.json({ ok: true, demand }, { status: 201 });
@@ -164,6 +172,17 @@ export async function PATCH(request: NextRequest) {
       await loadEligibleDeal(supabase, dealId);
       updates.deal_id = dealId; changed.push("deal");
     }
+    if (body.folderId !== undefined) {
+      if (body.folderId === null || body.folderId === "") {
+        updates.folder_id = null;
+      } else {
+        const folderId = demandId(body.folderId);
+        if (!folderId) throw new Error("folderId invalido.");
+        await assertDemandFolderExists(supabase, folderId);
+        updates.folder_id = folderId;
+      }
+      changed.push("pasta");
+    }
     if (body.status !== undefined) {
       if (!isDemandStatus(body.status)) throw new Error("Status invalido.");
       const transition = transitionDemandStatus(current.data.status as never, body.status);
@@ -188,11 +207,44 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+/** Apaga de vez: linhas filhas caem por cascade, mas os arquivos do bucket nao. */
+async function purgeDemands(
+  supabase: ReturnType<typeof getCrmSupabaseAdmin>,
+  ids: number[],
+) {
+  const attachments = await supabase
+    .from("client_demand_attachments")
+    .select("storage_path")
+    .in("demand_id", ids);
+  if (attachments.error) throw attachments.error;
+  const paths = (attachments.data ?? []).map((row) => String(row.storage_path)).filter(Boolean);
+  if (paths.length > 0) {
+    const removed = await supabase.storage.from(DEMAND_ATTACHMENTS_BUCKET).remove(paths);
+    if (removed.error) throw removed.error;
+  }
+  const result = await supabase.from("client_demands").delete().in("id", ids).select("id");
+  if (result.error) throw result.error;
+  return (result.data ?? []).length;
+}
+
 export async function DELETE(request: NextRequest) {
   const auth = await requireDemandAdminSession(request);
   if (!auth.ok) return auth.response;
   try {
     const supabase = getCrmSupabaseAdmin();
+
+    // hard=1 remove de vez; sem ele o comportamento historico e cancelar.
+    if (request.nextUrl.searchParams.get("hard") === "1") {
+      const ids = (request.nextUrl.searchParams.get("demandIds") ?? request.nextUrl.searchParams.get("demandId") ?? "")
+        .split(",")
+        .map((value) => demandId(value))
+        .filter((value): value is number => value !== null);
+      if (ids.length === 0) return demandErrorResponse(new Error("Informe ao menos um demandId valido."), 400);
+      const deleted = await purgeDemands(supabase, Array.from(new Set(ids)));
+      if (deleted === 0) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);
+      return NextResponse.json({ ok: true, deleted });
+    }
+
     const id = demandId(request.nextUrl.searchParams.get("demandId"));
     if (!id) return demandErrorResponse(new Error("demandId valido e obrigatorio."), 400);
     const current = await supabase.from("client_demands").select("id, deal_id").eq("id", id).maybeSingle();

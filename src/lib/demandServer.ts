@@ -3,12 +3,26 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 
 export const DEMAND_SUMMARY_SELECT = `
-  id, deal_id, title, description, copy_text, status, priority, assignee,
+  id, deal_id, folder_id, title, description, copy_text, status, priority, assignee,
   destination_type, destination_label, starts_at, due_at, completed_at,
   created_at, updated_at,
   deal:deals(id, company, name, stage, status, owner, assignee, value),
   checklist_items:client_demand_checklist_items(id, demand_id, title, is_done, position, created_at, updated_at)
 `;
+
+// A arvore e auto-referenciada: carregamos a lista chapada e montamos o caminho no cliente,
+// em vez de tentar um embed recursivo no PostgREST.
+export const DEMAND_FOLDER_SELECT = "id, parent_id, deal_id, name, position";
+
+export async function assertDemandFolderExists(
+  supabase: ReturnType<typeof getCrmSupabaseAdmin>,
+  id: number,
+) {
+  const result = await supabase.from("demand_folders").select("id").eq("id", id).maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) throw new Error("Pasta nao encontrada.");
+  return result.data;
+}
 
 export const DEMAND_DETAIL_SELECT = `
   ${DEMAND_SUMMARY_SELECT},

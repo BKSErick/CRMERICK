@@ -6,27 +6,25 @@ import { DealWorkspace } from "@/components/DealWorkspace";
 import {
   DEMAND_ATTACHMENTS_BUCKET,
   DEMAND_DESTINATIONS,
+  DEMAND_DESTINATION_LABELS as destinationLabels,
   DEMAND_PRIORITIES,
+  DEMAND_PRIORITY_LABELS as priorityLabels,
   DEMAND_STATUSES,
+  DEMAND_STATUS_LABELS as statusLabels,
   type ClientDemand,
-  type DemandDestination,
-  type DemandPriority,
-  type DemandStatus,
   checklistProgress,
 } from "@/lib/clientDemands";
+
+export type DemandFolderOption = {
+  id: number;
+  label: string;
+};
 
 type DemandWorkspaceProps = {
   demandId: number;
   onClose: () => void;
   onChanged: () => void;
-};
-
-const statusLabels: Record<DemandStatus, string> = {
-  todo: "A fazer", in_progress: "Em andamento", review: "Em revisao", done: "Concluida", cancelled: "Cancelada",
-};
-const priorityLabels: Record<DemandPriority, string> = { low: "Baixa", normal: "Normal", high: "Alta", urgent: "Urgente" };
-const destinationLabels: Record<DemandDestination, string> = {
-  instagram: "Instagram", site: "Site", whatsapp: "WhatsApp", ads: "Anuncios", presentation: "Apresentacao", drive: "Drive", other: "Outro",
+  folderOptions?: DemandFolderOption[];
 };
 
 async function bodyJson<T>(response: Response, fallback: string): Promise<T> {
@@ -50,7 +48,7 @@ function formatBytes(value: number) {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function DemandWorkspace({ demandId, onClose, onChanged }: DemandWorkspaceProps) {
+export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = [] }: DemandWorkspaceProps) {
   const [demand, setDemand] = useState<ClientDemand | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -222,6 +220,16 @@ export function DemandWorkspace({ demandId, onClose, onChanged }: DemandWorkspac
                     <label>Inicio<input disabled={busy || !demand.deal} type="date" value={inputDate(demand.startsAt)} onChange={(event) => void updateDemand({ startsAt: dateToIso(event.target.value) })} /></label>
                     <label>Prazo<input disabled={busy || !demand.deal} type="date" value={inputDate(demand.dueAt)} onChange={(event) => void updateDemand({ dueAt: dateToIso(event.target.value, true) })} /></label>
                     <label>Destino<select disabled={busy || !demand.deal} value={demand.destinationType} onChange={(event) => void updateDemand({ destinationType: event.target.value })}>{DEMAND_DESTINATIONS.map((item) => <option key={item} value={item}>{destinationLabels[item]}</option>)}</select></label>
+                    <label>Pasta
+                      <select
+                        disabled={busy || !demand.deal || folderOptions.length === 0}
+                        value={demand.folderId ?? ""}
+                        onChange={(event) => void updateDemand({ folderId: event.target.value === "" ? null : Number(event.target.value) })}
+                      >
+                        <option value="">Sem pasta</option>
+                        {folderOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                      </select>
+                    </label>
                     <label className="demand-property-wide">Onde vai estar<input disabled={busy || !demand.deal} maxLength={240} value={demand.destinationLabel} onChange={(event) => updateLocal({ destinationLabel: event.target.value })} onBlur={() => void updateDemand({ destinationLabel: demand.destinationLabel })} /></label>
                   </section>
 
