@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/styles/hub.css";
 import "./globals.css";
 import "@/styles/legacy-pipeline.css";
+import { SessionWatcher } from "@/components/SessionWatcher";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
+        <SessionWatcher />
         <Sidebar />
         <Topbar />
         <main className="main">{children}</main>
