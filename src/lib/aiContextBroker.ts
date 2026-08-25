@@ -36,8 +36,11 @@ export function minimizeLossesForAi(value: unknown) {
 
 const pipelineProvider: Provider = async (supabase, scope) => {
   const rows: Array<Record<string, unknown>> = [];
+  // So `stage` e `value` entram na conta: o envelope final e agregado (total + contagem e soma
+  // por etapa), nenhum deal individual vai pro prompt. Trazer as outras 7 colunas dos ~1.4 mil
+  // deals a cada mensagem do chat era payload jogado fora.
   for (let offset = 0; ; offset += 1000) {
-    const result = await supabase.from("deals").select("id, company, name, stage, status, value, close_date, next_action_at, deal_health_score").order("id", { ascending: true }).range(offset, offset + 999);
+    const result = await supabase.from("deals").select("stage, value").order("id", { ascending: true }).range(offset, offset + 999);
     if (result.error) throw result.error;
     const page = (result.data ?? []) as Array<Record<string, unknown>>;
     rows.push(...page);

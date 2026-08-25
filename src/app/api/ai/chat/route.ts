@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { requireAiChatAdminSession } from "@/lib/aiChatAuth";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
-import { aiComplete } from "@/lib/aiComplete";
+import { aiCompleteDetailed, describeFailures } from "@/lib/aiComplete";
+import { getAgentChatAvailability } from "@/lib/aiChatAvailability";
 import { loadAiContext } from "@/lib/aiContextBroker";
 import { assertReadOnlyChatPayload, composeChatPrompts, normalizeContextScope, parseAgentMention, requireAgentId, truncateContextEnvelopes } from "@/lib/aiConversation";
 import { AI_AGENT_PERSONAS } from "@/server/aiAgentPersonas.generated.mjs";
@@ -17,7 +18,8 @@ function responseError(error: unknown, status = 500) {
 export async function POST(request: NextRequest) {
   const auth = await requireAiChatAdminSession(request);
   if (!auth.ok) return auth.response;
-  if (process.env.AI_AGENTS_CHAT_ENABLED !== "true") return responseError(new Error("Chat de IA temporariamente desabilitado."), 503);
+  const availability = getAgentChatAvailability();
+  if (!availability.enabled) return responseError(new Error(availability.reason ?? "Chat de IA indisponivel."), 503);
 
   const supabase = getCrmSupabaseAdmin();
   let assistantMessageId: string | null = null;
@@ -50,8 +52,15 @@ export async function POST(request: NextRequest) {
     if (pending.error) throw pending.error;
     assistantMessageId = pending.data.id;
 
-    const result = await aiComplete(prompts.systemPrompt, prompts.userPrompt, { signal: request.signal, timeoutMs: Math.max(5000, Math.min(Number(process.env.AI_CHAT_TIMEOUT_MS) || 45000, 55000)) });
-    if (!result) throw new Error("Nenhum provedor de IA configurado ou disponivel. Configure OPENROUTER_API_KEY ou GROQ_API_KEY e tente novamente.");
+    const { result, failures } = await aiCompleteDetailed(prompts.systemPrompt, prompts.userPrompt, { signal: request.signal, timeoutMs: Math.max(5000, Math.min(Number(process.env.AI_CHAT_TIMEOUT_MS) || 45000, 55000)) });
+    // A causa vem classificada (modelo descontinuado, chave rejeitada, limite de uso...) em vez
+    // de virar sempre "configure a GROQ_API_KEY" mesmo quando a chave estava certa.
+    if (!result) {
+      const indisponivel = new Error(describeFailures(failures));
+      // Marcado como seguro de mostrar: e uma explicacao nossa, nao vazamento de erro interno.
+      indisponivel.name = "AiUnavailableError";
+      throw indisponivel;
+    }
     const completed = await supabase.from("ai_conversation_messages").update({ status: "complete", content: result.content, provider: result.provider, model: result.model, latency_ms: Date.now() - startedAt, error: null }).eq("id", assistantMessageId).select("*").single();
     if (completed.error) throw completed.error;
     await supabase.from("ai_conversations").update({ context_scope: scope, updated_at: new Date().toISOString() }).eq("id", conversationId).eq("created_by", auth.session.email);
@@ -63,7 +72,10 @@ export async function POST(request: NextRequest) {
       await supabase.from("ai_conversation_messages").update({ status: "failed", content: "Nao consegui concluir esta resposta.", error: safeError, latency_ms: Date.now() - startedAt }).eq("id", assistantMessageId);
     }
     const fingerprint = createHash("sha256").update(error instanceof Error ? error.message : String(error)).digest("hex").slice(0, 12);
-    console.error("[ai-chat] failure", { fingerprint, assistantMessageId });
-    return responseError(new Error(`Nao foi possivel concluir a resposta. Tente novamente. Referencia: ${fingerprint}`), 502);
+    console.error("[ai-chat] failure", { fingerprint, assistantMessageId, message: error instanceof Error ? error.message : String(error) });
+    // Erro de indisponibilidade da IA e acionavel pelo Erick, entao aparece na tela. O resto
+    // (falha de banco, payload invalido) continua so como referencia, pra nao vazar interno.
+    const causa = error instanceof Error && error.name === "AiUnavailableError" ? ` ${error.message}` : "";
+    return responseError(new Error(`Nao foi possivel concluir a resposta.${causa} Referencia: ${fingerprint}`), 502);
   }
 }

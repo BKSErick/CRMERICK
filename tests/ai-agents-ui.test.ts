@@ -9,8 +9,15 @@ const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "ut
 
 test("agentes preserva catalogo e adiciona chat na mesma rota", () => {
   assert.match(page, /AgentChatWorkspace/);
-  assert.match(page, /AI_AGENTS_CHAT_ENABLED/);
+  assert.match(page, /getAgentChatAvailability/);
   assert.doesNotMatch(page, /href=["']\/chat/);
+});
+
+test("a pagina de agentes nao pode ser estatica nem ler env direto", () => {
+  // Como Server Component pre-renderizado, process.env congela no build: era por isso que a
+  // producao ficava presa no aviso de "chat desabilitado" mesmo mexendo na env da Vercel.
+  assert.match(page, /export const dynamic = "force-dynamic"/);
+  assert.doesNotMatch(page, /process\.env\.AI_AGENTS_CHAT_ENABLED/);
 });
 
 test("workspace possui historico, escopos, loading, cancelamento e retry", () => {

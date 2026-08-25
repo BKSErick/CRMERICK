@@ -101,7 +101,22 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
     } catch (reason) {
       if (reason instanceof DOMException && reason.name === "AbortError") setError("Resposta cancelada.");
       else setError(reason instanceof Error ? reason.message : "Falha ao responder.");
-      if (conversation) { try { const refreshed = await jsonFetch(`/api/ai/conversations?id=${conversation.id}`); setMessages(refreshed.messages); } catch {} }
+      if (conversation) {
+        try {
+          const refreshed = await jsonFetch(`/api/ai/conversations?id=${conversation.id}`);
+          setMessages(refreshed.messages);
+        } catch {
+          // Nem o refresh respondeu (rede caiu, sessao expirou). Sem isto a bolha "pendente"
+          // ficava girando pra sempre e a mensagem sumia da tela sem explicacao nenhuma.
+          setMessages((current) =>
+            current.map((item) =>
+              item.status === "pending"
+                ? { ...item, status: "failed", content: "Nao foi possivel concluir esta resposta." }
+                : item,
+            ),
+          );
+        }
+      }
     } finally { setLoading(false); abortRef.current = null; }
   }, [active, agentId, dealId, draft, loadList, loading, scopeType]);
 

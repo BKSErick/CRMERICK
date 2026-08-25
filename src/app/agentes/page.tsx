@@ -1,5 +1,11 @@
 import AgentChatWorkspace from "./AgentChatWorkspace";
 import { AI_AGENT_PUBLIC_REGISTRY } from "@/lib/aiAgentRegistry";
+import { getAgentChatAvailability } from "@/lib/aiChatAvailability";
+
+// A disponibilidade do chat depende de env, entao esta rota NAO pode ser pre-renderizada:
+// como Server Component estatico, o valor de process.env congelava no build e a producao
+// ficava presa no aviso de "chat desabilitado" por mais que a env fosse ajustada na Vercel.
+export const dynamic = "force-dynamic";
 
 // Agentes = catalogo dos copilotos especialistas do Hub Operacional (Copy, Funil, Conteudo,
 // Trafego, Vendas, Analise), alinhado ao Brandbook ("Agentes de IA Proprietarios").
@@ -9,7 +15,7 @@ import { AI_AGENT_PUBLIC_REGISTRY } from "@/lib/aiAgentRegistry";
 
 export default function AgentesPage() {
   const agents = [...AI_AGENT_PUBLIC_REGISTRY];
-  const chatEnabled = process.env.AI_AGENTS_CHAT_ENABLED === "true";
+  const availability = getAgentChatAvailability();
 
   return (
     <section>
@@ -26,9 +32,9 @@ export default function AgentesPage() {
         </div>
       </div>
 
-      {chatEnabled ? <AgentChatWorkspace agents={agents} /> : (
+      {availability.enabled ? <AgentChatWorkspace agents={agents} /> : (
         <div className="connection-status fallback" style={{ marginBottom: 24 }}>
-          O chat contextual esta desabilitado neste ambiente. Defina AI_AGENTS_CHAT_ENABLED=true para habilitar.
+          {availability.reason}
         </div>
       )}
 
