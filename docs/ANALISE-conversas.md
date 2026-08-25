@@ -150,6 +150,86 @@ com`, e "vou te passar o contato" não existia na lista. Corrigido em
 porque o script roda em Node puro e não importa `.ts`: **mudou numa, mude na
 outra.**
 
+## ICP é outra dimensão, não é o segmento
+
+Segmento diz **o que a empresa faz**. ICP diz **se ela tem o problema**. Até 14/08 o
+CRM só tinha a primeira dimensão, e isso produziu decisão de alocação errada.
+
+O caso: caldeiraria aparecia com 14 abordados e 0 respostas, e a leitura óbvia era
+"segmento morto, congelar". Mas o balde tem dentro dele serralheria, calhas e móveis
+industriais, que não têm orçamento técnico variável e nunca iam responder, e tem a
+**Esmetal**, referência regional desde 1963, abordada com a mesma mensagem que a
+RV Calhas. O segmento não falhou: o balde estava contaminado.
+
+A regra de `SEGMENTOS` casa "serralheria" em caldeiraria **de propósito**, e isso
+continua certo. O que faltava era a segunda pergunta.
+
+```bash
+node scripts/classify-icp.mjs             # distribuição
+node scripts/classify-icp.mjs --fora      # quem sairia da fila, com o motivo
+node scripts/classify-icp.mjs --amostra   # exemplos dos três baldes
+node scripts/classify-icp.mjs --go        # grava deals.is_icp (exige a migration)
+```
+
+Regra em `classificaIcp()` (`scripts/lib/analise-comum.mjs`), ordem
+**PRO_FORTE > ANTI forte > ANTI fraco > segmento**. Coluna criada por
+`scripts/migrations/20260814_deal_icp.sql`.
+
+Três resultados possíveis, e `null` é legítimo: marcar `nao` **para de abordar o
+lead**, e errar isso custa cliente. Por isso "anti fraco" (exaustão, predial,
+eletricista) somado à palavra *industrial* no nome devolve `null`, não `nao`. Foi o
+que salvou a *RBR Exaustores | Manutenção Industrial* e a *FM eletricidade e
+automação (industrial, predial)*, que a primeira versão da regra cortava.
+
+Leitura de 14/08, já com os segmentos normalizados: **927 dentro · 227 fora ·
+208 indefinidos**.
+
+### A regra não rebaixa quem já avançou no funil
+
+`ESTAGIOS_PROTEGIDOS` (`qualified`, `agendamento`, `reuniao`, `proposal`,
+`negotiation`, `won`): se o veredito for `nao` e o deal estiver num desses, ele vira
+`null`, não `false`. **Evidência de conversa vale mais que regex de nome, sempre.**
+
+Isso não é precaução teórica. Na primeira gravação a regra marcou fora do ICP a
+**JOHN REFRIGERAÇÃO**, que estava em `proposal` com consciência 5 e profundidade 4,
+mais duas em `qualified` (tecmaquinas e Frilex). O padrão `refrigera` estava certo em
+quase toda a base e errado exatamente onde havia negócio vivo. O script agora lista
+os protegidos no relatório em vez de silenciá-los.
+
+### E o alerta que sobrou: climatização responde mais que todo mundo
+
+No relatório de 14/08, **climatização tem 33% de resposta (10/25)**, a maior taxa da
+base inteira, e é o segmento que a regra manda excluir.
+
+Antes de reverter, olhe o resto da linha: `OFERTA CLARA? confusa`, profundidade 2.0, e
+as respostas são *"no momento não temos interesse em site"*, *"no momento não"*. Eles
+atendem o telefone porque são donos de operação pequena que respondem tudo, entendem
+a oferta pela metade e dizem não.
+
+**Taxa de resposta não é sinal de ICP.** Compare com usinagem: 15% de resposta, mas
+`OFERTA CLARA` e `pagina_nova` como demanda declarada 3 vezes. Um responde mais e não
+compra; o outro responde menos e pede orçamento.
+
+A exceção é a John Refrigeração, que está em proposal e agora está protegida. Se ela
+fechar, é evidência real de que existe um sub-recorte de refrigeração **industrial**
+dentro do balde, e aí a regra muda com base em venda, não em taxa de resposta.
+
+## Bot não é encaminhamento
+
+`PADROES_BOT` tem que ser checado **antes** de `PADROES_TEXTO`, porque a frase de
+autoresponder casa com `entre em contato com` / `entrar em contato com` da lista de
+repasse.
+
+No dry-run de 14/08 isso era **2 dos 4** repasses por texto livre, ou seja 50% de
+falso positivo numa fila que existe justamente para separar o melhor lead da base:
+*RDL Elétrica* ("Obrigado por entrar em contato com a RDL...") e *Blukit* ("Este canal
+é exclusivo para Televendas. Peço que entre em contato com..."). Depois da correção,
+4 viraram 2, e os 2 restantes são os genuínos.
+
+A lista está duplicada em `src/lib/followup.ts` (`botPatterns`) e
+`scripts/extract-referrals.mjs` (`PADROES_BOT`), pelo mesmo motivo das outras:
+**mudou numa, mude na outra.**
+
 ## Threads órfãs
 
 Quando a resposta chega de um número que não casa com nenhum deal, o webhook cria

@@ -2,6 +2,25 @@ import { createHash } from "node:crypto";
 
 export type ProspectingSlot = "morning" | "afternoon";
 
+/**
+ * Ritmo do lote, decidido na preparacao e nao no script de envio. Existe desde
+ * 24/08/2026: depois da restricao de 24h de 18/08 o dia passou a ter volume baixo
+ * espalhado em horas, e o intervalo default (90-240s) esvaziava 10 mensagens em
+ * 40 minutos. Campos ausentes = default do script.
+ */
+export type ProspectingPacing = {
+  /** Intervalo minimo entre mensagens, em segundos. */
+  min?: number;
+  /** Intervalo maximo entre mensagens, em segundos. */
+  max?: number;
+  /** Pausa entre blocos, em segundos. */
+  pausa?: number;
+  /** Tamanho do bloco. Maior que o lote = sem pausa de bloco. */
+  bloco?: number;
+  /** Teto de saida do NUMERO no dia (prospeccao + conversa do aparelho). */
+  tetoNumero?: number;
+};
+
 export type ProspectingManifest = {
   version: 1;
   date: string;
@@ -10,6 +29,7 @@ export type ProspectingManifest = {
   firstContactIds: number[];
   followupIds: number[];
   createdAt: string;
+  pacing?: ProspectingPacing;
 };
 
 /**
@@ -65,6 +85,9 @@ function canonicalManifest(manifest: ProspectingManifest) {
     firstContactIds: manifest.firstContactIds,
     followupIds: manifest.followupIds,
     createdAt: manifest.createdAt,
+    // Fica por ultimo e so aparece quando existe: JSON.stringify descarta undefined,
+    // entao manifesto sem pacing continua com o mesmo hash de antes de 24/08/2026.
+    pacing: manifest.pacing,
   };
 }
 

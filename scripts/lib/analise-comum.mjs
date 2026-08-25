@@ -136,6 +136,119 @@ export function ehOrfao(company, name) {
 }
 
 // ---------------------------------------------------------------------------
+// ICP — dimensao separada do segmento
+// ---------------------------------------------------------------------------
+
+/**
+ * SEGMENTO NAO E ICP, e tratar os dois como a mesma coisa estava distorcendo as
+ * decisoes de alocacao.
+ *
+ * O caso que expos isso (14/08): caldeiraria aparecia com 14 abordados e 0
+ * respostas, e a leitura obvia era "segmento morto, congelar". Mas o balde tem
+ * dentro dele serralheria, calhas e moveis industriais — empresas que NAO tem
+ * orcamento tecnico com medida, material e tolerancia, ou seja, nao tem o problema
+ * que a Ficha de Escopo resolve. Nunca iam responder, e arrastaram para zero a taxa
+ * de quem tinha. No mesmo balde esta a Esmetal, referencia regional desde 1963.
+ *
+ * A regra de segmento (SEGMENTOS acima) casa "serralheria" em caldeiraria de
+ * proposito: ela descreve O QUE A EMPRESA FAZ. ICP responde outra pergunta:
+ * ELA TEM O PROBLEMA? As duas dimensoes sao independentes e precisam continuar
+ * assim.
+ *
+ * Criterio de ICP: o pedido que chega nela varia em servico, medida e material,
+ * a ponto de exigir ida e volta pra orcar.
+ */
+
+// Sinal industrial inequivoco. Vence ANTI_ICP: "Indussel Instalacoes Industria e
+// Caldeiraria" tem que entrar mesmo que algum termo generico casasse com anti.
+const PRO_ICP_FORTE = [
+  /usinag|usinar|tornearia|torno\b|ferramentaria|retific|fres(a|ar)|eletroeros|mandrilh/i,
+  /caldeirar|metal[uú]rgic|metalmec[aâ]nic/i,
+  /recupera[çc][aã]o de (pe[çc]|component)|recuperadora/i,
+  /hidr[aá]ulic|pneum[aá]tic|redutor|empilhadeira|guincho|talha\b/i,
+  /siderurg|minera[çc][aã]o|fundi[çc][aã]o/i,
+  // "RBR Exaustores | Manutencao Industrial" estava sendo cortada por `exaust`,
+  // ignorando que o nome diz manutencao industrial. Excluir custa cliente.
+  // \S* e nao \w* de proposito: \w nao casa "ã", entao "Manutencao Industrial"
+  // escrito com acento ("Manutenção Industrial") passava batido.
+  /manuten\S*\s+industrial|mec[aâ]nica industrial|automa[çc][aã]o industrial/i,
+];
+
+// Anti fraco: descreve um servico que EXISTE tanto na industria quanto fora dela.
+// Sozinho ele exclui; acompanhado da palavra "industrial" no nome, ele nao tem
+// forca pra excluir e o lead vira indefinido, nao "nao".
+// Caso real: "FM eletricidade e automacao. (industrial, predial...)" caia por
+// `predial` mesmo se apresentando como industrial.
+const ANTI_ICP_FRACO = [
+  /exaust/i,
+  /predial|constru[çc]ao civil|construtora|reforma/i,
+  /eletricista/i,
+];
+
+// Anti FORTE: o pedido nao varia em medida e material, ou o cliente e consumidor
+// final. Exclui sozinho. Todos saidos da amostra real da base, nao de suposicao.
+const ANTI_ICP = [
+  /serralher|calha|esquadria|portao|port[oõ]es|corrim[aã]o|guarda.?corpo|gradil/i,
+  /m[oó]vei|mobili[aá]ri|marcenaria/i,
+  /vidra[çc]aria|marmoraria|granito|m[aá]rmore/i,
+  /automotiv|autope[çc]|funilaria|borracharia|lava.?jato/i,
+  /ar.?condicionado|refrigera|climatiza/i,
+  /sonoriza[çc]|som automotivo|c[aâ]mera|cftv|alarme/i,
+  /com[eé]rcio|distribuidora|revenda|loja\b|papelaria|supermercado/i,
+  /consultoria|contabil|advocacia|imobili[aá]ri|cl[ií]nica|escola/i,
+];
+
+/** Segmentos cujo balde, sozinho, ja indica pedido tecnico variavel. */
+const SEGMENTOS_ICP = new Set(["usinagem", "caldeiraria", "manutencao", "automacao"]);
+
+/**
+ * Devolve "sim", "nao" ou null.
+ *
+ * null e resposta legitima e esperada, pela mesma razao de segmentoCanonico: melhor
+ * um balde honesto pra revisar na mao do que empurrar o lead pro lado errado. Lead
+ * marcado "nao" para de ser abordado; errar isso custa cliente.
+ *
+ * Ordem: PRO_FORTE > ANTI forte > ANTI fraco > segmento.
+ */
+export function classificaIcp(company, name, segmentNorm) {
+  const texto = `${company || ""} ${name || ""}`.trim();
+  if (!texto) return null;
+
+  if (PRO_ICP_FORTE.some((re) => re.test(texto))) return "sim";
+  if (ANTI_ICP.some((re) => re.test(texto))) return "nao";
+  if (ANTI_ICP_FRACO.some((re) => re.test(texto))) {
+    // Anti fraco + "industrial" no nome nao basta pra tirar da fila: vira indefinido
+    // e segue pra revisao manual. Falso "nao" custa cliente; falso indefinido custa
+    // uma linha de leitura no relatorio.
+    return /\bindustrial\b/i.test(texto) ? null : "nao";
+  }
+  if (segmentNorm && SEGMENTOS_ICP.has(segmentNorm)) return "sim";
+  // climatizacao cai aqui: a amostra real e quase toda ar condicionado residencial e
+  // automotivo. Se for climatizacao INDUSTRIAL, o nome costuma dizer, e o PRO_FORTE
+  // pega antes.
+  if (segmentNorm === "climatizacao") return "nao";
+  return null;
+}
+
+/** Motivo legivel, pra auditar a decisao em vez de confiar no rotulo. */
+export function motivoIcp(company, name, segmentNorm) {
+  const texto = `${company || ""} ${name || ""}`.trim();
+  const forte = PRO_ICP_FORTE.find((re) => re.test(texto));
+  if (forte) return `sinal industrial no nome (${String(forte).slice(1, 40)}...)`;
+  const anti = ANTI_ICP.find((re) => re.test(texto));
+  if (anti) return `fora de perfil pelo nome (${String(anti).slice(1, 40)}...)`;
+  const fraco = ANTI_ICP_FRACO.find((re) => re.test(texto));
+  if (fraco) {
+    return /\bindustrial\b/i.test(texto)
+      ? "sinal ambiguo: servico nao-industrial no nome, mas se diz industrial"
+      : `fora de perfil pelo nome (${String(fraco).slice(1, 40)}...)`;
+  }
+  if (segmentNorm && SEGMENTOS_ICP.has(segmentNorm)) return `segmento ${segmentNorm}`;
+  if (segmentNorm === "climatizacao") return "climatizacao sem sinal industrial";
+  return "sem sinal suficiente";
+}
+
+// ---------------------------------------------------------------------------
 // Estatistica
 // ---------------------------------------------------------------------------
 

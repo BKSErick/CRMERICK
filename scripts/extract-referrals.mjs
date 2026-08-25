@@ -46,6 +46,25 @@ const RUIDO_NOME =
 const fold = (s) =>
   String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
+// Autoresponder NAO e repasse de decisor. Esta lista tem que ser checada ANTES de
+// PADROES_TEXTO, porque as frases de bot casam com "entre/entrar em contato com":
+// no dry-run de 14/08, 2 dos 4 repasses por texto livre eram bot (RDL Eletrica,
+// "Obrigado por entrar em contato com a RDL"; Blukit, "Este canal e exclusivo para
+// Televendas. Peco que entre em contato com"). 50% de falso positivo numa fila que
+// existe justamente pra separar o melhor lead da base.
+// Espelho de botPatterns em src/lib/followup.ts. Mudou la, mude aqui.
+const PADROES_BOT = [
+  "mensagem automatica", "resposta automatica", "atendimento automatico", "assistente virtual",
+  "horario de atendimento", "selecione uma opcao", "digite uma opcao", "digite 1",
+  "nao responda esta mensagem", "aguarde que em breve", "agradecemos seu contato",
+  "agradece seu contato", "agradecemos o seu contato", "agradece o seu contato",
+  "como podemos te ajudar", "como podemos ajudar", "em breve nossos consultores",
+  "seja bem vindo", "seja bem-vindo", "seja bem vinda", "seja bem-vinda",
+  "obrigado por entrar em contato", "obrigada por entrar em contato",
+  "obrigado pelo contato", "obrigada pelo contato",
+  "canal e exclusivo", "canal exclusivo", "exclusivo para televendas", "somente para televendas",
+];
+
 const PADROES_TEXTO = [
   "responsavel por compras", "responsavel pelas compras", "responsavel por novos materiais",
   "responsavel por questoes como compras", "entre em contato com", "entrar em contato com",
@@ -95,7 +114,7 @@ function mensagemDecisorIndicado({ nomeDecisor, empresa, quemIndicou }) {
 
   return (
     `Oi, ${primeiroNome(nomeDecisor)}! Erick aqui. ${ponte}. ` +
-    `Eu faço página de vendas para indústria: o comprador chega já sabendo o que vocês atendem e manda o pedido pelo WhatsApp com o serviço definido. ` +
+    `Eu faço o pedido do cliente chegar no WhatsApp de vocês já com serviço, medida e prazo definidos, sem a ida e volta pra descobrir o que ele precisa. ` +
     `Separei um exemplo de uma empresa do mesmo ramo. Quer ver?`
   );
 }
@@ -131,7 +150,8 @@ function mensagemDecisorIndicado({ nomeDecisor, empresa, quemIndicou }) {
       continue;
     }
     const texto = fold(m.content);
-    if (texto && PADROES_TEXTO.some((p) => texto.includes(p))) {
+    if (!texto || PADROES_BOT.some((p) => texto.includes(p))) continue;
+    if (PADROES_TEXTO.some((p) => texto.includes(p))) {
       if (!suspeitas.some((s) => s.deal.id === d.id)) {
         suspeitas.push({ deal: d, trecho: String(m.content).slice(0, 90) });
       }

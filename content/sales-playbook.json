@@ -1,5 +1,5 @@
 {
-  "copyVersion": "copy-2026-08-10.1",
+  "copyVersion": "copy-2026-08-14.1",
   "offer": {
     "version": "offer-site-industrial-1000-150-v1",
     "name": "Pagina industrial com Ficha de Escopo",
@@ -10,18 +10,19 @@
   },
   "mechanism": "Ficha de Escopo",
   "experiment": {
-    "id": "wa-opening-2026-08-v1",
-    "name": "Abertura cordial vs direta",
+    "id": "wa-opening-2026-08-v2",
+    "name": "Abertura cordial vs direta (enquadramento por resultado)",
     "hypothesis": "A abertura direta aumenta respostas validas sem reduzir reunioes realizadas.",
     "isolatedVariable": "opening",
     "variants": ["A", "B"],
+    "_nota": "v2 em 14/08/2026: saiu 'faço página de vendas pra indústria' (nomeia a mercadoria e posiciona como fornecedor tático) e entrou o resultado operacional. Os 124 disparos do v1 NAO sao comparaveis com os do v2: filtre por experiment_id ao ler taxa. A/B continua sendo cordial vs direta, e os prefixos 'Oi, tudo bem?' / 'Fala!' foram preservados porque detectVariantFromCopy() os usa para inferir a variante.",
     "openings": {
-      "A": "Oi, tudo bem? Erick aqui, faço página de vendas pra indústria.",
-      "B": "Fala! Erick aqui, faço página de vendas pra indústria."
+      "A": "Oi, tudo bem? Erick aqui. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos.",
+      "B": "Fala! Erick aqui. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos."
     },
     "localOpenings": {
-      "A": "Oi, tudo bem? Erick aqui, de Monlevade mesmo, faço página de vendas pra indústria.",
-      "B": "Fala! Erick aqui, de Monlevade mesmo, faço página de vendas pra indústria."
+      "A": "Oi, tudo bem? Erick aqui, de Monlevade mesmo. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos.",
+      "B": "Fala! Erick aqui, de Monlevade mesmo. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos."
     }
   },
   "cases": {

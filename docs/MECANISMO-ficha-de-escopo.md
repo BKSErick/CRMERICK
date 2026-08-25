@@ -36,11 +36,41 @@ benefício abstrato. Dá pra apontar pra ela. E dá pra pedir: "me manda a ficha
 
 | Momento | Entra? | Por quê |
 |---|---|---|
-| **Msg 1** (abordagem fria) | **Não** | A msg 1 tem um trabalho só: ele saber quem fala em 3 segundos. Nome próprio sem contexto em DM fria lê como vendedor de curso. Ali fica só a categoria: "faço página de vendas pra indústria". |
+| **Msg 1** (abordagem fria) | **Não** | A msg 1 tem um trabalho só: ele saber quem fala em 3 segundos. Nome próprio sem contexto em DM fria lê como vendedor de curso. Ali fica o **resultado operacional**, não o mecanismo: "eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos". Ver "Por que a msg 1 mudou" abaixo. |
 | **Msg 2** (depois do "quer ver?") | **Sim, é o lugar** | Ele já disse sim e está prestando atenção. Aqui tem espaço pra explicar. |
 | **Follow-up M2** | Sim | Prova + mecanismo dá motivo novo pra responder. "Fiz uma página pra uma empresa do ramo" é o que todo mundo diz. |
 | **Objeção de mensalidade** | **Não** | Ver "Preço" abaixo. O mensal atual é hospedagem e troca de texto/foto, então vender "a ficha evoluindo" por R$150 prometeria trabalho que não está no escopo. |
 | **Página e proposta** | Sim | É o item que justifica o preço. |
+
+## Por que a msg 1 mudou (14/08/2026)
+
+A msg 1 dizia **"faço página de vendas pra indústria"**. O raciocínio original estava
+certo pela metade: mecanismo em DM fria realmente não funciona, mas a alternativa
+escolhida nomeava a **mercadoria**, e isso posiciona como fornecedor tático.
+
+O dado que fechou a questão: **encaminhamento é 4 das 11 respostas do funil (36%)**.
+Vertical Elétrica manda pro superior, Pressmix manda pra diretora, Provith manda pro
+André, Vematech manda pra Tiele. Quem se anuncia como categoria de produto é
+encaminhado pro setor de compras. É o próprio funil dizendo como a abordagem está
+sendo lida.
+
+Existe um terceiro caminho que a versão anterior não considerou: nem categoria
+("página de vendas"), nem mecanismo abstrato ("Ficha de Escopo"), mas o **resultado
+operacional dele**, dito em 3 segundos e em palavra que ele usa todo dia:
+
+> "Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos."
+
+Mantém a velocidade de reconhecimento, mantém a linguagem industrial e tira a palavra
+de fornecedor. A Ficha de Escopo continua **fora** da msg 1: ela entra na msg 2, onde
+já há permissão pra explicar.
+
+⚠️ Isso invalida a comparação com os 124 disparos anteriores. O experimento foi para
+`wa-opening-2026-08-v2` e a copy para `copy-2026-08-14.1`. **Filtre por `experiment_id`
+ao ler taxa de resposta**, senão o número mistura duas copies com cara de dado único.
+
+Os prefixos `"Oi, tudo bem?"` (A) e `"Fala!"` (B) foram preservados de propósito:
+`detectVariantFromCopy()` em `src/lib/salesPlaybook.mjs` infere a variante a partir
+deles.
 
 ## Onde vive no código
 
@@ -48,6 +78,12 @@ benefício abstrato. Dá pra apontar pra ela. E dá pra pedir: "me manda a ficha
   por segmento)
 - `READY_MESSAGES` em `src/app/comando/page.tsx` (versão copiável, com `[EMPRESA]`)
 - Follow-up M2 em `followupMessage()`
+- Aberturas da msg 1 em `content/sales-playbook.json` (`openings` e `localOpenings`)
+
+⚠️ A **abordagem do decisor indicado** vive em **três** arquivos e eles têm que mudar
+juntos: `src/lib/followup.ts` (`mensagemDecisorIndicado`), `scripts/extract-referrals.mjs`
+(duplicada porque o script roda em Node puro e não importa `.ts`) e
+`src/app/comando/page.tsx` (`READY_MESSAGES`). **Mudou numa, mude nas outras duas.**
 
 Link do case por segmento: Metalthec para usinagem e caldeiraria, Jotta para o
 resto. **Regra anti-invenção:** o link citado tem que ser o que será realmente
@@ -68,13 +104,21 @@ Consequência que a copy precisa respeitar: o mensal **não** pode ser vendido c
 escopo de R$150, e o atrito apareceria na primeira cobrança extra. A mensagem de
 objeção descreve o escopo real, palavra por palavra.
 
-⚠️ **Não existe venda de landing page fechada ainda.** O deal de R$3.000 do Jotta
-é um CRM em 3 parcelas, produto diferente. Ele estava registrado como R$1.000
-(uma parcela) e foi corrigido em 02/08. Ou seja: R$1.000 é hipótese de preço, não
-referência validada. A primeira venda é que vira âncora.
+✅ **Âncora validada em 14/08/2026: primeira página fechada a R$997.** Deixa de ser
+hipótese de preço e passa a ser preço praticado. O deal de R$3.000 do Jotta continua
+sendo CRM em 3 parcelas, produto diferente, e não entra nessa conta.
 
-Atenção ao **HM Usinagem**, em negotiation com R$600 registrado: 40% abaixo da
-tabela. Se fechar nesse valor, é ele que vira a referência real.
+Ressalva de leitura: a âncora veio de **cliente pequeno**, então ela prova que a faixa
+fecha, não que ela é o teto. O teto se descobre subindo com cliente maior, não
+reinterpretando essa venda.
+
+**Regra de negociação a partir daqui: nunca desça o preço, desça o escopo.** Se o lead
+não paga a tabela, tira-se item da entrega e mantém-se o número. Desconto vira
+referência e o mercado industrial da região conversa entre si.
+
+O **HM Usinagem** (negotiation a R$600, 40% abaixo da tabela) foi **descartado em
+14/08 por estar fora do ICP**, e por isso não virou âncora. Foi a decisão correta:
+lead fora de ICP que fecha barato contamina a tabela por meses.
 
 ## Quando revisar
 

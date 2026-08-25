@@ -1,6 +1,18 @@
 /**
  * Congela os candidatos de um dia em dois manifestos. Nunca envia mensagens.
  * Instagram nao participa deste fluxo: a primeira abordagem no Instagram continua manual.
+ *
+ * O dia cheio (10 follow-ups + 30 primeiras por turno, alvo 20/40) e o DEFAULT, nao a
+ * unica forma. Depois da restricao de 24h de 18/08/2026 passou a existir dia de volume
+ * baixo, e cada numero abaixo aceita "manha,tarde":
+ *
+ *   node scripts/prepare-prospecting-day.mjs --date=2026-08-24 \
+ *     --followups=3,7 --first=0 --alvo=3,10 \
+ *     --min=900,1320 --max=1200,1680 --bloco=99 --teto-numero=30
+ *
+ * Le-se: 3 follow-ups de manha e 7 a tarde, nenhuma primeira mensagem, teto acumulado
+ * de 3 ate o fim da manha e 10 no dia, mensagem a cada 15-20 min de manha e 22-28 min
+ * a tarde, sem pausa de bloco, e o lote para se o NUMERO passar de 30 saidas no dia.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -29,6 +41,37 @@ function localDate(offsetDays = 0) {
 
 const date = arg("date", localDate(1));
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Use --date=AAAA-MM-DD.");
+
+// "3,7" = manha,tarde. Um numero so vale para os dois turnos.
+function porSlot(nome, padraoManha, padraoTarde = padraoManha) {
+  const bruto = arg(nome, "");
+  if (!bruto) return { morning: padraoManha, afternoon: padraoTarde };
+  const partes = bruto.split(",").map((parte) => Number(parte.trim()));
+  if (partes.some((n) => !Number.isFinite(n) || n < 0)) {
+    throw new Error(`--${nome} aceita numero ou "manha,tarde"; recebi "${bruto}".`);
+  }
+  return { morning: partes[0], afternoon: partes.length > 1 ? partes[1] : partes[0] };
+}
+
+const followupsPorSlot = porSlot("followups", 10);
+const firstPorSlot = porSlot("first", 30);
+const alvoPorSlot = porSlot("alvo", 20, 40);
+const minPorSlot = porSlot("min", 0);
+const maxPorSlot = porSlot("max", 0);
+const pausaPorSlot = porSlot("pausa", 0);
+const blocoPorSlot = porSlot("bloco", 0);
+const tetoNumeroPorSlot = porSlot("teto-numero", 0);
+
+// Zero = nao escrever a chave e deixar o script de envio usar o default dele.
+function pacingDoSlot(slot) {
+  const pacing = {};
+  if (minPorSlot[slot]) pacing.min = minPorSlot[slot];
+  if (maxPorSlot[slot]) pacing.max = maxPorSlot[slot];
+  if (pausaPorSlot[slot]) pacing.pausa = pausaPorSlot[slot];
+  if (blocoPorSlot[slot]) pacing.bloco = blocoPorSlot[slot];
+  if (tetoNumeroPorSlot[slot]) pacing.tetoNumero = tetoNumeroPorSlot[slot];
+  return Object.keys(pacing).length ? pacing : undefined;
+}
 fs.mkdirSync(RUNTIME_DIR, { recursive: true });
 
 function manifestPath(slot) {
@@ -45,6 +88,7 @@ for (const slot of ["morning", "afternoon"]) {
 }
 
 function collect(script, kind, slot, limit, excluded = []) {
+  if (!limit) return [];
   const relativeOutput = path.join("logs", "prospecting-batches", `${date}-${slot}.${kind}.candidates.json`);
   const args = [
     path.join(ROOT, "scripts", script),
@@ -60,10 +104,10 @@ function collect(script, kind, slot, limit, excluded = []) {
   return Array.isArray(payload.ids) ? payload.ids.map(Number).filter(Number.isInteger) : [];
 }
 
-const morningFollowups = collect("uazapi-followup-batch.mjs", "followup", "morning", 10);
-const morningFirst = collect("uazapi-send-batch.mjs", "first", "morning", 30);
-const afternoonFollowups = collect("uazapi-followup-batch.mjs", "followup", "afternoon", 10, morningFollowups);
-const afternoonFirst = collect("uazapi-send-batch.mjs", "first", "afternoon", 30, morningFirst);
+const morningFollowups = collect("uazapi-followup-batch.mjs", "followup", "morning", followupsPorSlot.morning);
+const morningFirst = collect("uazapi-send-batch.mjs", "first", "morning", firstPorSlot.morning);
+const afternoonFollowups = collect("uazapi-followup-batch.mjs", "followup", "afternoon", followupsPorSlot.afternoon, morningFollowups);
+const afternoonFirst = collect("uazapi-send-batch.mjs", "first", "afternoon", firstPorSlot.afternoon, morningFirst);
 const createdAt = new Date().toISOString();
 
 const manifests = [
@@ -71,29 +115,37 @@ const manifests = [
     version: 1,
     date,
     slot: "morning",
-    cumulativeTarget: 20,
+    cumulativeTarget: alvoPorSlot.morning,
     firstContactIds: morningFirst,
     followupIds: morningFollowups,
     createdAt,
+    pacing: pacingDoSlot("morning"),
   },
   {
     version: 1,
     date,
     slot: "afternoon",
-    cumulativeTarget: 40,
+    cumulativeTarget: alvoPorSlot.afternoon,
     firstContactIds: afternoonFirst,
     followupIds: afternoonFollowups,
     createdAt,
+    pacing: pacingDoSlot("afternoon"),
   },
 ];
 
+// O guard e contra base vazia ou fila starvada, nao contra dia pequeno: exige que a
+// base tenha entregado o que foi PEDIDO. Antes era fixo em 40 e recusava qualquer dia
+// de volume baixo.
+const pedidos =
+  followupsPorSlot.morning + followupsPorSlot.afternoon + firstPorSlot.morning + firstPorSlot.afternoon;
 const uniqueCandidates = new Set(manifests.flatMap((manifest) => [...manifest.firstContactIds, ...manifest.followupIds]));
-if (uniqueCandidates.size < 40) {
-  throw new Error(`So ha ${uniqueCandidates.size} candidatos seguros para ${date}; sao necessarios pelo menos 40.`);
+if (uniqueCandidates.size < pedidos) {
+  throw new Error(`So ha ${uniqueCandidates.size} candidatos seguros para ${date}; foram pedidos ${pedidos}.`);
 }
 
 for (const manifest of manifests) {
   fs.writeFileSync(manifestPath(manifest.slot), JSON.stringify(manifest, null, 2) + "\n");
-  console.log(`${manifest.slot}: ${manifest.followupIds.length} follow-ups + ${manifest.firstContactIds.length} primeiras mensagens; alvo acumulado ${manifest.cumulativeTarget}.`);
+  const ritmo = manifest.pacing ? ` ritmo ${JSON.stringify(manifest.pacing)}.` : "";
+  console.log(`${manifest.slot}: ${manifest.followupIds.length} follow-ups + ${manifest.firstContactIds.length} primeiras mensagens; alvo acumulado ${manifest.cumulativeTarget}.${ritmo}`);
 }
 console.log(`Manifestos preparados para ${date}. Nenhuma mensagem foi enviada.`);

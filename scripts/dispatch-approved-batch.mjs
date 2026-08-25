@@ -50,6 +50,21 @@ const lerJson = (file) => JSON.parse(fs.readFileSync(file, "utf8").replace(/^\uF
 if (!fs.existsSync(manifestFile)) throw new Error(`Manifesto ausente: ${manifestFile}`);
 const manifest = lerJson(manifestFile);
 
+// Ritmo vem do manifesto (24/08/2026), nao do default do script: dia de volume baixo
+// depois da restricao de 18/08 precisa das mensagens espalhadas em horas, e o default
+// de 90-240s esvaziaria o lote inteiro em menos de uma hora. Manifesto sem `pacing`
+// continua rodando exatamente como antes.
+const pacing = manifest.pacing ?? {};
+const pacingArgs = [
+  ["min", pacing.min],
+  ["max", pacing.max],
+  ["pausa", pacing.pausa],
+  ["bloco", pacing.bloco],
+  ["teto-numero", pacing.tetoNumero],
+]
+  .filter(([, valor]) => Number.isFinite(valor) && valor > 0)
+  .map(([nome, valor]) => `--${nome}=${valor}`);
+
 const carimbo = () => new Date().toISOString().slice(11, 19);
 const registrar = (linha) => {
   console.log(linha);
@@ -106,7 +121,7 @@ if (confirmacao?.lease?.pid !== process.pid) {
 registrar(
   validation.resuming
     ? `RETOMANDO ${date}/${slot} (tentativa ${tentativa}/${MAX_ATTEMPTS}); o que ja saiu hoje e ignorado pelos scripts.`
-    : `Iniciando ${date}/${slot} (tentativa ${tentativa}/${MAX_ATTEMPTS}).`,
+    : `Iniciando ${date}/${slot} (tentativa ${tentativa}/${MAX_ATTEMPTS})${pacingArgs.length ? ` com ritmo ${pacingArgs.join(" ")}` : ""}.`,
 );
 
 // Saida dos filhos vai direto para arquivo, por descritor. O transcript do PowerShell
@@ -124,6 +139,7 @@ function run(script, ids, extra = []) {
       `--ids=${ids.join(",")}`,
       `--limit=${ids.length}`,
       `--teto-dia=${manifest.cumulativeTarget}`,
+      ...pacingArgs,
       ...extra,
     ],
     { cwd: ROOT, stdio: ["ignore", fd, fd] },
