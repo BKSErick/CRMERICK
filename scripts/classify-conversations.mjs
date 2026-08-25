@@ -26,6 +26,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { carregarEnv, clienteSupabase, ehProspect } from "./lib/analise-comum.mjs";
+import { aiCompleteDetailed, describeFailures } from "../src/lib/aiProviders.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 carregarEnv(RAIZ);
@@ -38,8 +39,6 @@ const GO = process.argv.includes("--go");
 const REFAZER = process.argv.includes("--refazer");
 const LIMITE = Number(arg("limite", 0));
 
-const GROQ_KEY = process.env.GROQ_API_KEY;
-const MODELOS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 const db = clienteSupabase();
 
 // Autoresponder nao e conversa. Mesma regra do lead-winning-profile, senao um
@@ -105,34 +104,36 @@ devolva string vazia.
 Formato exato:
 {"awareness_level":3,"sophistication_level":4,"offer_clarity":"clara","conversation_depth":3,"offer_demanded":"pagina_nova","blocker":"preco","classification_evidence":"frase do lead"}`;
 
-async function chamarGroq(thread) {
-  let ultimoErro;
-  for (const model of MODELOS) {
-    try {
-      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          temperature: 0.1, // classificacao quer consistencia, nao criatividade
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: RUBRICA },
-            { role: "user", content: thread },
-          ],
-        }),
-      });
-      if (!r.ok) {
-        ultimoErro = new Error(`${model}: ${r.status} ${(await r.text()).slice(0, 200)}`);
-        continue;
-      }
-      const j = await r.json();
-      return { dados: JSON.parse(j.choices[0].message.content), model };
-    } catch (e) {
-      ultimoErro = e;
-    }
+/**
+ * O modelo as vezes embrulha o JSON em cerca de codigo ou em uma frase de cortesia.
+ * Sem isto, uma resposta valida vira excecao e o lead deixa de ser classificado.
+ */
+function extrairJson(texto) {
+  const limpo = String(texto)
+    .replace(/^\s*```(?:json)?/i, "")
+    .replace(/```\s*$/, "")
+    .trim();
+  try {
+    return JSON.parse(limpo);
+  } catch {
+    // Sobrou prosa em volta: recorta do primeiro { ao ultimo }.
   }
-  throw ultimoErro || new Error("nenhum modelo respondeu");
+  const inicio = limpo.indexOf("{");
+  const fim = limpo.lastIndexOf("}");
+  if (inicio >= 0 && fim > inicio) return JSON.parse(limpo.slice(inicio, fim + 1));
+  throw new Error("resposta da IA nao continha JSON");
+}
+
+// Usa a MESMA cascata do app (src/lib/aiProviders.mjs), com o catalogo vivo de modelos.
+// Antes este script tinha copia propria da lista de modelos e ficou disparando nomes
+// descontinuados por conta propria.
+async function classificarComIA(thread) {
+  const { result, failures } = await aiCompleteDetailed(RUBRICA, thread, {
+    // Classificacao quer consistencia, nao criatividade.
+    requestOptions: { temperature: 0.1, response_format: { type: "json_object" } },
+  });
+  if (!result) throw new Error(describeFailures(failures));
+  return { dados: extrairJson(result.content), model: `${result.provider}/${result.model}` };
 }
 
 const normalizar = (s) =>
@@ -180,7 +181,9 @@ function validar(d) {
 }
 
 (async () => {
-  if (!GROQ_KEY) throw new Error("GROQ_API_KEY ausente no .env");
+  if (!process.env.GROQ_API_KEY && !process.env.OPENROUTER_API_KEY) {
+    throw new Error("Nenhuma chave de IA no .env (GROQ_API_KEY ou OPENROUTER_API_KEY).");
+  }
 
   const [deals, msgs] = await Promise.all([
     db.get("deals?select=id,company,name,segment_norm,stage,copy_text,classified_at"),
@@ -233,7 +236,7 @@ function validar(d) {
       .join("\n");
 
     try {
-      const { dados, model } = await chamarGroq(
+      const { dados, model } = await classificarComIA(
         `EMPRESA: ${deal.company || deal.name}\nSEGMENTO: ${deal.segment_norm || "nao classificado"}\n\nCONVERSA:\n${thread}`,
       );
       const erros = validar(dados);
