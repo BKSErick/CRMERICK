@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { DealWorkspace } from "@/components/DealWorkspace";
+import { DemandDialog, type DemandDialogState } from "@/components/DemandDialog";
 import {
   DEMAND_ATTACHMENTS_BUCKET,
   DEMAND_DESTINATIONS,
@@ -48,6 +49,22 @@ function formatBytes(value: number) {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function ChecklistActionIcon({ kind }: { kind: "up" | "down" | "trash" }) {
+  if (kind === "trash") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20">
+        <path d="M4 5h12M8 5V3h4v2m-6 0 .6 11h6.8L14 5M8.5 8v5m3-5v5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20">
+      <path d={kind === "up" ? "m5 12 5-5 5 5" : "m5 8 5 5 5-5"} />
+    </svg>
+  );
+}
+
 export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = [] }: DemandWorkspaceProps) {
   const [demand, setDemand] = useState<ClientDemand | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +74,7 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
   const [newChecklist, setNewChecklist] = useState("");
   const [newLink, setNewLink] = useState({ label: "", url: "" });
   const [comment, setComment] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<DemandDialogState | null>(null);
 
   async function refresh(showLoading = false) {
     if (showLoading) setLoading(true);
@@ -90,10 +108,10 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
     return () => { active = false; };
   }, [demandId]);
   useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    const handleKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !confirmDialog) onClose(); };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  }, [confirmDialog, onClose]);
 
   const progress = useMemo(() => checklistProgress(demand?.checklistItems ?? []), [demand?.checklistItems]);
 
@@ -110,6 +128,17 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
     } finally {
       setBusy(false);
     }
+  }
+
+  function requestRemoval(title: string, message: string, path: string, fallback: string) {
+    setConfirmDialog({
+      mode: "confirm",
+      title,
+      message,
+      confirmLabel: "Remover",
+      destructive: true,
+      onConfirm: () => { void mutate(path, { method: "DELETE" }, fallback).catch(() => undefined); },
+    });
   }
 
   async function updateDemand(updates: Record<string, unknown>) {
@@ -187,7 +216,8 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
   }
 
   return (
-    <div className="demand-workspace-overlay" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
+    <>
+      <div className="demand-workspace-overlay" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
       <div className="demand-workspace-shell" role="dialog" aria-modal="true" aria-label={demand ? `Demanda ${demand.title}` : "Demanda"}>
         {loading ? <div className="demand-workspace-loading">Carregando workspace...</div> : null}
         {!loading && error && !demand ? <div className="demand-workspace-loading"><p>{error}</p><button className="topbar-btn" onClick={onClose} type="button">Fechar</button></div> : null}
@@ -248,12 +278,14 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
                     <div className="demand-progress"><span style={{ width: `${progress.percentage}%` }} /></div>
                     <div className="demand-checklist">
                       {demand.checklistItems.map((item, index) => (
-                        <div className="demand-checklist-row" key={item.id}>
+                        <div className={`demand-checklist-row ${item.isDone ? "done" : ""}`} key={item.id}>
                           <input aria-label={`Concluir ${item.title}`} checked={item.isDone} disabled={busy || !demand.deal} onChange={(event) => void updateChecklist(item.id, { isDone: event.target.checked })} type="checkbox" />
-                          <input aria-label="Texto do checklist" disabled={!demand.deal} value={item.title} onChange={(event) => setDemand((current) => current ? { ...current, checklistItems: current.checklistItems.map((row) => row.id === item.id ? { ...row, title: event.target.value } : row) } : current)} onBlur={() => void updateChecklist(item.id, { title: item.title })} />
-                          <button aria-label="Mover item para cima" disabled={busy || index === 0 || !demand.deal} onClick={() => void moveChecklist(index, -1)} type="button">↑</button>
-                          <button aria-label="Mover item para baixo" disabled={busy || index === demand.checklistItems.length - 1 || !demand.deal} onClick={() => void moveChecklist(index, 1)} type="button">↓</button>
-                          <button aria-label={`Remover ${item.title}`} disabled={busy || !demand.deal} onClick={() => window.confirm("Remover este item do checklist?") && void mutate(`/api/demands/checklist?id=${item.id}`, { method: "DELETE" }, "Nao foi possivel remover o item.")} type="button">×</button>
+                          <input aria-label="Texto do checklist" className="demand-checklist-title" disabled={busy || !demand.deal} type="text" value={item.title} onChange={(event) => setDemand((current) => current ? { ...current, checklistItems: current.checklistItems.map((row) => row.id === item.id ? { ...row, title: event.target.value } : row) } : current)} onBlur={() => void updateChecklist(item.id, { title: item.title })} />
+                          <div className="demand-checklist-actions">
+                            <button aria-label="Mover item para cima" className="demand-checklist-action" disabled={busy || index === 0 || !demand.deal} onClick={() => void moveChecklist(index, -1)} type="button"><ChecklistActionIcon kind="up" /></button>
+                            <button aria-label="Mover item para baixo" className="demand-checklist-action" disabled={busy || index === demand.checklistItems.length - 1 || !demand.deal} onClick={() => void moveChecklist(index, 1)} type="button"><ChecklistActionIcon kind="down" /></button>
+                            <button aria-label={`Remover ${item.title}`} className="demand-checklist-action danger" disabled={busy || !demand.deal} onClick={() => requestRemoval("Remover item", `Remover \"${item.title}\" do checklist?`, `/api/demands/checklist?id=${item.id}`, "Nao foi possivel remover o item.")} type="button"><ChecklistActionIcon kind="trash" /></button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -268,7 +300,7 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
                           <input aria-label="Rotulo do link" disabled={!demand.deal} value={link.label} onChange={(event) => setDemand((current) => current ? { ...current, links: current.links.map((row) => row.id === link.id ? { ...row, label: event.target.value } : row) } : current)} onBlur={() => void mutate("/api/demands/links", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: link.id, label: link.label, url: link.url }) }, "Nao foi possivel salvar o link.")} />
                           <input aria-label="URL do link" disabled={!demand.deal} value={link.url} onChange={(event) => setDemand((current) => current ? { ...current, links: current.links.map((row) => row.id === link.id ? { ...row, url: event.target.value } : row) } : current)} onBlur={() => void mutate("/api/demands/links", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: link.id, label: link.label, url: link.url }) }, "Nao foi possivel salvar o link.")} />
                           <a aria-label={`Abrir ${link.label}`} href={link.url} rel="noreferrer" target="_blank">Abrir</a>
-                          <button aria-label={`Remover ${link.label}`} disabled={!demand.deal} onClick={() => window.confirm("Remover este link?") && void mutate(`/api/demands/links?id=${link.id}`, { method: "DELETE" }, "Nao foi possivel remover o link.")} type="button">×</button>
+                          <button aria-label={`Remover ${link.label}`} className="demand-row-action danger" disabled={busy || !demand.deal} onClick={() => requestRemoval("Remover link", `Remover o link \"${link.label}\"?`, `/api/demands/links?id=${link.id}`, "Nao foi possivel remover o link.")} type="button"><ChecklistActionIcon kind="trash" /></button>
                         </div>
                       ))}
                     </div>
@@ -279,7 +311,7 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
                     <div className="demand-section-heading"><div><span>Anexos</span><small>Imagens, videos e documentos ate 100 MB</small></div><label className={`topbar-btn ${!demand.deal ? "disabled" : ""}`}>Anexar<input aria-label="Anexar arquivo" disabled={busy || !demand.deal} hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAttachment(file); event.target.value = ""; }} type="file" /></label></div>
                     <div className="demand-attachments">
                       {demand.attachments.length === 0 ? <p className="muted-copy">Nenhum arquivo anexado.</p> : demand.attachments.map((attachment) => (
-                        <div className="demand-attachment-row" key={attachment.id}><div><strong>{attachment.fileName}</strong><small>{attachment.mimeType} · {formatBytes(attachment.sizeBytes)}</small></div><button className="topbar-btn" onClick={() => void downloadAttachment(attachment.id)} type="button">Baixar</button><button className="topbar-btn danger" disabled={!demand.deal} onClick={() => window.confirm("Remover este anexo?") && void mutate(`/api/demands/attachments?id=${attachment.id}`, { method: "DELETE" }, "Nao foi possivel remover o anexo.")} type="button">Remover</button></div>
+                        <div className="demand-attachment-row" key={attachment.id}><div><strong>{attachment.fileName}</strong><small>{attachment.mimeType} · {formatBytes(attachment.sizeBytes)}</small></div><button className="topbar-btn" onClick={() => void downloadAttachment(attachment.id)} type="button">Baixar</button><button className="topbar-btn danger" disabled={busy || !demand.deal} onClick={() => requestRemoval("Remover anexo", `Remover o arquivo \"${attachment.fileName}\"?`, `/api/demands/attachments?id=${attachment.id}`, "Nao foi possivel remover o anexo.")} type="button">Remover</button></div>
                       ))}
                     </div>
                   </section>
@@ -298,7 +330,9 @@ export function DemandWorkspace({ demandId, onClose, onChanged, folderOptions = 
             </aside>
           </>
         ) : null}
+        </div>
       </div>
-    </div>
+      <DemandDialog onClose={() => setConfirmDialog(null)} state={confirmDialog} />
+    </>
   );
 }

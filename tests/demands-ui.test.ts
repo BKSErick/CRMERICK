@@ -164,3 +164,26 @@ test("estilos cobrem arvore, tabela agrupada, overlay e breakpoint mobile", () =
   assert.doesNotMatch(css, /\.demand-list-row/);
   assert.doesNotMatch(css, /\.demands-toolbar/);
 });
+
+test("checklist agrupa acoes compactas sem criar a linha implicita do X gigante", () => {
+  assert.match(workspace, /demand-checklist-actions/);
+  assert.match(workspace, /ChecklistActionIcon/);
+  assert.match(workspace, /item\.isDone \? "done" : ""/);
+  assert.match(workspace, /kind="trash"/);
+  assert.doesNotMatch(workspace, />\s*[xX×]\s*<\/button>/);
+
+  assert.match(css, /\.demand-checklist-row\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0, 1fr\) auto/);
+  assert.match(css, /\.demand-checklist-actions\s*\{[\s\S]*display:\s*flex/);
+  assert.match(css, /\.demand-checklist-action,\s*\.demand-row-action\s*\{[^}]*width:\s*30px[^}]*height:\s*30px/);
+  assert.match(css, /\.demand-checklist-row\.done[\s\S]*text-decoration:\s*line-through/);
+  assert.match(css, /@media\s*\(max-width:\s*768px\)[\s\S]*\.demand-checklist-actions/);
+});
+
+test("dialogos e confirmacoes de Demandas usam o centro da viewport", () => {
+  assert.match(workspace, /import \{ DemandDialog, type DemandDialogState \}/);
+  assert.match(workspace, /<DemandDialog/);
+  assert.doesNotMatch(workspace, /window\.confirm/);
+  assert.match(dialog, /<dialog className="demand-dialog"/);
+  assert.match(css, /\.demand-dialog\[open\]\s*\{[\s\S]*position:\s*fixed[\s\S]*top:\s*50%[\s\S]*left:\s*50%[\s\S]*translate\(-50%,\s*-50%\)/);
+  assert.match(css, /\.demand-dialog\s*\{[\s\S]*max-height:\s*calc\(100dvh - 32px\)[\s\S]*overflow-y:\s*auto/);
+});
