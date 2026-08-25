@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { navItems } from "@/lib/navigation";
+import { isNavItemActive, navItems } from "@/lib/navigation";
 
 const groups = ["Navegacao", "Gestao"] as const;
 
@@ -15,6 +15,7 @@ const iconPaths: Record<string, string> = {
   brain: "M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.5 3 5.7V19a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4.3c1.8-1.2 3-3.3 3-5.7a7 7 0 0 0-7-7z M9 12h6 M9 8h6 M9 16h4",
   funil: "M4 4h16l-6 7v6l-4 3v-9L4 4z",
   pipeline: "M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01",
+  lista: "M4 5h16 M4 12h16 M4 19h16",
   insights: "M9 21h6 M10 3.2a6 6 0 0 0-2 11.1c.6.5 1 1.3 1 2.1V17h6v-.6c0-.8.4-1.6 1-2.1A6 6 0 0 0 10 3.2z",
   contacts: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8",
   conteudo: "M3 3h18v18H3z M8.5 8.5h.01 M21 15l-5-5L5 21",
@@ -67,9 +68,9 @@ export function Sidebar() {
           <div className="nav-group" key={group}>
             <div className="sidebar-group-label">{group}</div>
             {navItems
-              .filter((item) => item.group === group)
+              .filter((item) => item.group === group && item.sidebar !== false)
               .map((item) => {
-                const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                const active = isNavItemActive(item, pathname);
                 return (
                   <Link
                     className={`nav-item ${active ? "active" : ""}`}

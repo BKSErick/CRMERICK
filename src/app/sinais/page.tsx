@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FunnelSubnav } from "@/components/FunnelSubnav";
 
 // Sinais = radar de INTERESSE do funil outbound (nao e mais espelho do Instagram — as
 // metricas de IG vivem na aba Instagram). Aqui entra quem deu sinal de vida nas paginas
@@ -140,6 +141,7 @@ export default function SinaisPage() {
 
   return (
     <section>
+      <FunnelSubnav />
       <div className="page-header">
         <div className="page-header-left">
           <h1>Sinais</h1>

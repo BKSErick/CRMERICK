@@ -199,6 +199,7 @@ test("migration, eventos e superficies existentes compartilham deal health", () 
   const commercialEvents = readFileSync(new URL("../src/lib/commercialAutomationService.mjs", import.meta.url), "utf8");
   const dealsRoute = readFileSync(new URL("../src/app/api/deals/route.ts", import.meta.url), "utf8");
   const pipeline = readFileSync(new URL("../src/app/pipeline/page.tsx", import.meta.url), "utf8");
+  const dealOverlay = readFileSync(new URL("../src/components/DealDetailOverlay.tsx", import.meta.url), "utf8");
   const comando = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
   const runner = readFileSync(new URL("../scripts/prospeccao-runner.mjs", import.meta.url), "utf8");
 
@@ -207,11 +208,11 @@ test("migration, eventos e superficies existentes compartilham deal health", () 
   assert.match(migration, /between 0 and 100/);
   assert.match(commercialEvents, /recalculateDealHealthBestEffort/);
   assert.match(dealsRoute, /stage_entered_at/);
-  assert.match(pipeline, /Saude explicavel do negocio/);
+  assert.match(dealOverlay, /Saude explicavel do negocio/);
   assert.match(pipeline, /Lead score:/);
   assert.match(comando, /healthReview/);
   assert.match(runner, /scripts\/deal-health\.mjs/);
-  assert.doesNotMatch(pipeline, /href=["']\/saude/);
+  assert.doesNotMatch(`${pipeline}${dealOverlay}`, /href=["']\/saude/);
 });
 
 test("persistencia grava uma vez e ignora recalculo com o mesmo fingerprint", async () => {

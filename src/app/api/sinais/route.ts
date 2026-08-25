@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
-import { classifySource, normalizeUrl, type TrafficKind } from "@/lib/sinais";
+import { classifySource, isTestTrafficUrl, normalizeUrl, type TrafficKind } from "@/lib/sinais";
 
 // Sinais de interesse do funil outbound: agrega os eventos reais das paginas de
 // diagnostico (tabela pixel_events, RLS deny-by-default, leitura so aqui via
@@ -70,8 +70,9 @@ export async function GET() {
       string,
       Omit<TrafficSource, "destinations" | "pages"> & { pageSet: Set<string>; destMap: Map<string, number> }
     >();
+    const rows = (data ?? []).filter((row) => !isTestTrafficUrl(row.page_url));
 
-    for (const row of data ?? []) {
+    for (const row of rows) {
       const company = (row.client_name ?? "").trim() || "(sem nome na pagina)";
       const created = row.created_at ? String(row.created_at) : "";
       const entry =
@@ -158,7 +159,7 @@ export async function GET() {
     // A tabela por empresa e radar de PROSPECT: so entra quem veio de linha outbound.
     // Link in bio e site proprio sao trafego seu e apareceriam como empresa a abordar.
     const outboundCompanies = new Set<string>();
-    for (const row of data ?? []) {
+    for (const row of rows) {
       const page = normalizeUrl(row.page_url);
       if (page && classifySource(page.host, page.label).kind === "outbound") {
         outboundCompanies.add((row.client_name ?? "").trim() || "(sem nome na pagina)");

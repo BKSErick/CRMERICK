@@ -627,17 +627,18 @@ test("CLI cobre briefing, consulta por deal e rascunho, sempre somente leitura",
 test("copiloto entra nas superficies atuais sem criar rota, aba ou dashboard novo", () => {
   const command = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
   const pipeline = readFileSync(new URL("../src/app/pipeline/page.tsx", import.meta.url), "utf8");
+  const dealOverlay = readFileSync(new URL("../src/components/DealDetailOverlay.tsx", import.meta.url), "utf8");
   const insights = readFileSync(new URL("../src/app/insights/page.tsx", import.meta.url), "utf8");
   const navigation = readFileSync(new URL("../src/lib/navigation.ts", import.meta.url), "utf8");
   const aiRoute = readFileSync(new URL("../src/app/api/ai/route.ts", import.meta.url), "utf8");
 
   assert.match(command, /CopilotPanel|CopilotAnswerBody/);
   assert.match(command, /copilot-ask/);
-  assert.match(pipeline, /CopilotPanel/);
+  assert.match(dealOverlay, /CopilotPanel/);
   assert.match(insights, /copiloto/);
   assert.match(aiRoute, /copilot-brief/);
   // Nenhuma rota nova: o copiloto vive dentro de /api/ai e das telas que ja existiam.
-  assert.doesNotMatch(`${command}${pipeline}${insights}`, /href=["']\/copilot/);
+  assert.doesNotMatch(`${command}${pipeline}${dealOverlay}${insights}`, /href=["']\/copilot/);
   assert.doesNotMatch(navigation, /copilot/i);
 });
 

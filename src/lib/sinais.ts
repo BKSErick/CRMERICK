@@ -19,6 +19,57 @@ export type CompanySignal = {
 
 export const HOT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
+function isPrivateIpv4(hostname: string): boolean {
+  const parts = hostname.split(".");
+  if (parts.length !== 4 || parts.some((part) => !/^\d+$/.test(part))) return false;
+  const octets = parts.map(Number);
+  if (octets.some((octet) => octet < 0 || octet > 255)) return false;
+
+  return (
+    octets[0] === 10 ||
+    octets[0] === 127 ||
+    (octets[0] === 169 && octets[1] === 254) ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168)
+  );
+}
+
+function hasWindowsLocalPath(value: string): boolean {
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    // Se a URL estiver malformada, a verificacao conservadora usa o valor bruto.
+  }
+  return /(^|\/)\/?[a-z]:\//i.test(decoded.replace(/\\/g, "/"));
+}
+
+/**
+ * Tráfego de preview/desenvolvimento nunca representa interesse comercial.
+ * A regra cobre loopback, rede privada, hosts .local e caminhos locais do Windows.
+ */
+export function isTestTrafficUrl(raw: unknown): boolean {
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (!value) return false;
+  if (hasWindowsLocalPath(value)) return true;
+
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    return (
+      parsed.protocol === "file:" ||
+      hostname === "localhost" ||
+      hostname.endsWith(".localhost") ||
+      hostname === "::1" ||
+      hostname === "0.0.0.0" ||
+      hostname.endsWith(".local") ||
+      isPrivateIpv4(hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeUrl(raw: unknown): { url: string; label: string; host: string } | null {
   const value = typeof raw === "string" ? raw.trim() : "";
   if (!value) return null;
@@ -90,6 +141,7 @@ export async function getCompanySignals(
   const byCompany = new Map<string, CompanySignal>();
 
   for (const row of data ?? []) {
+    if (isTestTrafficUrl(row.page_url)) continue;
     const page = normalizeUrl(row.page_url);
     if (page && classifySource(page.host, page.label).kind !== "outbound") continue;
 

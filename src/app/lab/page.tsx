@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FunnelSubnav } from "@/components/FunnelSubnav";
 
 // Lab = laboratorio da meta: calculadora reversa (traduz o gap da North Star em disparos/dia)
 // + CRUD de experimentos de prospeccao (tabela experiments, via /api/experiments server-side).
@@ -177,6 +178,7 @@ export default function LabPage() {
 
   return (
     <section>
+      <FunnelSubnav />
       <div className="page-header">
         <div className="page-header-left">
           <h1>Lab</h1>

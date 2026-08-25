@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FunnelSubnav } from "@/components/FunnelSubnav";
 import { useCRMStore, type DealStage } from "@/store/useCRMStore";
 import type { LossAnalysis } from "@/lib/dealLossReasons.mjs";
 
@@ -436,12 +437,7 @@ export default function FunilPage() {
         </aside>
       </header>
 
-      <nav className="funnel-tabs" aria-label="Funis">
-        <button type="button">Winners na pratica</button>
-        <button type="button">Fluxo 7 automacoes</button>
-        <button type="button">Indicacao Landing</button>
-        <button className="active" type="button">Reativacao sem culpa</button>
-      </nav>
+      <FunnelSubnav />
 
       <div className="funnel-source-filter" aria-label="Fonte do funil">
         {[

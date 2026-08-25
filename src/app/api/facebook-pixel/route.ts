@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
-import { classifySource, normalizeUrl } from "@/lib/sinais";
+import { classifySource, isTestTrafficUrl, normalizeUrl } from "@/lib/sinais";
 
 type PixelEventBody = {
   eventName?: string;
@@ -276,6 +276,19 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as PixelEventBody;
   const eventName = body.eventName ?? "DiagnosticoView";
+
+  if (isTestTrafficUrl(body.pageUrl)) {
+    return NextResponse.json(
+      {
+        ok: true,
+        persisted: false,
+        gaSent: false,
+        status: "ignored_test_traffic",
+        message: "Evento local de teste ignorado.",
+      },
+      { status: 200, headers: CORS_HEADERS },
+    );
+  }
 
   // 1) Persiste SEMPRE (independe do CAPI) para alimentar o funil.
   const persisted = await persistEvent(body, eventName);

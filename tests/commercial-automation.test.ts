@@ -198,10 +198,10 @@ test("produtores e superficies existentes usam o contrato central sem criar pagi
   }
   const configuracoes = readFileSync(new URL("../src/app/configuracoes/page.tsx", import.meta.url), "utf8");
   const comando = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
-  const pipeline = readFileSync(new URL("../src/app/pipeline/page.tsx", import.meta.url), "utf8");
+  const dealPresentation = readFileSync(new URL("../src/lib/dealPresentation.ts", import.meta.url), "utf8");
   assert.match(configuracoes, /automation_rules/);
   assert.match(comando, /automationAlerts/);
-  assert.match(pipeline, /automation_task_upserted/);
+  assert.match(dealPresentation, /automation_task_upserted/);
 });
 
 test("migration e aditiva, idempotente e usa RLS deny-by-default", () => {

@@ -312,7 +312,7 @@
   overflow-x: auto;
 }
 
-.funnel-tabs button,
+.funnel-tabs a,
 .funnel-source-filter button {
   background: transparent;
   border: 1px solid transparent;
@@ -321,15 +321,21 @@
   cursor: pointer;
   font: 600 11px/1 var(--font-inter);
   padding: 8px 14px;
+  text-decoration: none;
   white-space: nowrap;
 }
 
-.funnel-tabs button.active,
+.funnel-tabs a.active,
 .funnel-source-filter button.active {
   background: #faf8f2;
   border-color: #ece6dc;
   border-bottom-color: #faf8f2;
   color: #4f493f;
+}
+
+.funnel-tabs a:focus-visible {
+  outline: 2px solid var(--color-brand-violet);
+  outline-offset: -2px;
 }
 
 .funnel-source-filter {
@@ -2929,5 +2935,212 @@ button.demand-chip.active {
     min-height: 360px;
     border-top: 1px solid var(--color-cloud);
     border-left: 0;
+  }
+}
+
+/* Story 038: outra projecao dos mesmos deals do Pipeline, sem duplicar o modal. */
+.deal-list-page {
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  padding: 28px 28px 48px;
+}
+
+.deal-list-heading,
+.deal-list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.deal-list-heading {
+  margin-bottom: 18px;
+}
+
+.deal-list-heading h1 {
+  margin: 8px 0 4px;
+  color: var(--color-midnight-ink);
+  font-size: clamp(24px, 3vw, 36px);
+}
+
+.deal-list-heading p {
+  margin: 0;
+  color: var(--color-slate);
+}
+
+.deal-list-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(150px, auto)) auto;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.deal-list-filters input,
+.deal-list-filters select {
+  min-height: 40px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-charcoal);
+}
+
+.deal-list-table-wrap {
+  overflow-x: auto;
+}
+
+.deal-list-table {
+  min-width: 980px;
+}
+
+.deal-list-table tbody tr {
+  cursor: pointer;
+}
+
+.deal-list-table tbody tr:focus-visible td {
+  background: color-mix(in srgb, var(--color-brand-violet) 8%, var(--color-pure-white));
+  outline: 2px solid var(--color-brand-violet);
+  outline-offset: -2px;
+}
+
+.deal-list-table td:first-child strong,
+.deal-list-table td:first-child span {
+  display: block;
+}
+
+.deal-list-table td:first-child span,
+.deal-list-muted {
+  margin-top: 3px;
+  color: var(--color-slate);
+  font-size: 11px;
+}
+
+.deal-list-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.deal-list-stage::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--stage-color);
+  content: "";
+}
+
+.deal-list-health,
+.deal-list-next {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font: 700 11px/1 var(--font-mono);
+  white-space: nowrap;
+}
+
+.deal-list-next.scheduled {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.deal-list-next.overdue {
+  background: #fde7e7;
+  color: #b3261e;
+}
+
+.deal-list-next.missing {
+  background: #e8eef7;
+  color: #455a64;
+}
+
+.deal-list-pagination {
+  margin-top: 14px;
+  color: var(--color-slate);
+  font-size: 12px;
+}
+
+.deal-list-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.deal-list-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 56px 24px;
+  color: var(--color-slate);
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .deal-list-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .deal-list-filters .table-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .deal-list-page {
+    padding: 20px 14px 40px;
+  }
+
+  .deal-list-heading,
+  .deal-list-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .deal-list-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .deal-list-filters .table-search {
+    grid-column: auto;
+  }
+
+  .deal-list-table {
+    min-width: 0;
+  }
+
+  .deal-list-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .deal-list-table,
+  .deal-list-table tbody,
+  .deal-list-table tr,
+  .deal-list-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .deal-list-table tr {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-cloud);
+  }
+
+  .deal-list-table td {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 0;
+    border: 0;
+  }
+
+  .deal-list-table td::before {
+    color: var(--color-slate);
+    font: 600 10px/1.4 var(--font-inter);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    content: attr(data-label);
   }
 }

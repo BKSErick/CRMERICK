@@ -229,10 +229,11 @@ test("forecast reutiliza Funis, Comando e Pipeline sem criar navegacao", () => {
   const funnel = readFileSync(new URL("../src/app/funil/page.tsx", import.meta.url), "utf8");
   const command = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
   const pipeline = readFileSync(new URL("../src/app/pipeline/page.tsx", import.meta.url), "utf8");
+  const dealOverlay = readFileSync(new URL("../src/components/DealDetailOverlay.tsx", import.meta.url), "utf8");
   assert.match(funnelApi, /calculateForecast/);
   assert.match(commandApi, /calculateForecastFromSupabase/);
   assert.match(funnel, /Forecast explicavel/);
   assert.match(command, /Receita em risco/);
-  assert.match(pipeline, /Probabilidade calculada/);
-  assert.doesNotMatch(`${funnel}${command}${pipeline}`, /href=["']\/forecast/);
+  assert.match(dealOverlay, /Probabilidade calculada/);
+  assert.doesNotMatch(`${funnel}${command}${pipeline}${dealOverlay}`, /href=["']\/forecast/);
 });

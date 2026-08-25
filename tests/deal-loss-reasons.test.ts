@@ -190,11 +190,12 @@ test("forecast exclui lost e explica o motivo sem transforma-lo em previsao", ()
 
 test("cancelamento do dialogo nao chama persistencia e mudancas passam pelo gate", () => {
   const pipeline = readFileSync(new URL("../src/app/pipeline/page.tsx", import.meta.url), "utf8");
-  const dialog = pipeline.slice(pipeline.indexOf("function LossReasonDialog"), pipeline.indexOf("type DealCardProps"));
+  const dealOverlay = readFileSync(new URL("../src/components/DealDetailOverlay.tsx", import.meta.url), "utf8");
+  const dialog = dealOverlay.slice(dealOverlay.indexOf("export function LossReasonDialog"), dealOverlay.indexOf("type DealDetailOverlayProps"));
   assert.match(dialog, /onClick=\{onCancel\}/);
   assert.doesNotMatch(dialog, /updateDealStage|fetch\(/);
   assert.match(pipeline, /requestStageChange\(draggedDealId, stage\.id\)/);
-  assert.match(pipeline, /onStageChange\(deal\.id, e\.target\.value as DealStage\)/);
+  assert.match(dealOverlay, /onStageChange\(deal\.id, e\.target\.value as DealStage\)/);
   const store = readFileSync(new URL("../src/store/useCRMStore.ts", import.meta.url), "utf8");
   assert.doesNotMatch(store, /fetch\("\/api\/activities"/);
   const route = readFileSync(new URL("../src/app/api/deals/route.ts", import.meta.url), "utf8");
@@ -203,13 +204,14 @@ test("cancelamento do dialogo nao chama persistencia e mudancas passam pelo gate
 
 test("Pipeline, Funis, Achados e forecast reutilizam superficies atuais", () => {
   const pipeline = readFileSync(new URL("../src/app/pipeline/page.tsx", import.meta.url), "utf8");
+  const dealOverlay = readFileSync(new URL("../src/components/DealDetailOverlay.tsx", import.meta.url), "utf8");
   const funnel = readFileSync(new URL("../src/app/funil/page.tsx", import.meta.url), "utf8");
   const insights = readFileSync(new URL("../src/app/insights/page.tsx", import.meta.url), "utf8");
   const forecast = readFileSync(new URL("../src/lib/dealForecast.mjs", import.meta.url), "utf8");
   assert.match(pipeline, /Registrar razao da perda/);
-  assert.match(pipeline, /Corrigir motivo/);
+  assert.match(dealOverlay, /Corrigir motivo/);
   assert.match(funnel, /Razoes de perda/);
   assert.match(insights, /Aprendizado das perdas/);
   assert.match(forecast, /lossReason/);
-  assert.doesNotMatch(`${pipeline}${funnel}${insights}`, /href=["']\/perdas/);
+  assert.doesNotMatch(`${pipeline}${dealOverlay}${funnel}${insights}`, /href=["']\/perdas/);
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FunnelSubnav } from "@/components/FunnelSubnav";
 import type { LossAnalysis } from "@/lib/dealLossReasons.mjs";
 
 // Aba Achados = repositorio dos aprendizados do loop (tabela insights).
@@ -172,6 +173,7 @@ export default function InsightsPage() {
 
   return (
     <section>
+      <FunnelSubnav />
       <div className="page-header">
         <div className="page-header-left">
           <h1>Achados</h1>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FunnelSubnav } from "@/components/FunnelSubnav";
 
 // Analise de conversas POR TIPO DE EMPRESA.
 //
@@ -132,6 +133,7 @@ export default function AnalisePage() {
 
   return (
     <section>
+      <FunnelSubnav />
       <div className="page-header">
         <div className="page-header-left">
           <h1>Analise de conversas</h1>

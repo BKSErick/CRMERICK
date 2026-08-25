@@ -147,6 +147,7 @@ test("migration, APIs e superficies existentes compartilham qualificacao", () =>
   const aiRoute = readFileSync(new URL("../src/app/api/ai/route.ts", import.meta.url), "utf8");
   const automation = readFileSync(new URL("../src/lib/commercialAutomation.mjs", import.meta.url), "utf8");
   const pipeline = readFileSync(new URL("../src/app/pipeline/page.tsx", import.meta.url), "utf8");
+  const dealOverlay = readFileSync(new URL("../src/components/DealDetailOverlay.tsx", import.meta.url), "utf8");
   const comandoRoute = readFileSync(new URL("../src/app/api/comando/route.ts", import.meta.url), "utf8");
   const comandoPage = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
 
@@ -156,11 +157,11 @@ test("migration, APIs e superficies existentes compartilham qualificacao", () =>
   assert.match(dealsRoute, /qualificationMutation/);
   assert.match(aiRoute, /suggest-qualification/);
   assert.match(automation, /deal\.qualification_updated/);
-  assert.match(pipeline, /Qualificacao consultiva/);
-  assert.match(pipeline, /Confirmar como operador/);
+  assert.match(dealOverlay, /Qualificacao consultiva/);
+  assert.match(dealOverlay, /Confirmar como operador/);
   assert.match(comandoRoute, /qualificationReview/);
   assert.match(comandoPage, /Lacunas de qualificacao/);
-  assert.doesNotMatch(pipeline, /href=["']\/qualificacao/);
+  assert.doesNotMatch(`${pipeline}${dealOverlay}`, /href=["']\/qualificacao/);
 });
 
 test("mapeamento expoe qualificacao normalizada sem permitir escrita generica", () => {
