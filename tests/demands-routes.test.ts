@@ -84,9 +84,11 @@ test("demandas orfas preservam historico e bloqueiam mutacoes", () => {
   ];
 
   assert.match(server, /assertDemandWritable/);
-  assert.match(server, /!demand\.deal_id/);
+  // Orfa = sem cliente E sem deal. So com o cliente a demanda continua editavel.
+  assert.match(server, /isOrphanDemand/);
+  assert.match(server, /!demand\.deal_id && !demand\.client_id/);
   for (const file of mutationRoutes) {
     assert.match(source(file), /assertDemandWritable/);
   }
-  assert.match(source("src/app/api/demands/route.ts"), /!current\.data\.deal_id/);
+  assert.match(source("src/app/api/demands/route.ts"), /isOrphanDemand\(current\.data\)/);
 });

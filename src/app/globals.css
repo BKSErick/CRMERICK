@@ -3349,3 +3349,171 @@ button.demand-chip.active {
   fill: #7b756b;
   font: 500 10px/1 var(--font-inter);
 }
+
+/* ===== Valor da demanda + aba Clientes (story-042) ===== */
+
+.demand-cell-value {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.demand-cell-value strong {
+  color: var(--color-charcoal);
+  font: 650 12px/1.2 var(--font-inter);
+}
+
+.demand-cell-value small {
+  margin-left: 4px;
+  color: var(--color-slate);
+  font: 500 10px/1 var(--font-mono);
+}
+
+.demand-group-value {
+  margin-left: auto;
+  color: var(--color-charcoal);
+  font: 650 12px/1 var(--font-inter);
+  font-variant-numeric: tabular-nums;
+}
+
+.demand-window-total {
+  color: var(--color-charcoal);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bloco de cobranca no workspace da demanda. */
+.demand-billing {
+  border-top: 1px dashed var(--color-cloud);
+  padding-top: 14px;
+}
+
+.demand-billing-hint {
+  margin: 0;
+  color: var(--color-slate);
+  font: 500 12px/1.5 var(--font-inter);
+}
+
+.clients-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clients-month input {
+  padding: 7px 10px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-pill);
+  background: var(--color-pure-white);
+  color: var(--color-charcoal);
+  font: 500 12px/1 var(--font-inter);
+}
+
+.clients-page .demand-filterbar {
+  margin: 18px 0 12px;
+}
+
+.clients-table tbody tr {
+  cursor: pointer;
+}
+
+.clients-table tbody tr:hover {
+  background: var(--color-paper);
+}
+
+.clients-table td small {
+  font: 500 11px/1.4 var(--font-inter);
+}
+
+.demand-chip.client-status-active { background: #e8f7ef; color: #1d7a4d; }
+.demand-chip.client-status-paused { background: #fff6df; color: #8a5d00; }
+.demand-chip.client-status-churned { background: #f2f2f2; color: #7a7a7a; }
+
+.client-workspace .demand-workspace-main {
+  width: 100%;
+}
+
+.client-totals {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: 18px;
+}
+
+.client-totals article {
+  padding: 12px 14px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  background: var(--color-pure-white);
+}
+
+.client-totals span {
+  display: block;
+  color: var(--color-slate);
+  font: 500 11px/1.4 var(--font-inter);
+}
+
+.client-totals strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-charcoal);
+  font: 650 18px/1.2 var(--font-inter);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Linha que de fato entra na conta do mes escolhido. */
+.client-demand-in-month {
+  background: #f6f3ff;
+}
+
+/* Parcelamento: uma linha por parcela, com mes, valor e baixa. */
+.demand-installment-generate {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.demand-installment-generate input {
+  width: 72px;
+}
+
+.demand-installments {
+  display: grid;
+  gap: 8px;
+}
+
+.demand-installment-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  grid-template-columns: 52px minmax(120px, 1fr) minmax(90px, 1fr) minmax(110px, 1.2fr) auto;
+  padding: 8px 10px;
+  border: 1px solid var(--color-cloud);
+  border-radius: var(--radius-card);
+  background: var(--color-pure-white);
+}
+
+.demand-installment-row.paid {
+  border-color: #bfe3cf;
+  background: #f3fbf6;
+}
+
+.demand-installment-number {
+  color: var(--color-slate);
+  font: 650 11px/1 var(--font-mono);
+}
+
+.demand-installment-status {
+  color: var(--color-slate);
+  font: 500 11px/1.4 var(--font-inter);
+}
+
+.demand-installment-row.paid .demand-installment-status {
+  color: #1d7a4d;
+  font-weight: 650;
+}
+
+@media (max-width: 720px) {
+  .demand-installment-row {
+    grid-template-columns: 52px 1fr 1fr;
+  }
+}

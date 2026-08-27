@@ -24,7 +24,9 @@ export const navItems: NavItem[] = [
   { label: "Agentes", href: "/agentes", module: "agentes", group: "Navegacao", status: "migrated" },
   { label: "Sinais", href: "/sinais", module: "sinais", group: "Navegacao", status: "migrated", parentModule: "funil", sidebar: false },
   { label: "Demandas", href: "/demandas", module: "demandas", group: "Gestao", status: "migrated" },
-  { label: "Carteira", href: "/carteira", module: "carteira", group: "Gestao", status: "migrated" },
+  { label: "Clientes", href: "/clientes", module: "clientes", group: "Gestao", status: "migrated" },
+  // Carteira virou Clientes (story-042). A rota continua viva e redireciona, para link antigo nao morrer.
+  { label: "Carteira", href: "/carteira", module: "carteira", group: "Gestao", status: "migrated", parentModule: "clientes", sidebar: false },
   { label: "Calendario", href: "/calendar", module: "calendar", group: "Gestao", status: "migrated" },
   { label: "Reunioes", href: "/reunioes", module: "reunioes", group: "Gestao", status: "migrated" },
   { label: "Configuracoes", href: "/configuracoes", module: "configuracoes", group: "Gestao", status: "migrated" },

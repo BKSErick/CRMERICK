@@ -10,6 +10,13 @@ export const DEMAND_DESTINATIONS = [
   "other",
 ] as const;
 
+/**
+ * Regime de cobranca da demanda. Pontual entra uma vez, na competencia escolhida;
+ * mensal repete todo mes a partir dela ate billingUntil (ou para sempre); parcelado
+ * quebra o valor em parcelas, cada uma com mes proprio e baixa propria.
+ */
+export const DEMAND_BILLING_TYPES = ["one_off", "installment", "monthly"] as const;
+
 export const DEMAND_ATTACHMENTS_BUCKET = "demand-attachments";
 export const DEFAULT_MAX_DEMAND_ATTACHMENT_BYTES = 100 * 1024 * 1024;
 export const DEMAND_TIME_ZONE = "America/Sao_Paulo";
@@ -17,6 +24,7 @@ export const DEMAND_TIME_ZONE = "America/Sao_Paulo";
 export type DemandStatus = (typeof DEMAND_STATUSES)[number];
 export type DemandPriority = (typeof DEMAND_PRIORITIES)[number];
 export type DemandDestination = (typeof DEMAND_DESTINATIONS)[number];
+export type DemandBillingType = (typeof DEMAND_BILLING_TYPES)[number];
 export type DemandScheduleGroup = "overdue" | "today" | "upcoming" | "no_due" | "completed";
 
 // Rotulos unicos da operacao. Ficam aqui para a pagina, o workspace e os scripts
@@ -46,11 +54,26 @@ export const DEMAND_DESTINATION_LABELS: Record<DemandDestination, string> = {
   other: "Outro",
 };
 
+export const DEMAND_BILLING_LABELS: Record<DemandBillingType, string> = {
+  one_off: "Pontual",
+  installment: "Parcelado",
+  monthly: "Mensal",
+};
+
+export const MAX_DEMAND_INSTALLMENTS = 60;
+
 export const DEMAND_CLOSED_STATUSES: readonly DemandStatus[] = ["done", "cancelled"];
 
 export function isClosedDemand(demand: { status: DemandStatus }) {
   return DEMAND_CLOSED_STATUSES.includes(demand.status);
 }
+
+export type DemandClient = {
+  id: number;
+  name: string;
+  cnpj: string | null;
+  status: string | null;
+};
 
 export type DemandDeal = {
   id: number;
@@ -93,6 +116,21 @@ export type DemandAttachment = {
   createdAt: string;
 };
 
+/**
+ * Uma cobranca da demanda: mes, valor e baixa. Pontual tem uma, parcelado tem N,
+ * mensal ganha uma por mes conforme voce da baixa.
+ */
+export type DemandCharge = {
+  id: number;
+  demandId: number;
+  /** 1..N, na ordem de cobranca. No mensal, a distancia em meses desde a competencia. */
+  number: number;
+  billingMonth: string;
+  value: number;
+  /** Nulo enquanto nao entrou o dinheiro. */
+  paidAt: string | null;
+};
+
 export type DemandEvent = {
   id: number;
   demandId: number;
@@ -106,6 +144,8 @@ export type DemandEvent = {
 export type ClientDemand = {
   id: number;
   dealId: number | null;
+  /** Dono da demanda no cadastro de clientes. O deal continua junto so como origem. */
+  clientId: number | null;
   /** Pasta da arvore de organizacao; nulo = "Sem pasta". O caminho vem de demandTreePath. */
   folderId: number | null;
   title: string;
@@ -116,11 +156,21 @@ export type ClientDemand = {
   assignee: string;
   destinationType: DemandDestination;
   destinationLabel: string;
+  /** Quanto essa entrega vale. Zero = ainda nao precificada. */
+  value: number;
+  billingType: DemandBillingType;
+  /** Competencia "YYYY-MM" escolhida na mao; nula cai no mes do prazo. */
+  billingMonth: string | null;
+  /** Ultimo mes de uma recorrencia. Nulo = segue rodando. */
+  billingUntil: string | null;
   startsAt: string | null;
   dueAt: string | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Cobrancas ja registradas: parcelas do parcelado, ou os meses ja baixados. */
+  charges: DemandCharge[];
+  client: DemandClient | null;
   deal: DemandDeal | null;
   checklistItems: DemandChecklistItem[];
   links: DemandLink[];
@@ -164,8 +214,24 @@ export function isDemandDestination(value: unknown): value is DemandDestination 
   return typeof value === "string" && (DEMAND_DESTINATIONS as readonly string[]).includes(value);
 }
 
+export function isDemandBillingType(value: unknown): value is DemandBillingType {
+  return typeof value === "string" && (DEMAND_BILLING_TYPES as readonly string[]).includes(value);
+}
+
+/** Competencia no formato "YYYY-MM" - o mesmo que o input type="month" devolve. */
+export function isMonthKey(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
 export function isEligibleDemandDeal(deal: { stage?: unknown; status?: unknown } | null | undefined) {
   return deal?.stage === "won" || deal?.status === "won";
+}
+
+/** Nome que aparece na tela: o cadastro manda, o deal e so o historico de origem. */
+export function demandClientName(
+  demand: { client?: { name?: string | null } | null; deal?: { company?: string | null } | null },
+) {
+  return demand.client?.name || demand.deal?.company || "Cliente removido";
 }
 
 function dateKeyInTimeZone(value: Date, timeZone = DEMAND_TIME_ZONE) {
@@ -192,6 +258,193 @@ export function groupDemandBySchedule(
   if (dueKey < todayKey) return "overdue";
   if (dueKey === todayKey) return "today";
   return "upcoming";
+}
+
+/** So a parte de cobranca da demanda - o que as somas de fato leem. */
+export type BillableDemand = Pick<
+  ClientDemand,
+  "status" | "value" | "billingType" | "billingMonth" | "billingUntil" | "dueAt" | "createdAt"
+> & { charges?: DemandCharge[] };
+
+/**
+ * Quebra o total em N parcelas mensais consecutivas a partir de startMonth.
+ * A sobra de centavos vai para a PRIMEIRA parcela, como faz maquininha e boleto:
+ * 1000 em 3x = 333,34 + 333,33 + 333,33.
+ */
+export function buildInstallments(total: number, count: number, startMonth: string) {
+  const parcels = Math.trunc(count);
+  if (!Number.isInteger(parcels) || parcels < 1 || parcels > MAX_DEMAND_INSTALLMENTS) {
+    throw new Error(`Numero de parcelas invalido. Use de 1 a ${MAX_DEMAND_INSTALLMENTS}.`);
+  }
+  if (!isMonthKey(startMonth)) throw new Error("Mes da primeira parcela invalido.");
+
+  const cents = Math.round((Number.isFinite(total) ? total : 0) * 100);
+  const base = Math.floor(cents / parcels);
+  const remainder = cents - base * parcels;
+
+  return Array.from({ length: parcels }, (_, index) => ({
+    number: index + 1,
+    billingMonth: shiftMonthKey(startMonth, index),
+    value: (base + (index === 0 ? remainder : 0)) / 100,
+  }));
+}
+
+/** Cobrancas que caem no mes consultado. */
+export function chargesInMonth(demand: BillableDemand, monthKey: string) {
+  return (demand.charges ?? []).filter((item) => item.billingMonth === monthKey);
+}
+
+export function monthKeyFromIso(value: string | null | undefined, timeZone = DEMAND_TIME_ZONE) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return dateKeyInTimeZone(date, timeZone).slice(0, 7);
+}
+
+export function currentMonthKey(now = new Date(), timeZone = DEMAND_TIME_ZONE) {
+  return dateKeyInTimeZone(now, timeZone).slice(0, 7);
+}
+
+/** Distancia em meses entre duas competencias (negativa se o alvo for anterior). */
+export function monthsBetween(fromMonth: string, toMonth: string) {
+  if (!isMonthKey(fromMonth) || !isMonthKey(toMonth)) return 0;
+  const [fromYear, fromMonthNumber] = fromMonth.split("-").map(Number);
+  const [toYear, toMonthNumber] = toMonth.split("-").map(Number);
+  return (toYear - fromYear) * 12 + (toMonthNumber - fromMonthNumber);
+}
+
+export function shiftMonthKey(monthKey: string, months: number) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const total = year * 12 + (month - 1) + months;
+  const nextYear = Math.floor(total / 12);
+  const nextMonth = total % 12 + 1;
+  return `${String(nextYear).padStart(4, "0")}-${String(nextMonth).padStart(2, "0")}`;
+}
+
+export function formatMonthKeyLabel(monthKey: string) {
+  if (!isMonthKey(monthKey)) return monthKey;
+  const label = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", month: "short", year: "numeric" })
+    .format(new Date(`${monthKey}-01T12:00:00Z`));
+  return label.replace(".", "");
+}
+
+/**
+ * Competencia da demanda: o campo escolhido na mao vence; sem ele cai no mes do prazo
+ * e, se nem prazo houver, no mes em que a demanda foi criada.
+ */
+export function demandBillingMonth(demand: BillableDemand) {
+  return demand.billingMonth ?? monthKeyFromIso(demand.dueAt) ?? monthKeyFromIso(demand.createdAt);
+}
+
+/** Mensal viva no mes consultado - a parcela de MRR que esse mes carrega. */
+export function isRecurringInMonth(demand: BillableDemand, monthKey: string) {
+  if (demand.billingType !== "monthly" || demand.status === "cancelled") return false;
+  const start = demandBillingMonth(demand);
+  if (start && monthKey < start) return false;
+  if (demand.billingUntil && monthKey > demand.billingUntil) return false;
+  return true;
+}
+
+/** Demanda cancelada nao fatura; pontual entra so na competencia dela. */
+export function demandBillsInMonth(demand: BillableDemand, monthKey: string) {
+  if (demand.status === "cancelled") return false;
+  if (demand.billingType === "monthly") return isRecurringInMonth(demand, monthKey);
+  if (demand.billingType === "installment") return chargesInMonth(demand, monthKey).length > 0;
+  return demandBillingMonth(demand) === monthKey;
+}
+
+export function demandValueInMonth(demand: BillableDemand, monthKey: string) {
+  if (demand.status === "cancelled") return 0;
+  // No parcelado quem manda e a parcela: o valor do mes e o que vence nele, nao o total.
+  if (demand.billingType === "installment") {
+    return chargesInMonth(demand, monthKey).reduce((total, item) => total + item.value, 0);
+  }
+  return demandBillsInMonth(demand, monthKey) ? demand.value : 0;
+}
+
+/** True quando a cobranca daquele mes ja foi baixada. Vale nos tres regimes. */
+export function isMonthPaid(demand: BillableDemand, monthKey: string) {
+  if (demand.status === "cancelled") return false;
+  const charges = chargesInMonth(demand, monthKey);
+  if (charges.length === 0) return false;
+  return charges.every((item) => Boolean(item.paidAt));
+}
+
+/**
+ * Do que cai no mes, quanto ja entrou.
+ * No parcelado soma parcela por parcela (pode ter mes com duas). Em pontual e mensal a
+ * cobranca e so o registro da baixa: o valor lido e o da demanda hoje, para o recebido
+ * nao ficar preso a um preco que ja mudou.
+ */
+export function demandPaidInMonth(demand: BillableDemand, monthKey: string) {
+  if (demand.status === "cancelled") return 0;
+  if (demand.billingType === "installment") {
+    return chargesInMonth(demand, monthKey)
+      .filter((item) => item.paidAt)
+      .reduce((total, item) => total + item.value, 0);
+  }
+  return isMonthPaid(demand, monthKey) ? demandValueInMonth(demand, monthKey) : 0;
+}
+
+/**
+ * Meses ja vencidos de uma mensal, do mais novo para o mais antigo, para a tela de
+ * baixa. Nao lista mes futuro: nao se da baixa no que ainda nem foi cobrado.
+ */
+export function recurringMonthsUntil(demand: BillableDemand, monthKey = currentMonthKey(), limit = 12) {
+  const start = demandBillingMonth(demand);
+  if (!start || demand.billingType !== "monthly") return [];
+  const last = demand.billingUntil && demand.billingUntil < monthKey ? demand.billingUntil : monthKey;
+  const span = monthsBetween(start, last);
+  if (span < 0) return [];
+  return Array.from({ length: Math.min(span + 1, limit) }, (_, index) => shiftMonthKey(last, -index));
+}
+
+/** Resumo do parcelamento para a tela: 1 de 3 pagas, R$ 1.000,00 em aberto. */
+export function installmentSummary(demand: BillableDemand) {
+  const items = demand.charges ?? [];
+  const paid = items.filter((item) => item.paidAt);
+  return {
+    count: items.length,
+    paidCount: paid.length,
+    paidValue: paid.reduce((total, item) => total + item.value, 0),
+    openValue: items.filter((item) => !item.paidAt).reduce((total, item) => total + item.value, 0),
+    total: items.reduce((total, item) => total + item.value, 0),
+    nextOpen: items.filter((item) => !item.paidAt).sort((left, right) => left.number - right.number)[0] ?? null,
+  };
+}
+
+export function sumDemandValues(demands: BillableDemand[], monthKey: string) {
+  return demands.reduce((total, demand) => total + demandValueInMonth(demand, monthKey), 0);
+}
+
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+export function formatDemandCurrency(value: number) {
+  return BRL.format(Number.isFinite(value) ? value : 0);
+}
+
+/**
+ * Aceita numero, "1500.50" e o formato que o teclado brasileiro produz ("1.500,50").
+ * Vazio vira zero: demanda sem preco e um estado legitimo, nao um erro.
+ */
+export function parseDemandValue(value: unknown, field = "Valor") {
+  if (value === null || value === undefined || value === "") return 0;
+  let parsed: number;
+  if (typeof value === "number") {
+    parsed = value;
+  } else {
+    const text = String(value).trim().replace(/[R$\s]/gi, "");
+    parsed = Number(text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text);
+  }
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${field} invalido.`);
+  if (parsed > 99_999_999.99) throw new Error(`${field} excede o limite.`);
+  return Math.round(parsed * 100) / 100;
+}
+
+export function nullableMonthKey(value: unknown, field: string) {
+  if (value === null || value === undefined || value === "") return null;
+  if (!isMonthKey(value)) throw new Error(`${field} invalido. Use o formato AAAA-MM.`);
+  return value;
 }
 
 function dateKeyToUtcNoon(dateKey: string) {
@@ -400,6 +653,18 @@ function mapDeal(value: unknown): DemandDeal | null {
   };
 }
 
+function mapClient(value: unknown): DemandClient | null {
+  const row = firstRecord(value);
+  const id = asNumber(row.id);
+  if (!id) return null;
+  return {
+    id,
+    name: asString(row.name, `Cliente #${id}`),
+    cnpj: asNullableString(row.cnpj),
+    status: asNullableString(row.status),
+  };
+}
+
 function mapChecklist(value: unknown): DemandChecklistItem[] {
   if (!Array.isArray(value)) return [];
   return value.map((item) => {
@@ -414,6 +679,21 @@ function mapChecklist(value: unknown): DemandChecklistItem[] {
       updatedAt: asString(row.updated_at),
     };
   }).sort((left, right) => left.position - right.position || left.id - right.id);
+}
+
+function mapCharges(value: unknown): DemandCharge[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const row = asRecord(item);
+    return {
+      id: asNumber(row.id),
+      demandId: asNumber(row.demand_id),
+      number: asNumber(row.number),
+      billingMonth: asString(row.billing_month),
+      value: asNumber(row.value),
+      paidAt: asNullableString(row.paid_at),
+    };
+  }).sort((left, right) => left.number - right.number);
 }
 
 function mapLinks(value: unknown): DemandLink[] {
@@ -468,6 +748,7 @@ export function mapClientDemand(value: unknown): ClientDemand {
   return {
     id: asNumber(row.id),
     dealId: row.deal_id == null ? null : asNumber(row.deal_id),
+    clientId: row.client_id == null ? null : asNumber(row.client_id),
     folderId: row.folder_id == null ? null : asNumber(row.folder_id),
     title: asString(row.title),
     description: asString(row.description),
@@ -477,11 +758,17 @@ export function mapClientDemand(value: unknown): ClientDemand {
     assignee: asString(row.assignee),
     destinationType: isDemandDestination(row.destination_type) ? row.destination_type : "other",
     destinationLabel: asString(row.destination_label),
+    value: asNumber(row.value),
+    billingType: isDemandBillingType(row.billing_type) ? row.billing_type : "one_off",
+    billingMonth: isMonthKey(row.billing_month) ? row.billing_month : null,
+    billingUntil: isMonthKey(row.billing_until) ? row.billing_until : null,
     startsAt: asNullableString(row.starts_at),
     dueAt: asNullableString(row.due_at),
     completedAt: asNullableString(row.completed_at),
     createdAt: asString(row.created_at),
     updatedAt: asString(row.updated_at),
+    charges: mapCharges(row.charges),
+    client: mapClient(row.client),
     deal: mapDeal(row.deal),
     checklistItems: mapChecklist(row.checklist_items),
     links: mapLinks(row.links),

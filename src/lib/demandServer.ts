@@ -3,9 +3,12 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 
 export const DEMAND_SUMMARY_SELECT = `
-  id, deal_id, folder_id, title, description, copy_text, status, priority, assignee,
-  destination_type, destination_label, starts_at, due_at, completed_at,
+  id, deal_id, client_id, folder_id, title, description, copy_text, status, priority, assignee,
+  destination_type, destination_label, value, billing_type, billing_month, billing_until,
+  starts_at, due_at, completed_at,
   created_at, updated_at,
+  client:clients(id, name, cnpj, status),
+  charges:client_demand_charges(id, demand_id, number, billing_month, value, paid_at),
   deal:deals(id, company, name, stage, status, owner, assignee, value),
   checklist_items:client_demand_checklist_items(id, demand_id, title, is_done, position, created_at, updated_at)
 `;
@@ -82,19 +85,29 @@ export async function assertDemandExists(
   supabase: ReturnType<typeof getCrmSupabaseAdmin>,
   id: number,
 ) {
-  const result = await supabase.from("client_demands").select("id, deal_id, status").eq("id", id).maybeSingle();
+  const result = await supabase
+    .from("client_demands")
+    .select("id, deal_id, client_id, status")
+    .eq("id", id)
+    .maybeSingle();
   if (result.error) throw result.error;
   if (!result.data) throw new Error("Demanda nao encontrada.");
   return result.data;
 }
+
+/** Orfa e a demanda que perdeu cliente E deal: sem dono, so leitura. */
+export function isOrphanDemand(demand: { deal_id?: unknown; client_id?: unknown }) {
+  return !demand.deal_id && !demand.client_id;
+}
+
+export const ORPHAN_DEMAND_MESSAGE =
+  "A demanda perdeu o cliente e e somente leitura. Vincule um cliente para editar.";
 
 export async function assertDemandWritable(
   supabase: ReturnType<typeof getCrmSupabaseAdmin>,
   id: number,
 ) {
   const demand = await assertDemandExists(supabase, id);
-  if (!demand.deal_id) {
-    throw new Error("A demanda de um deal removido e somente leitura. Vincule um cliente elegivel para editar.");
-  }
+  if (isOrphanDemand(demand)) throw new Error(ORPHAN_DEMAND_MESSAGE);
   return demand;
 }

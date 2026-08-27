@@ -1,23 +1,29 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { DemandDialog, type DemandDialogState } from "@/components/DemandDialog";
 import { DemandOverview } from "@/components/DemandOverview";
 import { DemandTree } from "@/components/DemandTree";
 import { DemandWorkspace } from "@/components/DemandWorkspace";
 import {
+  DEMAND_BILLING_LABELS,
+  DEMAND_BILLING_TYPES,
+  MAX_DEMAND_INSTALLMENTS,
   DEMAND_DESTINATIONS,
   DEMAND_DESTINATION_LABELS,
   DEMAND_PRIORITIES,
   DEMAND_PRIORITY_LABELS,
   buildDemandOverview,
+  currentMonthKey,
   isClosedDemand,
-  isEligibleDemandDeal,
   type ClientDemand,
+  type DemandBillingType,
   type DemandDestination,
   type DemandPriority,
   type DemandStatus,
 } from "@/lib/clientDemands";
+import { normalizeClientName, type ClientWithTotals } from "@/lib/clients";
 import {
   ALL_NODE_KEY,
   buildDemandTree,
@@ -29,16 +35,13 @@ import {
   type DemandFolder,
 } from "@/lib/demandFolders";
 
-type DealOption = {
-  id: number;
-  company: string;
-  name?: string | null;
-  stage?: string | null;
-  status?: string | null;
-};
-
 function dueDateToIso(value: string) {
   return value ? new Date(`${value}T23:59:59-03:00`).toISOString() : null;
+}
+
+/** Competencia default da demanda nova: o mes do proprio prazo. */
+function monthFromDueDate(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.slice(0, 7) : "";
 }
 
 async function responseJson<T>(response: Response, fallback: string): Promise<T> {
@@ -78,7 +81,7 @@ async function fetchFolders(): Promise<DemandFolder[]> {
 
 export default function DemandasPage() {
   const [demands, setDemands] = useState<ClientDemand[]>([]);
-  const [deals, setDeals] = useState<DealOption[]>([]);
+  const [clients, setClients] = useState<ClientWithTotals[]>([]);
   const [folders, setFolders] = useState<DemandFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +101,7 @@ export default function DemandasPage() {
   const [selectedDemandId, setSelectedDemandId] = useState<number | null>(null);
   const [savedScrollY, setSavedScrollY] = useState(0);
   const [newDemand, setNewDemand] = useState({
-    dealId: "",
+    clientId: "",
     folderId: "",
     title: "",
     dueDate: "",
@@ -106,7 +109,31 @@ export default function DemandasPage() {
     assignee: "",
     destinationType: "other" as DemandDestination,
     destinationLabel: "",
+    value: "",
+    billingType: "one_off" as DemandBillingType,
+    billingMonth: "",
+    installments: "3",
   });
+
+  /**
+   * Recarrega a lista de clientes sob demanda. Existe porque a carga inicial acontece
+   * uma vez so: se ela falhar (rota fora do ar, tabela recem-criada), o seletor de
+   * cliente fica vazio para sempre ate um F5. Abrir o formulario tenta de novo.
+   */
+  const refreshClients = useCallback(async () => {
+    try {
+      const body = await responseJson<{ clients: ClientWithTotals[] }>(
+        await fetch("/api/clients", { cache: "no-store" }),
+        "Nao foi possivel carregar clientes.",
+      );
+      const rows = (body.clients ?? []).filter((client) => client.status !== "churned");
+      setClients(rows);
+      return rows;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+      return [];
+    }
+  }, []);
 
   const loadDemands = useCallback(async () => {
     setLoading(true);
@@ -135,10 +162,12 @@ export default function DemandasPage() {
         if (active) setLoading(false);
       });
 
-    fetch("/api/deals", { cache: "no-store" })
-      .then((response) => responseJson<{ deals: DealOption[] }>(response, "Nao foi possivel carregar clientes."))
+    // A lista de clientes ja absorve todo deal ganho (a rota sincroniza na leitura),
+    // e ainda traz quem foi cadastrado na mao e nunca passou pelo pipeline.
+    fetch("/api/clients", { cache: "no-store" })
+      .then((response) => responseJson<{ clients: ClientWithTotals[] }>(response, "Nao foi possivel carregar clientes."))
       .then((body) => {
-        if (active) setDeals((body.deals ?? []).filter(isEligibleDemandDeal));
+        if (active) setClients((body.clients ?? []).filter((client) => client.status !== "churned"));
       })
       .catch((caught) => {
         if (active) setError(caught instanceof Error ? caught.message : String(caught));
@@ -158,9 +187,9 @@ export default function DemandasPage() {
   const path = useMemo(() => demandTreePath(treeNodes, selectedKey), [selectedKey, treeNodes]);
   const totalOpen = useMemo(() => demands.filter((demand) => !isClosedDemand(demand)).length, [demands]);
   const folderOptions = useMemo(() => flattenFolderOptions(folders), [folders]);
-  const dealOptions = useMemo(
-    () => deals.map((deal) => ({ id: deal.id, label: deal.company || deal.name || `Deal #${deal.id}` })),
-    [deals],
+  const clientOptions = useMemo(
+    () => clients.map((client) => ({ id: client.id, label: client.name })),
+    [clients],
   );
 
   const scoped = useMemo(() => selectDemandsForNode(demands, selectedNode), [demands, selectedNode]);
@@ -251,12 +280,14 @@ export default function DemandasPage() {
       placeholder: isRoot ? "Ex.: BFT" : "Ex.: Social Media",
       confirmLabel: "Criar",
       select: isRoot
-        ? { label: "Cliente (opcional)", options: dealOptions, emptyLabel: "Sem vinculo com deal" }
+        ? { label: "Cliente (opcional)", options: clientOptions, emptyLabel: "Sem vinculo com cliente" }
         : undefined,
-      onConfirm: (name, dealId) => {
+      onConfirm: (name, clientId) => {
+        // A pasta guarda o deal de origem; cliente cadastrado na mao nao tem deal e fica sem vinculo.
+        const dealId = clients.find((client) => String(client.id) === clientId)?.dealId ?? null;
         void mutate<{ folder?: DemandFolder }>(
           "/api/demand-folders",
-          jsonInit("POST", { name, parentId, dealId: dealId || null }),
+          jsonInit("POST", { name, parentId, dealId }),
           "Nao foi possivel criar a pasta.",
           parentLabel ? `Pasta ${name} criada dentro de ${parentLabel}.` : `Pasta ${name} criada.`,
         ).then((body) => {
@@ -369,11 +400,40 @@ export default function DemandasPage() {
     );
   }
 
+  /**
+   * A pasta raiz e o cliente. Criando a demanda de dentro dela, o cliente ja vem
+   * escolhido - antes o formulario abria vazio e o submit travava no campo obrigatorio.
+   * Tenta o deal vinculado a pasta, depois o que as demandas de la ja usam, depois o nome.
+   */
+  function clientIdForSelection() {
+    const root = path[0];
+    if (!root) return "";
+
+    if (root.dealId) {
+      const byDeal = clients.find((client) => client.dealId === root.dealId);
+      if (byDeal) return String(byDeal.id);
+    }
+
+    const fromDemands = scoped.find((demand) => demand.clientId)?.clientId;
+    if (fromDemands && clients.some((client) => client.id === fromDemands)) return String(fromDemands);
+
+    const byName = clients.find((client) => normalizeClientName(client.name) === normalizeClientName(root.label));
+    return byName ? String(byName.id) : "";
+  }
+
   function startCreateDemand() {
     setShowCreate((current) => {
       const next = !current;
-      if (next && selectedNode?.kind === "folder" && selectedNode.id) {
-        setNewDemand((demand) => ({ ...demand, folderId: String(selectedNode.id) }));
+      if (next) {
+        const folderId = selectedNode?.kind === "folder" && selectedNode.id ? String(selectedNode.id) : "";
+        const clientId = clientIdForSelection();
+        setNewDemand((demand) => ({
+          ...demand,
+          folderId: folderId || demand.folderId,
+          clientId: clientId || demand.clientId,
+        }));
+        // Lista vazia quase sempre e carga inicial que falhou, nao ausencia de cliente.
+        if (clients.length === 0) void refreshClients();
       }
       return next;
     });
@@ -386,7 +446,7 @@ export default function DemandasPage() {
     try {
       const body = await responseJson<{ demand: ClientDemand }>(
         await fetch("/api/demands", jsonInit("POST", {
-          dealId: Number(newDemand.dealId),
+          clientId: Number(newDemand.clientId),
           folderId: newDemand.folderId ? Number(newDemand.folderId) : null,
           title: newDemand.title,
           dueAt: dueDateToIso(newDemand.dueDate),
@@ -394,13 +454,34 @@ export default function DemandasPage() {
           assignee: newDemand.assignee,
           destinationType: newDemand.destinationType,
           destinationLabel: newDemand.destinationLabel,
+          value: newDemand.value,
+          billingType: newDemand.billingType,
+          billingMonth: newDemand.billingMonth || monthFromDueDate(newDemand.dueDate) || currentMonthKey(),
         })),
         "Nao foi possivel criar a demanda.",
       );
-      setDemands((current) => [body.demand, ...current]);
+      // O parcelamento nasce logo depois: as parcelas precisam do id da demanda.
+      let created = body.demand;
+      if (newDemand.billingType === "installment") {
+        await responseJson(
+          await fetch("/api/demands/charges", jsonInit("POST", {
+            demandId: created.id,
+            count: Number(newDemand.installments) || 1,
+          })),
+          "Demanda criada, mas nao consegui gerar as parcelas.",
+        );
+        const refreshed = await responseJson<{ demand: ClientDemand }>(
+          await fetch(`/api/demands?demandId=${created.id}`, { cache: "no-store" }),
+          "Nao foi possivel recarregar a demanda.",
+        );
+        created = refreshed.demand;
+      }
+
+      setDemands((current) => [created, ...current]);
       setNewDemand({
-        dealId: "", folderId: "", title: "", dueDate: "", priority: "normal",
+        clientId: "", folderId: "", title: "", dueDate: "", priority: "normal",
         assignee: "", destinationType: "other", destinationLabel: "",
+        value: "", billingType: "one_off", billingMonth: "", installments: "3",
       });
       setShowCreate(false);
       setNotice("Demanda criada.");
@@ -452,11 +533,17 @@ export default function DemandasPage() {
                 </div>
               </div>
               <label>Cliente
-                <select required value={newDemand.dealId} onChange={(event) => setNewDemand((current) => ({ ...current, dealId: event.target.value }))}>
-                  <option value="">Selecione o deal</option>
-                  {deals.map((deal) => <option key={deal.id} value={deal.id}>{deal.company || deal.name || `Deal #${deal.id}`}</option>)}
+                <select required value={newDemand.clientId} onChange={(event) => setNewDemand((current) => ({ ...current, clientId: event.target.value }))}>
+                  <option value="">Selecione o cliente</option>
+                  {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
                 </select>
               </label>
+              {!newDemand.clientId && path[0] && clients.length > 0 ? (
+                <p className="muted-copy demand-create-title">
+                  A pasta {path[0].label} ainda nao tem cliente no cadastro.{" "}
+                  <Link href="/clientes">Cadastrar em Clientes</Link> e a demanda ja acha o dono sozinha.
+                </p>
+              ) : null}
               <label>Pasta
                 <select value={newDemand.folderId} onChange={(event) => setNewDemand((current) => ({ ...current, folderId: event.target.value }))}>
                   <option value="">Sem pasta</option>
@@ -468,6 +555,32 @@ export default function DemandasPage() {
               </label>
               <label>Prazo
                 <input required type="date" value={newDemand.dueDate} onChange={(event) => setNewDemand((current) => ({ ...current, dueDate: event.target.value }))} />
+              </label>
+              <label>Valor (R$)
+                <input inputMode="decimal" min={0} placeholder="0,00" step="0.01" type="number" value={newDemand.value} onChange={(event) => setNewDemand((current) => ({ ...current, value: event.target.value }))} />
+              </label>
+              <label>Cobranca
+                <select value={newDemand.billingType} onChange={(event) => setNewDemand((current) => ({ ...current, billingType: event.target.value as DemandBillingType }))}>
+                  {DEMAND_BILLING_TYPES.map((type) => <option key={type} value={type}>{DEMAND_BILLING_LABELS[type]}</option>)}
+                </select>
+              </label>
+              {newDemand.billingType === "installment" ? (
+                <label>Parcelas
+                  <input
+                    max={MAX_DEMAND_INSTALLMENTS}
+                    min={1}
+                    type="number"
+                    value={newDemand.installments}
+                    onChange={(event) => setNewDemand((current) => ({ ...current, installments: event.target.value }))}
+                  />
+                </label>
+              ) : null}
+              <label>{newDemand.billingType === "installment" ? "Mes da 1a parcela" : "Mes de cobranca"}
+                <input
+                  type="month"
+                  value={newDemand.billingMonth || monthFromDueDate(newDemand.dueDate)}
+                  onChange={(event) => setNewDemand((current) => ({ ...current, billingMonth: event.target.value }))}
+                />
               </label>
               <label>Prioridade
                 <select value={newDemand.priority} onChange={(event) => setNewDemand((current) => ({ ...current, priority: event.target.value as DemandPriority }))}>
@@ -485,9 +598,16 @@ export default function DemandasPage() {
               <label>Onde vai estar
                 <input required maxLength={240} placeholder="Ex.: Feed da Metalthec" value={newDemand.destinationLabel} onChange={(event) => setNewDemand((current) => ({ ...current, destinationLabel: event.target.value }))} />
               </label>
-              <button className="topbar-btn primary" disabled={creating || deals.length === 0} type="submit">
+              <button className="topbar-btn primary" disabled={creating || clients.length === 0} type="submit">
                 {creating ? "Criando..." : "Criar e abrir"}
               </button>
+              {clients.length === 0 ? (
+                <p className="muted-copy demand-create-title">
+                  Nenhum cliente na lista. Feche um deal no pipeline, cadastre um em{" "}
+                  <Link href="/clientes">Clientes</Link> ou{" "}
+                  <button className="topbar-btn" onClick={() => void refreshClients()} type="button">tente carregar de novo</button>.
+                </p>
+              ) : null}
             </form>
           ) : null}
 

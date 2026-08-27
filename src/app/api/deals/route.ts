@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { ensureClientForDeal } from "@/lib/clientsServer";
 import { processCommercialEventBestEffort } from "@/lib/commercialAutomationService.mjs";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { mapDealFromRow, mapDealToRow } from "@/lib/crmRecords";
@@ -185,6 +186,18 @@ export async function PATCH(request: NextRequest) {
     }
     const { data, error } = await supabase.from("deals").update(payload).eq("id", id).select("*").single();
     if (error) throw error;
+
+    // Story 042: ganho no pipeline entra na aba Clientes na hora, e nao so na proxima
+    // leitura da aba - o seletor da demanda le o cadastro, nao os deals.
+    if (data.stage === "won") {
+      await ensureClientForDeal(supabase, {
+        id,
+        company: data.company,
+        name: data.name,
+        cnpj: data.cnpj,
+        segment: data.segment,
+      });
+    }
 
     if (body.responseType !== undefined || body.nextActionAt !== undefined) {
       const activityType =

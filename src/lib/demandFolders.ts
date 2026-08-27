@@ -1,6 +1,6 @@
 // Import relativo com extensao: os testes rodam em `node --test` sem o alias "@/",
 // e o tsconfig ja liga allowImportingTsExtensions.
-import { isClosedDemand, type ClientDemand, type DemandStatus } from "./clientDemands.ts";
+import { demandClientName, isClosedDemand, type ClientDemand, type DemandStatus } from "./clientDemands.ts";
 
 export const UNFILED_NODE_KEY = "unfiled";
 export const ALL_NODE_KEY = "all";
@@ -71,6 +71,14 @@ function byPosition(left: DemandFolder, right: DemandFolder) {
   return left.position - right.position || left.id - right.id;
 }
 
+/**
+ * Chave do grupo de "Sem pasta": o cliente do cadastro quando existe, senao o deal.
+ * Demanda sem os dois cai no grupo "0" (cliente removido).
+ */
+export function unfiledClientKey(demand: Pick<ClientDemand, "clientId" | "dealId">) {
+  return demand.clientId ? `c${demand.clientId}` : String(demand.dealId ?? 0);
+}
+
 /** Monta a arvore de pastas e conta as demandas abertas de cada subarvore. */
 export function buildDemandTree(folders: DemandFolder[], demands: ClientDemand[]): DemandTreeNode[] {
   const openByFolder = new Map<number, number>();
@@ -119,12 +127,14 @@ export function buildDemandTree(folders: DemandFolder[], demands: ClientDemand[]
   const nodes = (childrenOf.get(null) ?? []).map((folder) => build(folder, 0));
 
   if (unfiled.length > 0) {
-    const byDeal = new Map<number, { label: string; demands: ClientDemand[] }>();
+    // Agrupa pelo cliente do cadastro; a demanda que so tem deal continua caindo na
+    // chave do deal, para nao perder o grupo de quem ainda nao foi migrado.
+    const byDeal = new Map<string, { label: string; dealId: number | null; demands: ClientDemand[] }>();
     for (const demand of unfiled) {
-      const dealId = demand.dealId ?? 0;
-      const entry = byDeal.get(dealId);
+      const key = unfiledClientKey(demand);
+      const entry = byDeal.get(key);
       if (entry) entry.demands.push(demand);
-      else byDeal.set(dealId, { label: demand.deal?.company ?? "Cliente removido", demands: [demand] });
+      else byDeal.set(key, { label: demandClientName(demand), dealId: demand.dealId, demands: [demand] });
     }
     const countOpen = (items: ClientDemand[]) => items.filter((item) => !isClosedDemand(item)).length;
     nodes.push({
@@ -138,15 +148,15 @@ export function buildDemandTree(folders: DemandFolder[], demands: ClientDemand[]
       dealId: null,
       children: Array.from(byDeal.entries())
         .sort((left, right) => left[1].label.localeCompare(right[1].label, "pt-BR"))
-        .map(([dealId, entry]) => ({
-          key: `unfiled-client:${dealId}`,
+        .map(([groupKey, entry]) => ({
+          key: `unfiled-client:${groupKey}`,
           kind: "unfiled_client" as const,
           id: null,
           label: entry.label,
           openCount: countOpen(entry.demands),
           demandIds: entry.demands.map((demand) => demand.id),
           depth: 1,
-          dealId: dealId || null,
+          dealId: entry.dealId,
           children: [],
         })),
     });
@@ -185,7 +195,8 @@ export function selectDemandsForNode(demands: ClientDemand[], node: DemandTreeNo
   if (!node || node.kind === "all") return demands;
   if (node.kind === "unfiled") return demands.filter((demand) => demand.folderId == null);
   if (node.kind === "unfiled_client") {
-    return demands.filter((demand) => demand.folderId == null && (demand.dealId ?? 0) === (node.dealId ?? 0));
+    const groupKey = node.key.slice("unfiled-client:".length);
+    return demands.filter((demand) => demand.folderId == null && unfiledClientKey(demand) === groupKey);
   }
   const allowed = new Set(folderSubtreeIds(node));
   return demands.filter((demand) => demand.folderId != null && allowed.has(demand.folderId));

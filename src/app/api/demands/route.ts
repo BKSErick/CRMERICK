@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   DEMAND_ATTACHMENTS_BUCKET,
+  isDemandBillingType,
   isDemandDestination,
   isDemandPriority,
   isDemandStatus,
   isEligibleDemandDeal,
   mapClientDemand,
+  nullableMonthKey,
+  parseDemandValue,
   transitionDemandStatus,
 } from "@/lib/clientDemands";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
@@ -13,22 +16,61 @@ import { requireDemandAdminSession } from "@/lib/demandAuth";
 import {
   DEMAND_DETAIL_SELECT,
   DEMAND_SUMMARY_SELECT,
+  ORPHAN_DEMAND_MESSAGE,
   appendDemandEvent,
   assertDemandFolderExists,
   boundedDemandText,
   demandErrorResponse,
   demandId,
+  isOrphanDemand,
   nullableIso,
 } from "@/lib/demandServer";
 
 export const runtime = "nodejs";
 
-async function loadEligibleDeal(supabase: ReturnType<typeof getCrmSupabaseAdmin>, id: number) {
+type Supabase = ReturnType<typeof getCrmSupabaseAdmin>;
+
+async function loadEligibleDeal(supabase: Supabase, id: number) {
   const result = await supabase.from("deals").select("id, company, name, stage, status").eq("id", id).maybeSingle();
   if (result.error) throw result.error;
   if (!result.data) throw new Error("Deal nao encontrado.");
   if (!isEligibleDemandDeal(result.data)) throw new Error("A demanda exige um cliente fechado ou ativo.");
   return result.data;
+}
+
+/**
+ * Dono da demanda. O cadastro de clientes manda; um dealId sozinho (chamada antiga)
+ * continua valendo e puxa - ou cria - o cliente daquele deal ganho, para a demanda
+ * nunca nascer fora da aba Clientes.
+ */
+async function resolveDemandOwner(supabase: Supabase, body: { clientId?: unknown; dealId?: unknown }) {
+  const clientId = demandId(body.clientId);
+  const dealId = demandId(body.dealId);
+
+  if (clientId) {
+    const result = await supabase.from("clients").select("id, deal_id").eq("id", clientId).maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data) throw new Error("Cliente nao encontrado.");
+    const linkedDeal = result.data.deal_id == null ? null : Number(result.data.deal_id);
+    return { client_id: clientId, deal_id: dealId ?? linkedDeal };
+  }
+
+  if (dealId) {
+    const deal = await loadEligibleDeal(supabase, dealId);
+    const existing = await supabase.from("clients").select("id").eq("deal_id", dealId).maybeSingle();
+    if (existing.error) throw existing.error;
+    if (existing.data) return { client_id: Number(existing.data.id), deal_id: dealId };
+
+    const created = await supabase.from("clients").insert({
+      deal_id: dealId,
+      name: (deal.company ?? "").trim() || (deal.name ?? "").trim() || `Cliente #${dealId}`,
+      source: "pipeline",
+    }).select("id").single();
+    if (created.error) throw created.error;
+    return { client_id: Number(created.data.id), deal_id: dealId };
+  }
+
+  throw new Error("Informe o cliente da demanda.");
 }
 
 async function loadDemand(supabase: ReturnType<typeof getCrmSupabaseAdmin>, id: number) {
@@ -62,11 +104,13 @@ export async function GET(request: NextRequest) {
     const destination = request.nextUrl.searchParams.get("destination");
     const assignee = request.nextUrl.searchParams.get("assignee");
     const folderId = demandId(request.nextUrl.searchParams.get("folderId"));
+    const clientId = demandId(request.nextUrl.searchParams.get("clientId"));
     if (isDemandStatus(status)) query = query.eq("status", status);
     if (isDemandPriority(priority)) query = query.eq("priority", priority);
     if (isDemandDestination(destination)) query = query.eq("destination_type", destination);
     if (assignee) query = query.eq("assignee", assignee.slice(0, 160));
     if (folderId) query = query.eq("folder_id", folderId);
+    if (clientId) query = query.eq("client_id", clientId);
 
     const result = await query.range(offset, offset + limit - 1);
     if (result.error) throw result.error;
@@ -88,9 +132,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = getCrmSupabaseAdmin();
     const body = await request.json();
-    const dealId = demandId(body?.dealId);
-    if (!dealId) return demandErrorResponse(new Error("dealId valido e obrigatorio."), 400);
-    await loadEligibleDeal(supabase, dealId);
+    const owner = await resolveDemandOwner(supabase, body);
 
     const title = boundedDemandText(body?.title, 240, "Titulo", true);
     const status = isDemandStatus(body?.status) ? body.status : "todo";
@@ -103,8 +145,14 @@ export async function POST(request: NextRequest) {
     if (body?.folderId != null && body.folderId !== "" && !folderId) throw new Error("folderId invalido.");
     if (folderId) await assertDemandFolderExists(supabase, folderId);
 
+    const value = parseDemandValue(body?.value);
+    const billingType = isDemandBillingType(body?.billingType) ? body.billingType : "one_off";
+    const billingMonth = nullableMonthKey(body?.billingMonth, "Mes de cobranca");
+    const billingUntil = nullableMonthKey(body?.billingUntil, "Cobrar ate");
+
     const insert = await supabase.from("client_demands").insert({
-      deal_id: dealId,
+      client_id: owner.client_id,
+      deal_id: owner.deal_id,
       folder_id: folderId,
       title,
       description: boundedDemandText(body?.description, 50000, "Descricao"),
@@ -114,6 +162,10 @@ export async function POST(request: NextRequest) {
       assignee: boundedDemandText(body?.assignee, 160, "Responsavel"),
       destination_type: destinationType,
       destination_label: boundedDemandText(body?.destinationLabel, 240, "Destino"),
+      value,
+      billing_type: billingType,
+      billing_month: billingMonth,
+      billing_until: billingUntil,
       starts_at: startsAt,
       due_at: dueAt,
       completed_at: completedAt,
@@ -125,7 +177,7 @@ export async function POST(request: NextRequest) {
       actor: auth.session.email,
       eventType: "created",
       description: "Demanda criada.",
-      metadata: { dealId, folderId },
+      metadata: { clientId: owner.client_id, dealId: owner.deal_id, folderId, value, billingType },
     });
     const demand = await loadDemand(supabase, id);
     return NextResponse.json({ ok: true, demand }, { status: 201 });
@@ -142,11 +194,15 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const id = demandId(body?.id ?? request.nextUrl.searchParams.get("demandId"));
     if (!id) return demandErrorResponse(new Error("id da demanda e obrigatorio."), 400);
-    const current = await supabase.from("client_demands").select("id, deal_id, status").eq("id", id).maybeSingle();
+    const current = await supabase
+      .from("client_demands")
+      .select("id, deal_id, client_id, status, billing_type")
+      .eq("id", id)
+      .maybeSingle();
     if (current.error) throw current.error;
     if (!current.data) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);
-    if (!current.data.deal_id && body.dealId === undefined) {
-      throw new Error("A demanda de um deal removido e somente leitura. Vincule um cliente elegivel para editar.");
+    if (isOrphanDemand(current.data) && body.clientId === undefined && body.dealId === undefined) {
+      throw new Error(ORPHAN_DEMAND_MESSAGE);
     }
 
     const updates: Record<string, unknown> = {};
@@ -166,11 +222,29 @@ export async function PATCH(request: NextRequest) {
     }
     if (body.startsAt !== undefined) { updates.starts_at = nullableIso(body.startsAt, "Inicio"); changed.push("inicio"); }
     if (body.dueAt !== undefined) { updates.due_at = nullableIso(body.dueAt, "Prazo"); changed.push("prazo"); }
-    if (body.dealId !== undefined) {
-      const dealId = demandId(body.dealId);
-      if (!dealId) throw new Error("dealId invalido.");
-      await loadEligibleDeal(supabase, dealId);
-      updates.deal_id = dealId; changed.push("deal");
+    if (body.value !== undefined) { updates.value = parseDemandValue(body.value); changed.push("valor"); }
+    if (body.billingType !== undefined) {
+      if (!isDemandBillingType(body.billingType)) throw new Error("Tipo de cobranca invalido.");
+      updates.billing_type = body.billingType; changed.push("cobranca");
+      // Sair do parcelado apaga as parcelas: mantidas, elas continuariam aparecendo na
+      // conta do mes de uma demanda que agora e pontual ou mensal. As baixas de pagamento
+      // de pontual/mensal (uma cobranca por mes) nao entram nessa limpeza.
+      if (current.data.billing_type === "installment" && body.billingType !== "installment") {
+        const cleared = await supabase.from("client_demand_charges").delete().eq("demand_id", id);
+        if (cleared.error) throw cleared.error;
+      }
+    }
+    if (body.billingMonth !== undefined) {
+      updates.billing_month = nullableMonthKey(body.billingMonth, "Mes de cobranca"); changed.push("mes de cobranca");
+    }
+    if (body.billingUntil !== undefined) {
+      updates.billing_until = nullableMonthKey(body.billingUntil, "Cobrar ate"); changed.push("fim da recorrencia");
+    }
+    if (body.clientId !== undefined || body.dealId !== undefined) {
+      const owner = await resolveDemandOwner(supabase, body);
+      updates.client_id = owner.client_id;
+      updates.deal_id = owner.deal_id;
+      changed.push("cliente");
     }
     if (body.folderId !== undefined) {
       if (body.folderId === null || body.folderId === "") {
@@ -247,10 +321,10 @@ export async function DELETE(request: NextRequest) {
 
     const id = demandId(request.nextUrl.searchParams.get("demandId"));
     if (!id) return demandErrorResponse(new Error("demandId valido e obrigatorio."), 400);
-    const current = await supabase.from("client_demands").select("id, deal_id").eq("id", id).maybeSingle();
+    const current = await supabase.from("client_demands").select("id, deal_id, client_id").eq("id", id).maybeSingle();
     if (current.error) throw current.error;
     if (!current.data) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);
-    if (!current.data.deal_id) throw new Error("A demanda de um deal removido e somente leitura.");
+    if (isOrphanDemand(current.data)) throw new Error(ORPHAN_DEMAND_MESSAGE);
     const result = await supabase.from("client_demands").update({ status: "cancelled", completed_at: null }).eq("id", id).select("id").maybeSingle();
     if (result.error) throw result.error;
     if (!result.data) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);

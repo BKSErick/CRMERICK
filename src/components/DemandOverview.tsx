@@ -4,6 +4,8 @@ import {
   DEMAND_PRIORITY_LABELS,
   DEMAND_STATUS_LABELS,
   DEMAND_TIME_ZONE,
+  demandClientName,
+  formatDemandCurrency,
   type ClientDemand,
   type DemandOverview as DemandOverviewData,
   type DemandStatus,
@@ -54,9 +56,18 @@ function shortDate(value: string | null) {
 }
 
 function clientTag(demand: ClientDemand) {
-  const company = demand.deal?.company ?? "";
-  const first = company.trim().split(/\s+/)[0] ?? "";
+  const first = demandClientName(demand).trim().split(/\s+/)[0] ?? "";
   return first.slice(0, 12).toLocaleUpperCase("pt-BR");
+}
+
+/** Soma o que esta na tela. Mensal conta uma vez: aqui a lista e por prazo, nao por mes. */
+function sumValues(demands: ClientDemand[]) {
+  return demands.reduce((total, demand) => total + (demand.status === "cancelled" ? 0 : demand.value), 0);
+}
+
+function valueLabel(demands: ClientDemand[]) {
+  const total = sumValues(demands);
+  return total > 0 ? formatDemandCurrency(total) : "";
 }
 
 function DemandRows({ demands, overdue, onOpenDemand, onDeleteDemand }: {
@@ -74,6 +85,7 @@ function DemandRows({ demands, overdue, onOpenDemand, onDeleteDemand }: {
             <th scope="col">Cliente</th>
             <th scope="col">Resp.</th>
             <th scope="col">Data</th>
+            <th scope="col">Valor</th>
             <th scope="col">Prioridade</th>
             <th scope="col">Status</th>
             <th scope="col"><span className="sr-only">Acoes</span></th>
@@ -104,7 +116,7 @@ function DemandRows({ demands, overdue, onOpenDemand, onDeleteDemand }: {
                   <strong>{demand.title}</strong>
                 </span>
               </td>
-              <td className="demand-cell-muted">{demand.deal?.company ?? "Deal removido"}</td>
+              <td className="demand-cell-muted">{demandClientName(demand)}</td>
               <td>
                 {demand.assignee ? (
                   <span className="demand-avatar" title={demand.assignee}>{initials(demand.assignee)}</span>
@@ -113,6 +125,19 @@ function DemandRows({ demands, overdue, onOpenDemand, onDeleteDemand }: {
                 )}
               </td>
               <td className={`demand-cell-date ${overdue ? "overdue" : ""}`}>{shortDate(demand.dueAt)}</td>
+              <td className="demand-cell-value">
+                {demand.value > 0 ? (
+                  <>
+                    <strong>{formatDemandCurrency(demand.value)}</strong>
+                    {demand.billingType === "monthly" ? <small>/mes</small> : null}
+                    {demand.billingType === "installment" && demand.charges.length > 0 ? (
+                      <small>{demand.charges.length}x</small>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="demand-cell-muted">-</span>
+                )}
+              </td>
               <td><span className={`demand-flag ${demand.priority}`}>{DEMAND_PRIORITY_LABELS[demand.priority]}</span></td>
               <td><span className={`demand-chip status-${demand.status}`}>{DEMAND_STATUS_LABELS[demand.status]}</span></td>
               <td className="demand-cell-actions">
@@ -150,6 +175,7 @@ function DemandGroup({ title, meta, count, defaultOpen, tone, demands, overdue, 
       <summary>
         <span className="demand-group-title">{title}</span>
         {meta ? <span className="demand-group-meta">{meta}</span> : null}
+        {valueLabel(demands) ? <span className="demand-group-value">{valueLabel(demands)}</span> : null}
         <span className="demand-group-count">{count}</span>
       </summary>
       <DemandRows demands={demands} onDeleteDemand={onDeleteDemand} overdue={overdue} onOpenDemand={onOpenDemand} />
@@ -179,6 +205,12 @@ export function DemandOverview({
   const heading = path.length > 0 ? path[path.length - 1].label : "Todas as demandas";
   const breadcrumb = path.slice(0, -1).map((node) => node.label);
   const empty = overview.scheduledTotal === 0 && overview.noDue.length === 0 && overview.beyondWindow === 0;
+  const visible = [
+    ...overview.overdue,
+    ...overview.days.flatMap((day) => day.demands),
+    ...overview.noDue,
+  ];
+  const visibleTotal = sumValues(visible);
 
   return (
     <div className="demand-content">
@@ -259,6 +291,11 @@ export function DemandOverview({
         <strong>Proximos {overview.windowDays} dias</strong>
         <span>{overview.scheduledTotal} tarefa(s)</span>
         {overview.overdue.length > 0 ? <span className="overdue">{overview.overdue.length} atrasada(s)</span> : null}
+        {visibleTotal > 0 ? (
+          <span className="demand-window-total" title="Soma das demandas listadas nesta tela">
+            {formatDemandCurrency(visibleTotal)} na tela
+          </span>
+        ) : null}
       </div>
 
       {empty ? <div className="card demands-empty">Nenhuma demanda corresponde aos filtros atuais.</div> : null}

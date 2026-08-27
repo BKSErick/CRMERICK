@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, verifyAdminSession } from "@/lib/adminAuth";
 
-export async function requireDemandAdminSession(request: NextRequest) {
+export async function requireDemandAdminSession(request: NextRequest, area = "demandas") {
   const session = await verifyAdminSession(
     request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
     process.env.CRM_AUTH_SECRET,
@@ -10,7 +10,7 @@ export async function requireDemandAdminSession(request: NextRequest) {
     return {
       ok: false as const,
       response: NextResponse.json(
-        { ok: false, error: "Sessao administrativa obrigatoria para acessar demandas." },
+        { ok: false, error: `Sessao administrativa obrigatoria para acessar ${area}.` },
         { status: 401 },
       ),
     };
