@@ -36,6 +36,7 @@ export type Deal = {
   segment?: string;
   recurring?: boolean;
   closedAt?: string;
+  createdAt?: string;
   updated_at?: string;
   priority?: string;
   prioritySource?: "automatic" | "manual";
@@ -166,6 +167,7 @@ export function mapDealFromRow(row: DealRow): Deal {
     segment: asString(row.segment),
     recurring: typeof row.recurring === "boolean" ? row.recurring : Boolean(row.recurring),
     closedAt: asString(row.closed_at ?? row.closedAt),
+    createdAt: asString(row.created_at ?? row.createdAt),
     updated_at: asString(row.updated_at),
     priority: asString(row.priority),
     prioritySource: asString(row.priority_source ?? row.prioritySource) as Deal["prioritySource"],

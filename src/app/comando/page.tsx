@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { CopilotAnswerBody, CopilotPanel, fetchCopilotAnswer, type CopilotAnswer } from "@/components/CopilotPanel";
+import { ListaSubnav } from "@/components/ListaSubnav";
 import { logWhatsappOpened } from "@/lib/activityClient";
 import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
 
@@ -80,21 +81,13 @@ type Placar = {
   disparos: { done: number; target: number; splitLP: number; splitDFY: number };
   respostas: number;
   aguardando: number;
-  // Freio de mao do numero (nao e meta) e leads esperando replica. Opcionais para a
-  // tela nao quebrar contra um deploy antigo da API.
+  // Freio de mao do numero (nao e meta). Opcional para a tela nao quebrar contra um
+  // deploy antigo da API.
   saidasNumero?: { done: number; limit: number };
-  bolaComVoce?: number;
 };
 type Alerts = {
   sevenDayRule: { disparos7d: number; respostas: number; threshold: number; triggered: boolean };
   day20Rule: { day: number; pct: number; threshold: number; triggered: boolean };
-};
-type AutomationAlert = {
-  id: number;
-  dealId: number | null;
-  type: string;
-  description: string;
-  createdAt: string;
 };
 // Encaminhamento: o gatekeeper mandou o vCard do decisor. Melhor lead do funil,
 // porque chega com permissao dada e nome de quem indicou.
@@ -129,24 +122,12 @@ type CommandForecast = {
     withoutNextAction: boolean;
   }>;
 };
-// Lead que respondeu e ficou sem replica. Vem de activities, nao de estagio.
-type BolaComVoceItem = {
-  dealId: number;
-  company: string;
-  stage: string;
-  phone: string;
-  texto: string;
-  tipo: string;
-  horas: number | null;
-};
 type Comando = {
   placar: Placar;
   alerts: Alerts;
   queue: QueueItem[];
-  bolaComVoce: BolaComVoceItem[];
   followupQueue: FollowupItem[];
   referralQueue: ReferralItem[];
-  automationAlerts: AutomationAlert[];
   forecast?: CommandForecast;
 };
 
@@ -354,6 +335,8 @@ export default function ComandoPage() {
         </div>
       </div>
 
+      <ListaSubnav />
+
       {status === "loading" ? (
         <div className="connection-status fallback">Carregando o placar do dia...</div>
       ) : status === "error" || !data ? (
@@ -380,13 +363,6 @@ export default function ComandoPage() {
               <div className="kpi-label">Respostas</div>
               <div className="kpi-value">{data.placar.respostas}</div>
               <div className="kpi-trend">Responderam como gente (bot nao conta)</div>
-            </article>
-            <article className="kpi-card">
-              <div className="kpi-label">Bola com voce</div>
-              <div className={`kpi-value ${(data.placar.bolaComVoce ?? 0) > 0 ? "danger" : ""}`}>
-                {data.placar.bolaComVoce ?? 0}
-              </div>
-              <div className="kpi-trend">Responderam e estao sem replica</div>
             </article>
             <article className="kpi-card">
               <div className="kpi-label">Saidas do numero hoje</div>
@@ -493,31 +469,6 @@ export default function ComandoPage() {
             </article>
           </div>
 
-          <article className="card" style={{ marginTop: "12px" }}>
-            <div className="card-header">
-              <div className="card-title">Automacoes recentes</div>
-              <span className="card-badge">{data.automationAlerts.length}</span>
-            </div>
-            {data.automationAlerts.length === 0 ? (
-              <p className="muted-copy">Nenhuma tarefa ou alerta automatico registrado ainda.</p>
-            ) : (
-              data.automationAlerts.map((alert) => (
-                <div className="pref-row" key={alert.id}>
-                  <div>
-                    <div className="pref-label">{alert.description}</div>
-                    <div className="pref-desc">
-                      {alert.dealId ? `Deal #${alert.dealId} · ` : ""}
-                      {alert.createdAt ? new Date(alert.createdAt).toLocaleString("pt-BR") : "Sem data"}
-                    </div>
-                  </div>
-                  <span className={`status-pill ${alert.type === "automation_event_failed" ? "inactive" : "active"}`}>
-                    {alert.type === "automation_confirmation_requested" ? "confirmar" : alert.type === "automation_event_failed" ? "falhou" : "automatico"}
-                  </span>
-                </div>
-              ))
-            )}
-          </article>
-
           <details className="card" style={{ margin: "24px 0 0" }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>
               Mensagens prontas — gatekeeper + funil completo
@@ -540,72 +491,6 @@ export default function ComandoPage() {
               </div>
             ))}
           </details>
-
-          {/* BOLA COM VOCE vem primeiro de todas: e a unica fila onde o lead ja fez a
-              parte dele. Ate 18/08/2026 isso nao existia em lugar nenhum -- quem
-              respondia continuava em "abordado" e o placar mostrava como "aguardando
-              resposta DELE". Medicao do dia: 38 conversas vivas paradas, incluindo
-              lead perguntando preco e lead pedindo orcamento. */}
-          <div className="card-header" style={{ margin: "24px 0 12px" }}>
-            <div className="card-title">Bola com voce</div>
-            <span className="card-badge">
-              {(data.bolaComVoce ?? []).length} esperando resposta
-            </span>
-          </div>
-          {(data.bolaComVoce ?? []).length === 0 ? (
-            <div className="connection-status">Nenhum lead esperando resposta. Fila limpa.</div>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Empresa</th>
-                    <th>O que ele disse</th>
-                    <th>Parado ha</th>
-                    <th>Acao</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data.bolaComVoce ?? []).map((item) => (
-                    <tr key={item.dealId}>
-                      <td>
-                        <strong>{item.company}</strong>
-                        <div className="muted-copy" style={{ fontSize: "11px" }}>
-                          #{item.dealId} · {item.stage}
-                          {item.tipo === "objecao" ? " · objecao" : ""}
-                          {item.tipo === "perdido" ? " · sem interesse" : ""}
-                        </div>
-                      </td>
-                      <td style={{ maxWidth: "320px" }}>
-                        <span className="muted-copy" style={{ fontSize: "12px" }}>{item.texto}</span>
-                      </td>
-                      <td>
-                        {item.horas == null
-                          ? "--"
-                          : item.horas >= 24
-                            ? `${Math.floor(item.horas / 24)}d`
-                            : `${item.horas}h`}
-                      </td>
-                      <td>
-                        {item.phone ? (
-                          <a
-                            className="btn-small"
-                            href={whatsappLink(item.phone, "")}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Abrir conversa
-                          </a>
-                        ) : (
-                          <span className="muted-copy" style={{ fontSize: "11px" }}>sem telefone</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
 
           {/* Encaminhamentos vem ANTES do follow-up de proposito: e o lead mais
               quente do funil e o que mais esfria parado. Ate 10/08/2026 os campos

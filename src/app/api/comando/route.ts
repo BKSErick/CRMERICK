@@ -45,7 +45,21 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getCrmSupabaseAdmin();
     if (request.nextUrl.searchParams.get("view") === "automation_rules") {
-      return NextResponse.json({ ok: true, rules: await listCommercialAutomationRules(supabase) });
+      // A contagem de falhas veio junto quando o feed "Automacoes recentes" saiu da Sala
+      // de Comando (27/08/2026): sem ela, uma automacao quebrada nao apareceria em lugar
+      // nenhum do app. Aqui fica ao lado das regras, que e onde se age sobre isso.
+      // Janela de 7 dias: falha de duas semanas atras nao e mais acionavel.
+      const seteDiasAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: automationFailures } = await supabase
+        .from("activities")
+        .select("id", { count: "exact", head: true })
+        .eq("type", "automation_event_failed")
+        .gte("created_at", seteDiasAtras);
+      return NextResponse.json({
+        ok: true,
+        rules: await listCommercialAutomationRules(supabase),
+        failures: { count: automationFailures ?? 0, windowDays: 7 },
+      });
     }
     const goals = loadGoals();
     const now = new Date();
@@ -73,15 +87,10 @@ export async function GET(request: NextRequest) {
     // o teto de prospeccao sozinho escondeu o risco ate a instancia cair.
     let saidasNumeroToday = 0;
     const waByDeal = new Map<number, { last: number; count: number }>();
-    // Ultima mensagem HUMANA recebida por deal: base da fila "Bola com voce". E a
-    // humana, nao a ultima recebida, porque o autoresponder costuma FECHAR a conversa
-    // depois da pessoa falar ("A Blukit agradece o seu contato, ate breve!!"). Usando a
-    // ultima recebida, esse lead sumia da fila mesmo com a pergunta dele sem resposta.
-    const inboundByDeal = new Map<number, { last: number; text: string }>();
-    // Deals com pelo menos UMA resposta humana em qualquer momento. Separado do mapa
-    // acima de proposito: a ultima mensagem pode ser um autoresponder ("A Blukit
-    // agradece o seu contato") depois de uma resposta de gente, e nesse caso o lead
-    // respondeu de verdade mesmo que a ultima linha seja bot.
+    // Deals com pelo menos UMA resposta humana em qualquer momento. Nao basta olhar a
+    // ULTIMA recebida: o autoresponder costuma fechar a conversa depois da pessoa falar
+    // ("A Blukit agradece o seu contato, ate breve!!"), e nesse caso o lead respondeu de
+    // verdade mesmo que a ultima linha seja bot.
     const respondeuHumano = new Set<number>();
     for (const r of waRows ?? []) {
       const ts = r.created_at ? new Date(r.created_at as string).getTime() : 0;
@@ -91,10 +100,6 @@ export async function GET(request: NextRequest) {
           const texto = cleanInbound(r.description as string);
           if (texto && classifyInboundResponse(texto) !== "bot") {
             respondeuHumano.add(dealId);
-            const prev = inboundByDeal.get(dealId);
-            if (!prev || ts > prev.last) {
-              inboundByDeal.set(dealId, { last: ts, text: texto });
-            }
           }
         }
         continue;
@@ -321,61 +326,6 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 50);
 
-    // FILA "BOLA COM VOCE" (18/08/2026). O lead respondeu e ninguem voltou. Ate aqui
-    // isso era INVISIVEL: o placar contava `respostas` como deals em qualified+, e quem
-    // respondia continuava em `abordado`, ou seja aparecia na tela como "aguardando
-    // resposta DELE". Medicao da base no dia: de 68 deals com resposta humana, 38 nunca
-    // receberam replica, incluindo lead perguntando preco ("Sim. Qual preco?" #980) e
-    // pedindo orcamento (#1192).
-    //
-    // A logica de secao ja existe em queueSectionForDeal (src/lib/followup.ts), mas ela
-    // depende de deals.last_inbound_at/last_outbound_at, que so o webhook escreve --
-    // disparo automatico e clique no CRM nao atualizam. Por isso aqui a fila e derivada
-    // de activities, que e o registro que nunca mente.
-    const inboundIds = [...inboundByDeal.keys()];
-    const { data: inboundDealRows } = inboundIds.length
-      ? await supabase
-          .from("deals")
-          .select("id, company, name, stage, phone, whatsapp, contact_id, is_prospect, referred_phone")
-          .in("id", inboundIds)
-      : { data: [] as Record<string, unknown>[] };
-
-    const bolaComVoce = (inboundDealRows ?? [])
-      // Filtra ANTES de montar a linha. inboundByDeal ja so guarda mensagem humana, entao
-      // aqui sobra: quem ja recebeu replica depois de falar, encaminhamento (tem fila
-      // propria em referralQueue) e conversa que nao e prospeccao.
-      .filter((d) => {
-        const id = Number(d.id);
-        const inbound = inboundByDeal.get(id);
-        if (!inbound?.text) return false;
-        const saida = waByDeal.get(id);
-        if (saida && saida.last >= inbound.last) return false;
-        return d.is_prospect !== false && !d.referred_phone;
-      })
-      .map((d) => {
-        const id = Number(d.id);
-        const inbound = inboundByDeal.get(id);
-        const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
-        const phone =
-          own ||
-          (d.contact_id != null ? phoneById.get(Number(d.contact_id)) : undefined) ||
-          phoneByKey.get(keyOf(d.company as string)) ||
-          phoneByKey.get(keyOf(d.name as string)) ||
-          "";
-        const texto = inbound?.text ?? "";
-        return {
-          dealId: id,
-          company: String(d.company ?? "Sem empresa"),
-          stage: String(d.stage ?? ""),
-          phone,
-          texto,
-          tipo: classifyInboundResponse(texto),
-          horas: inbound ? Math.floor((now.getTime() - inbound.last) / 3600000) : null,
-        };
-      })
-      // Mais antigo primeiro: e o que mais esfriou e o que da mais vergonha responder tarde.
-      .sort((a, b) => (b.horas ?? 0) - (a.horas ?? 0));
-
     // FILA DE ENCAMINHAMENTOS (10/08/2026). Encaminhamento e o melhor lead do
     // funil: o gatekeeper ja deu a permissao e o decisor chega com nome de quem
     // indicou. Ate aqui extract-referrals.mjs gravava deals.referred_* e NINGUEM
@@ -439,21 +389,6 @@ export async function GET(request: NextRequest) {
     // Alerta dia 20: usa a agregacao da meta (mesma da North Star).
     const northStar = await computeNorthStar(now);
     const forecastResult = await calculateForecastFromSupabase(supabase, { now: now.toISOString() });
-    const automationActivityTypes = [
-      "automation_task_upserted",
-      "automation_priority_set",
-      "automation_draft_created",
-      "automation_alert",
-      "automation_confirmation_requested",
-      "automation_event_failed",
-    ];
-    const { data: automationRows, error: automationError } = await supabase
-      .from("activities")
-      .select("id, deal_id, type, description, metadata, created_at")
-      .in("type", automationActivityTypes)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (automationError) throw automationError;
 
     return NextResponse.json({
       ok: true,
@@ -464,9 +399,6 @@ export async function GET(request: NextRequest) {
         // Freio de mao do numero, nao meta: quanto mais perto de 40, maior o risco de
         // restricao. Mesmo teto que os scripts uazapi-*-batch.mjs usam para parar.
         saidasNumero: { done: saidasNumeroToday, limit: 40 },
-        // Quantos leads estao esperando VOCE. Numero mais acionavel do placar: cada
-        // unidade aqui e uma conversa viva parada por falta de replica.
-        bolaComVoce: bolaComVoce.length,
       },
       alerts: {
         sevenDayRule: {
@@ -483,17 +415,8 @@ export async function GET(request: NextRequest) {
         },
       },
       queue,
-      bolaComVoce,
       followupQueue,
       referralQueue,
-      automationAlerts: (automationRows ?? []).map((row) => ({
-        id: Number(row.id),
-        dealId: row.deal_id == null ? null : Number(row.deal_id),
-        type: String(row.type ?? "automation_alert"),
-        description: String(row.description ?? "Automacao comercial executada."),
-        metadata: row.metadata ?? {},
-        createdAt: String(row.created_at ?? ""),
-      })),
       forecast: {
         rubricVersion: forecastResult.rubricVersion,
         probabilitySource: forecastResult.probabilitySource,

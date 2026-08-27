@@ -111,41 +111,11 @@ write("conteudo.json", {
   ],
 });
 
-// ============ 2) BRAIN (indice de docs estrategicos ATUAIS) ============
-// Fonte: SaaS/CRM ERICK/** + thinking/*Erick Sena* . Exclui BackstageFY/BKS-Grow morto
-// e os docs ja usados em Conteudo (copies/threads).
-const EXCLUDE_FROM_BRAIN = /copies_instagram|Threads_Posts_Prontos/i;
-const brainFiles = [
-  ...walk(CRM_DIR),
-  ...walk(path.join(VAULT_ROOT, "thinking")).filter((f) => /Erick Sena/i.test(f)),
-];
-const brain = [];
-for (const file of brainFiles) {
-  if (EXCLUDE_FROM_BRAIN.test(file)) continue;
-  const md = read(file);
-  if (DEAD.test(md.slice(0, 600))) continue; // pula docs mortos (BackstageFY)
-  const rel = path.relative(VAULT_ROOT, file).replace(/\\/g, "/");
-  const category = rel.includes("thinking/")
-    ? "Thinking"
-    : rel.split("/").slice(2, 3)[0] === "Erick Sena"
-      ? "Erick Sena"
-      : rel.split("/").slice(2, 3)[0] || "CRM";
-  brain.push({
-    title: firstHeading(md) || path.basename(file, ".md"),
-    description: frontmatterDesc(md) || "",
-    category: category.replace(/\.md$/, ""),
-    file: rel,
-  });
-}
-brain.sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title));
-write("brain.json", {
-  generatedAt: new Date().toISOString(),
-  source: "vault: SaaS/CRM ERICK/** + thinking/*Erick Sena*",
-  count: brain.length,
-  items: brain,
-});
+// A aba Brain (indice de docs estrategicos do vault) saiu do CRM em 27/08/2026, e o
+// brain.json foi removido junto. O vault segue sendo a fonte desses docs; o que deixou
+// de existir e a copia indexada dentro do app.
 
-// ============ 3) CARTEIRA (clientes ATIVOS curados) ============
+// ============ 2) CARTEIRA (clientes ATIVOS curados) ============
 // Set definido pelo Erick: Metalthec, Jotta, OStrack (SaaS proprio), Ideia Hub (agencia).
 function clientDesc(folder, fallback) {
   const md = read(path.join(VAULT_ROOT, "Clientes", folder, `${folder}.md`));
@@ -171,5 +141,4 @@ write("carteira.json", {
 
 console.log(`✅ content/ gerado:`);
 console.log(`   conteudo.json — ${copies.length} itens Instagram + ${threads.length} Threads`);
-console.log(`   brain.json    — ${brain.length} docs estrategicos`);
 console.log(`   carteira.json — ${carteira.length} clientes ativos`);

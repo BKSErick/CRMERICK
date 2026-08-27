@@ -11,12 +11,11 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { label: "Inicio", href: "/", module: "home", group: "Navegacao", status: "migrated" },
   { label: "North Star", href: "/north-star", module: "north-star", group: "Navegacao", status: "migrated" },
-  { label: "Sala de Comando", href: "/comando", module: "comando", group: "Navegacao", status: "migrated" },
   { label: "Lab", href: "/lab", module: "lab", group: "Navegacao", status: "migrated", parentModule: "funil", sidebar: false },
-  { label: "Brain", href: "/brain", module: "brain", group: "Navegacao", status: "migrated" },
   { label: "Funis", href: "/funil", module: "funil", group: "Navegacao", status: "migrated" },
   { label: "Pipeline", href: "/pipeline", module: "pipeline", group: "Navegacao", status: "migrated" },
   { label: "Lista", href: "/lista", module: "lista", group: "Navegacao", status: "migrated" },
+  { label: "Sala de Comando", href: "/comando", module: "comando", group: "Navegacao", status: "migrated", parentModule: "lista", sidebar: false },
   { label: "Achados", href: "/insights", module: "insights", group: "Navegacao", status: "migrated", parentModule: "funil", sidebar: false },
   { label: "Analise", href: "/analise", module: "analise", group: "Navegacao", status: "migrated", parentModule: "funil", sidebar: false },
   { label: "Contatos", href: "/contacts", module: "contacts", group: "Navegacao", status: "migrated" },

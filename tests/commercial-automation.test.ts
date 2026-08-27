@@ -196,11 +196,15 @@ test("produtores e superficies existentes usam o contrato central sem criar pagi
     const source = readFileSync(new URL(file, import.meta.url), "utf8");
     assert.match(source, /commercialAutomation|commercial-automation|processCommercialEvent/);
   }
+  // O feed "Automacoes recentes" saiu da Sala de Comando em 27/08/2026 (decisao do
+  // Erick: nao era mais olhado). Configuracoes virou a unica superficie: regras + a
+  // contagem de falhas, que precisa continuar visivel em algum lugar do app.
   const configuracoes = readFileSync(new URL("../src/app/configuracoes/page.tsx", import.meta.url), "utf8");
-  const comando = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
+  const comandoRoute = readFileSync(new URL("../src/app/api/comando/route.ts", import.meta.url), "utf8");
   const dealPresentation = readFileSync(new URL("../src/lib/dealPresentation.ts", import.meta.url), "utf8");
   assert.match(configuracoes, /automation_rules/);
-  assert.match(comando, /automationAlerts/);
+  assert.match(configuracoes, /automationFailures/);
+  assert.match(comandoRoute, /automation_event_failed/);
   assert.match(dealPresentation, /automation_task_upserted/);
 });
 

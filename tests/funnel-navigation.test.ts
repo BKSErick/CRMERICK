@@ -9,6 +9,9 @@ function read(relativePath: string) {
 }
 
 const subnav = read("../src/components/FunnelSubnav.tsx");
+// O render das abas foi extraido pra Subnav.tsx quando a Lista ganhou a segunda
+// subnavegacao (27/08/2026). FunnelSubnav segue dona das abas de Funis.
+const subnavBase = read("../src/components/Subnav.tsx");
 const navigation = read("../src/lib/navigation.ts");
 const sidebar = read("../src/components/Sidebar.tsx");
 const css = read("../src/app/globals.css");
@@ -33,8 +36,10 @@ test("subnavegacao de Funis oferece as cinco abas reais na ordem aprovada", () =
     cursor = next;
   }
 
-  assert.match(subnav, /aria-label="Navegacao de Funis"/);
-  assert.match(subnav, /aria-current=\{active \? "page" : undefined\}/);
+  // FunnelSubnav declara o rotulo; Subnav e quem o entrega como aria-label no <nav>.
+  assert.match(subnav, /ariaLabel="Navegacao de Funis"/);
+  assert.match(subnavBase, /aria-label=\{ariaLabel\}/);
+  assert.match(subnavBase, /aria-current=\{active \? "page" : undefined\}/);
 });
 
 test("modulos filhos somem apenas da Sidebar e mantem Funis ativo", () => {

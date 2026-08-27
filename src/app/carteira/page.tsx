@@ -9,7 +9,7 @@ import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 
 // Le o Supabase, entao NAO pode ser pre-renderizada: como estatica, a lista de clientes
 // congelava no deploy e um deal marcado como "won" hoje so aparecia no proximo build.
-// (/brain, /brandbook e /conteudo continuam estaticas de proposito: leem JSON commitado,
+// (/brandbook e /conteudo continuam estaticas de proposito: leem JSON commitado,
 // que so muda em deploy mesmo.)
 export const dynamic = "force-dynamic";
 

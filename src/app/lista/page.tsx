@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DealDetailOverlay, LossReasonDialog } from "@/components/DealDetailOverlay";
+import { ListaSubnav } from "@/components/ListaSubnav";
 import {
   filterDeals,
   listDealOwners,
@@ -154,6 +155,8 @@ export default function DealListPage() {
               : "Fonte indisponível"}
         </span>
       </header>
+
+      <ListaSubnav />
 
       <div className="deal-list-filters" aria-label="Filtros da lista de deals">
         <input

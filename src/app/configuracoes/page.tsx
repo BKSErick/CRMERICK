@@ -61,6 +61,9 @@ export default function ConfiguracoesPage() {
   });
   const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
   const [automationStatus, setAutomationStatus] = useState<"loading" | "ready" | "error">("loading");
+  // Falhas de automacao nos ultimos 7 dias. Unica superficie disso no app desde que o
+  // feed "Automacoes recentes" saiu da Sala de Comando (27/08/2026).
+  const [automationFailures, setAutomationFailures] = useState<{ count: number; windowDays: number } | null>(null);
   const [savingRuleId, setSavingRuleId] = useState<string>("");
   const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
 
@@ -92,6 +95,7 @@ export default function ConfiguracoesPage() {
         if (!response.ok || !body.ok) throw new Error(body.error ?? "Falha ao carregar automacoes.");
         if (active) {
           setAutomationRules(body.rules ?? []);
+          setAutomationFailures(body.failures ?? null);
           setAutomationStatus("ready");
         }
       })
@@ -381,6 +385,14 @@ export default function ConfiguracoesPage() {
 
             {automationStatus === "loading" ? (
               <div className="connection-status fallback">Carregando as regras comerciais...</div>
+            ) : null}
+
+            {automationFailures && automationFailures.count > 0 ? (
+              <div className="portfolio-status warning" style={{ marginBottom: "12px" }}>
+                {automationFailures.count} {automationFailures.count === 1 ? "automacao falhou" : "automacoes falharam"} nos
+                ultimos {automationFailures.windowDays} dias. Confira a regra correspondente abaixo antes de confiar no
+                que ela deveria ter criado.
+              </div>
             ) : null}
 
             {automationRules.map((rule) => (
