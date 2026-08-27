@@ -40,7 +40,8 @@ const SEGMENTOS = [
   [/caldeiraria|solda|metal[uú]rgic|metalurgia|serralheria|estrutura met/i, "caldeiraria"],
   [/manuten|mec[aâ]nic|industrial/i, "manutencao"],
   [/automa|el[eé]tric|painel el|comando el/i, "automacao"],
-  [/refrigera|climatiza|ar.condicionado|exaust/i, "climatizacao"],
+  [/engenhar|projetos industriais|consultoria eng/i, "engenharia"],
+  [/agro|agricol|agronegoc|agropecuaria|agroindustria/i, "agronegocio"],
 ];
 
 function segmentoCanonico(...textos) {
@@ -144,8 +145,8 @@ async function buscarTudo(cliente, rota, passo = 1000) {
 // de grafia entre puxadas; o cid nao.
 async function montarIndiceDedupe(crm) {
   const [contatos, deals] = await Promise.all([
-    buscarTudo(crm, "contacts?select=id,name,company,phone,whatsapp_site,maps_cid,status"),
-    buscarTudo(crm, "deals?select=id,company,site_url"),
+    buscarTudo(crm, "contacts?select=id,name,company,phone,whatsapp_site,maps_cid,cnpj,status"),
+    buscarTudo(crm, "deals?select=id,company,site_url,cnpj"),
   ]);
   return {
     contatos,
@@ -154,6 +155,7 @@ async function montarIndiceDedupe(crm) {
     nome: new Set(contatos.map((c) => normalize(c.company || c.name)).filter(Boolean)),
     fone: new Set(contatos.flatMap((c) => [digitos(c.phone), digitos(c.whatsapp_site)]).filter((x) => x.length >= 10)),
     dominio: new Set(deals.map((d) => dominio(d.site_url)).filter(Boolean)),
+    cnpj: new Set(contatos.map((c) => c.cnpj ? digitos(c.cnpj) : null).filter(Boolean)),
     // Cliente ativo nunca volta para a fila fria.
     clientes: new Set(contatos.filter((c) => c.status === "client").map((c) => normalize(c.company || c.name))),
     proximoId: Math.max(0, ...contatos.map((c) => c.id), ...deals.map((d) => d.id)) + 1,
@@ -162,8 +164,8 @@ async function montarIndiceDedupe(crm) {
 
 function filtrarNovos(candidatos, indice, limite = Infinity) {
   const proibidos = carregarNaoProspectar();
-  const vistos = { cid: new Set(), nome: new Set(), fone: new Set() };
-  const motivos = { cid: 0, nome: 0, fone: 0, dominio: 0, cliente: 0, proibido: 0 };
+  const vistos = { cid: new Set(), nome: new Set(), fone: new Set(), cnpj: new Set() };
+  const motivos = { cid: 0, nome: 0, fone: 0, dominio: 0, cliente: 0, proibido: 0, inativa: 0 };
   const novos = [];
 
   for (const l of candidatos) {
@@ -171,15 +173,19 @@ function filtrarNovos(candidatos, indice, limite = Infinity) {
     const nome = normalize(l.name);
     const fone = digitos(l.phone);
     const dom = dominio(l.website);
+    const cnpjLimpo = l.cnpj ? digitos(l.cnpj) : null;
 
     if (ehProibido(l.name, proibidos)) { motivos.proibido++; continue; }
     if (indice.clientes.has(nome)) { motivos.cliente++; continue; }
+    if (l.situacao_cadastral && String(l.situacao_cadastral).toUpperCase() !== "ATIVA") { motivos.inativa++; continue; }
     if (l.maps_cid && (indice.cid.has(l.maps_cid) || vistos.cid.has(l.maps_cid))) { motivos.cid++; continue; }
+    if (cnpjLimpo && (indice.cnpj.has(cnpjLimpo) || vistos.cnpj.has(cnpjLimpo))) { motivos.cid++; continue; }
     if (indice.nome.has(nome) || vistos.nome.has(nome)) { motivos.nome++; continue; }
     if (fone.length >= 10 && (indice.fone.has(fone) || vistos.fone.has(fone))) { motivos.fone++; continue; }
     if (dom && indice.dominio.has(dom)) { motivos.dominio++; continue; }
 
     if (l.maps_cid) vistos.cid.add(l.maps_cid);
+    if (cnpjLimpo) vistos.cnpj.add(cnpjLimpo);
     vistos.nome.add(nome);
     if (fone.length >= 10) vistos.fone.add(fone);
     novos.push(l);
@@ -253,6 +259,14 @@ async function gravar(crm, itens, proximoId, aoGravar) {
         source: lead.source || "serper_maps",
         whatsapp_site: lead.site_whatsapp || null,
         site_url: lead.website || null,
+        cnpj: lead.cnpj || null,
+        capital_social: lead.capital_social || null,
+        porte: lead.porte || null,
+        situacao_cadastral: lead.situacao_cadastral || null,
+        cnae_principal: lead.cnae_principal || null,
+        cnae_descricao: lead.cnae_descricao || null,
+        receita_phones: lead.receita_phones || [],
+        last_scraped_at: new Date().toISOString(),
       }),
     });
     if (!rc.ok) {
@@ -274,6 +288,13 @@ async function gravar(crm, itens, proximoId, aoGravar) {
         phone: lead.phone || null,
         site_url: lead.website || null,
         points: diag.priority_score,
+        cnpj: lead.cnpj || null,
+        capital_social: lead.capital_social || null,
+        porte: lead.porte || null,
+        situacao_cadastral: lead.situacao_cadastral || null,
+        cnae_principal: lead.cnae_principal || null,
+        cnae_descricao: lead.cnae_descricao || null,
+        last_scraped_at: new Date().toISOString(),
       }),
     });
     if (!rd.ok) {

@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ingest = require(path.join(RAIZ, "scripts/lib/leadIngest.js"));
+const cnpjEnrich = require(path.join(RAIZ, "scripts/lib/cnpjEnrich.js"));
 const { isExcluded, normalize } = require(path.join(RAIZ, "src/lib/leadScoring.js"));
 
 function carregarEnv(arquivo, alvo = process.env, sobrescrever = false) {
@@ -67,8 +68,10 @@ const QUERIES_PADRAO = [
   "manutencao de maquinas",
   "automacao industrial",
   "instalacoes eletricas industriais",
-  "ar condicionado",
-  "refrigeracao",
+  "empresa de engenharia",
+  "engenharia industrial",
+  "agronegocio",
+  "maquinas agricolas",
 ];
 const QUERIES = arg("queries", "") ? arg("queries", "").split(",").map((q) => q.trim()).filter(Boolean) : QUERIES_PADRAO;
 
@@ -202,6 +205,45 @@ async function serperMaps(corpo) {
   if (!SEM_ENRICH) {
     const r = await ingest.enriquecer(novos);
     console.log(`Sites visitados: ${r.visitados} | com WhatsApp publicado: ${r.comWhatsapp}`);
+
+    // Enriquecimento com CNPJ e dados da Receita Federal (MinhaReceita)
+    process.stdout.write("Buscando CNPJ e Porte (MinhaReceita)... ");
+    let cnpjsAchados = 0;
+    let meCount = 0;
+    let eppCount = 0;
+
+    for (const lead of novos) {
+      // 1. Tenta extrair CNPJ do HTML do site raspado
+      let cnpjs = cnpjEnrich.extractCnpjsFromText(lead.html || lead.site_html || "");
+      let dadosCnpj = null;
+
+      if (cnpjs.length > 0) {
+        dadosCnpj = await cnpjEnrich.fetchCnpjMinhaReceita(cnpjs[0]);
+      }
+
+      // 2. Fallback: Se não encontrou no site, busca no Google via Serper
+      if (!dadosCnpj && lead.name) {
+        const clientSerper = { search: (body) => serperMaps(body) };
+        dadosCnpj = await cnpjEnrich.searchCnpjViaSerper(lead.name, lead.city, lead.uf, clientSerper);
+      }
+
+      if (dadosCnpj) {
+        cnpjsAchados++;
+        Object.assign(lead, {
+          cnpj: dadosCnpj.cnpj,
+          capital_social: dadosCnpj.capital_social,
+          porte: dadosCnpj.porte,
+          situacao_cadastral: dadosCnpj.situacao_cadastral,
+          cnae_principal: dadosCnpj.cnae_principal,
+          cnae_descricao: dadosCnpj.cnae_descricao,
+          receita_phones: dadosCnpj.receita_phones,
+          email_receita: dadosCnpj.email_receita,
+        });
+        if (dadosCnpj.porte === "ME") meCount++;
+        if (dadosCnpj.porte === "EPP" || dadosCnpj.porte === "DEMAIS") eppCount++;
+      }
+    }
+    console.log(`OK (${cnpjsAchados}/${novos.length} com CNPJ | ME: ${meCount}, EPP/Demais: ${eppCount})`);
   }
 
   const { itens, temPerfil } = ingest.pontuar(novos);

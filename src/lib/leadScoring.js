@@ -2,7 +2,8 @@
 
 /**
  * leadScoring.js - Scoring v2 dos leads (Story 017).
- * Modulo COMPARTILHADO entre o CLI (scripts/lead-search-playbook.js, CommonJS) e a rota
+ * Modulo COMPARTILHADO entre o 
+ * CLI (scripts/lead-search-playbook.js, CommonJS) e a rota
  * server-side da fila do dia (src/app/api/comando, via leadScoring.d.ts). Logica PURA e
  * SINCRONA (sem fetch). Pesos explicaveis e documentados - nao e caixa-preta.
  *
@@ -50,7 +51,8 @@ const EXCLUDE_TERMS = [
 
 const SEGMENT_RULES = [
   { key: "industrial_b2b", terms: ["manutencao industrial", "usinagem", "caldeiraria", "automacao industrial", "compressores", "hidraulica industrial", "metalurgica", "solda", "tornearia"], channel: "email_linkedin_whatsapp", angle: "validacao_b2b_e_orcamento" },
-  { key: "climatizacao", terms: ["climatizacao", "ar condicionado", "refrigeracao"], channel: "whatsapp_instagram", angle: "urgencia_e_agendamento" },
+  { key: "engenharia", terms: ["engenharia", "engenharia industrial", "projetos industriais", "engenharia mecanica", "empresa de engenharia"], channel: "email_whatsapp_linkedin", angle: "parceria_e_projetos" },
+  { key: "agronegocio", terms: ["agronegocio", "maquinas agricolas", "agropecuaria", "agroindustria", "cooperativa agricola"], channel: "whatsapp_email", angle: "fornecimento_e_manutencao" },
   { key: "odontologia", terms: ["odontologia", "dentista", "invisalign", "clinica odontologica"], channel: "whatsapp_instagram", angle: "agendamento_e_confianca" },
   { key: "eventos", terms: ["evento", "eventos", "espaco", "wedding", "buffet"], channel: "email_whatsapp_instagram", angle: "reserva_e_prova_visual" },
 ];
@@ -113,12 +115,22 @@ function phoneProfile(lead) {
   if (site.number) return { ...site, source: "site" };
   const maps = classifyPhone(lead.phone);
   if (maps.number) return { ...maps, source: "maps" };
+
+  // Telefones oficiais da Receita Federal (resgate de contatos)
+  if (Array.isArray(lead.receita_phones)) {
+    for (const rPhone of lead.receita_phones) {
+      const receita = classifyPhone(rPhone);
+      if (receita.number) return { ...receita, source: "receita" };
+    }
+  }
+
   return { number: null, kind: "nenhum", ddd: null, source: null };
 }
 
 function phoneScore(p) {
   if (p.source === "confirmado") return 24; // a Uazapi confirmou que o numero existe
   if (p.source === "site") return 22; // a empresa publica esse numero
+  if (p.source === "receita") return 15; // telefone cadastrado na Receita Federal
   if (p.kind === "celular") return 18;
   if (p.kind === "fixo") return 10; // pode ter WhatsApp, so falta verificar
   return -20;
@@ -149,6 +161,11 @@ function classifySegment(lead) {
 }
 
 function isExcluded(lead) {
+  // Exclusão por situação cadastral inativa na Receita Federal
+  const sit = String(lead.situacao_cadastral || "").toUpperCase();
+  if (sit && sit !== "ATIVA" && sit !== "NULL" && sit !== "UNDEFINED") {
+    return true;
+  }
   const text = normalize(`${lead.name || ""} ${lead.address || ""}`);
   return EXCLUDE_TERMS.some((term) => text.includes(normalize(term)));
 }
@@ -264,6 +281,18 @@ function scoreV2(lead, ctx, segment) {
   }
 
   if (ctx.competitorBuilt) score += 6;
+
+  // Pontuação por Porte da Empresa (Receita Federal)
+  const porte = String(lead.porte || "").toUpperCase();
+  if (porte === "DEMAIS" || porte === "EPP") score += 20;
+  else if (porte === "ME") score += 12;
+  else if (porte === "MEI") score -= 10; // Mantido na base, mas prioriza ME/EPP no topo
+
+  // Pontuação por Capital Social (Proxy de Porte / Capacidade de Investimento)
+  const cap = Number(lead.capital_social || 0);
+  if (cap >= 500000) score += 25;
+  else if (cap >= 100000) score += 15;
+  else if (cap >= 30000) score += 8;
 
   const consciousness = consciousnessV2(lead, ctx);
   if (consciousness === "pronto") score += 16;
