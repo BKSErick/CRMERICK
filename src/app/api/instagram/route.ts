@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
+import { INSTAGRAM_API_VERSION, resolveInstagramCredentials, sumInsights } from "@/lib/instagramGraph";
 
-const API_VERSION = "v21.0";
+const API_VERSION = INSTAGRAM_API_VERSION;
 
 function jsonError(message: string, status = 500) {
   return NextResponse.json({ ok: false, error: message }, { status });
-}
-
-type InsightRow = { name: string; total_value?: { value?: number }; values?: { value?: number }[] };
-function sumInsights(data: InsightRow[] | undefined) {
-  const out: Record<string, number> = {};
-  for (const row of data ?? []) {
-    out[row.name] = row.total_value?.value ?? (row.values ?? []).reduce((a, v) => a + (v.value ?? 0), 0);
-  }
-  return out;
 }
 
 // follower_demographics vem com total_value.breakdowns[].results[] ({dimension_values, value}).
@@ -30,12 +22,12 @@ function parseBreakdown(json: DemoJson): { label: string; value: number }[] {
 }
 
 export async function GET(request: Request) {
-  const overrideToken = request.headers.get("x-crm-ig-access-token")?.trim();
-  const overrideAccountId = request.headers.get("x-crm-ig-business-account-id")?.trim();
-  const accessToken = overrideToken || process.env.IG_ACCESS_TOKEN;
-  const accountId = overrideAccountId || process.env.IG_BUSINESS_ACCOUNT_ID;
-
-  if (!accessToken || !accountId) {
+  let accessToken: string;
+  let accountId: string;
+  let credentialSource: string;
+  try {
+    ({ accessToken, accountId, source: credentialSource } = resolveInstagramCredentials(request));
+  } catch {
     return jsonError("Instagram server credentials are not configured.", 503);
   }
 
@@ -116,7 +108,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      credentialSource: overrideToken || overrideAccountId ? "local-override" : "server-env",
+      credentialSource,
       profile: {
         username: account.username,
         name: account.name,

@@ -19,7 +19,9 @@ export const navItems: NavItem[] = [
   { label: "Achados", href: "/insights", module: "insights", group: "Navegacao", status: "migrated", parentModule: "funil", sidebar: false },
   { label: "Analise", href: "/analise", module: "analise", group: "Navegacao", status: "migrated", parentModule: "funil", sidebar: false },
   { label: "Contatos", href: "/contacts", module: "contacts", group: "Navegacao", status: "migrated" },
-  { label: "Conteudo", href: "/conteudo", module: "conteudo", group: "Navegacao", status: "migrated" },
+  // Conteudo virou sub-aba de cada canal (/instagram/conteudo e /threads/conteudo).
+  // A rota antiga redireciona, entao some do sidebar mas continua resolvendo link velho.
+  { label: "Conteudo", href: "/conteudo", module: "conteudo", group: "Navegacao", status: "migrated", parentModule: "instagram", sidebar: false },
   { label: "Brandbook", href: "/brandbook", module: "brandbook", group: "Navegacao", status: "migrated" },
   { label: "Agentes", href: "/agentes", module: "agentes", group: "Navegacao", status: "migrated" },
   { label: "Sinais", href: "/sinais", module: "sinais", group: "Navegacao", status: "migrated", parentModule: "funil", sidebar: false },

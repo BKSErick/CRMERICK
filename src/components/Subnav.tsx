@@ -20,10 +20,17 @@ export function Subnav({
 }) {
   const pathname = usePathname();
 
+  // O match mais especifico vence. Com abas irmas (/funil, /analise) isso da no mesmo,
+  // mas com aba aninhada (/instagram e /instagram/conteudo) o prefixo sozinho acendia
+  // as duas ao mesmo tempo.
+  const activeHref = tabs
+    .filter((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   return (
     <nav aria-label={ariaLabel} className={className}>
       {tabs.map((tab) => {
-        const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        const active = tab.href === activeHref;
         return (
           <Link
             aria-current={active ? "page" : undefined}

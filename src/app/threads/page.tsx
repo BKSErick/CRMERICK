@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { ThreadsSubnav } from "@/components/ThreadsSubnav";
 
 type ThreadsPost = {
   id: string;
@@ -44,10 +45,15 @@ const nf = new Intl.NumberFormat("pt-BR");
 // useSearchParams exige limite de Suspense no App Router; por isso o conteudo
 // fica num componente interno e o default so envelopa.
 export default function ThreadsPage() {
+  // A subnav fica FORA do Suspense (so depende do pathname): assim as abas continuam
+  // na tela enquanto o painel carrega.
   return (
-    <Suspense fallback={<div className="connection-status fallback">Carregando Threads...</div>}>
-      <ThreadsConteudo />
-    </Suspense>
+    <>
+      <ThreadsSubnav />
+      <Suspense fallback={<div className="connection-status fallback">Carregando Threads...</div>}>
+        <ThreadsConteudo />
+      </Suspense>
+    </>
   );
 }
 

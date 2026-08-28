@@ -99,6 +99,60 @@ const contentProvider: Provider = async (supabase, scope) => {
   return envelope("crm.content", "Insights e conteudo do CRM", scope, (result.data ?? []).map((row) => ({ ...row, content: safeText(row.content, 1200), company: safeText(row.company, 180) })), [], [{ label: "Abrir insights", href: "/insights" }]);
 };
 
+// Backlog editorial + historico publicado (content_items). E o que responde "o que ja
+// foi postado e como foi" antes de o modelo propor conteudo novo — sem isso ele repete
+// tema e ignora desempenho. Nao confundir com contentProvider acima, que le `insights`.
+const editorialProvider: Provider = async (supabase, scope) => {
+  const result = await supabase
+    .from("content_items")
+    .select("channel, type, title, status, scheduled_at, published_at, metrics")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (result.error) throw result.error;
+  const rows = (result.data ?? []) as Array<Record<string, unknown>>;
+
+  const counts = rows.reduce<Record<string, number>>((acc, row) => {
+    const key = `${String(row.channel)}.${String(row.status)}`;
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const agendados = rows
+    .filter((row) => row.status !== "publicado" && row.scheduled_at)
+    .sort((a, b) => String(a.scheduled_at).localeCompare(String(b.scheduled_at)))
+    .slice(0, 20)
+    .map((row) => ({ canal: row.channel, tipo: row.type, titulo: safeText(row.title, 180), quando: row.scheduled_at }));
+
+  const publicados = rows
+    .filter((row) => row.status === "publicado")
+    .sort((a, b) => String(b.published_at ?? "").localeCompare(String(a.published_at ?? "")))
+    .slice(0, 25)
+    .map((row) => {
+      const metrics = (row.metrics ?? {}) as Record<string, number>;
+      return {
+        canal: row.channel,
+        tipo: row.type,
+        titulo: safeText(row.title, 180),
+        quando: row.published_at,
+        alcance: metrics.reach ?? null,
+        likes: metrics.likes ?? null,
+        comentarios: metrics.comments ?? null,
+      };
+    });
+
+  return envelope(
+    "crm.conteudo",
+    "Backlog e historico de conteudo",
+    scope,
+    [{ total: rows.length, porCanalEStatus: counts }, { agendados }, { publicados }],
+    ["Legendas completas ficam de fora: so titulo, data e desempenho entram no prompt."],
+    [
+      { label: "Abrir conteudo do Instagram", href: "/instagram/conteudo" },
+      { label: "Abrir conteudo do Threads", href: "/threads/conteudo" },
+    ],
+  );
+};
+
 export const CONTEXT_PROVIDER_REGISTRY: Readonly<Record<string, Provider>> = Object.freeze({
   pipeline: pipelineProvider,
   forecast: forecastProvider,
@@ -106,14 +160,15 @@ export const CONTEXT_PROVIDER_REGISTRY: Readonly<Record<string, Provider>> = Obj
   deal: dealProvider,
   integrations: integrationsProvider,
   content: contentProvider,
+  editorial: editorialProvider,
 });
 
 const PROVIDERS_BY_SCOPE: Record<AiContextScope["type"], readonly (keyof typeof CONTEXT_PROVIDER_REGISTRY)[]> = {
-  all: ["pipeline", "forecast", "losses", "integrations", "content"],
+  all: ["pipeline", "forecast", "losses", "integrations", "content", "editorial"],
   deal: ["deal", "forecast"],
   reports: ["pipeline", "forecast", "losses"],
   integrations: ["integrations"],
-  content: ["content"],
+  content: ["content", "editorial"],
 };
 
 export async function loadAiContext(supabase: SupabaseAdmin, scope: AiContextScope) {

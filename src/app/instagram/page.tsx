@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { InstagramFollowups } from "./InstagramFollowups";
-import { InstagramProspecting } from "./InstagramProspecting";
+import { InstagramSubnav } from "@/components/InstagramSubnav";
 
 type InstagramMedia = {
   id: string;
@@ -74,7 +73,7 @@ function firstLine(value?: string) {
   return text.length > 86 ? `${text.slice(0, 83)}...` : text;
 }
 
-function InstagramAnalytics() {
+export default function InstagramPage() {
   const [payload, setPayload] = useState<InstagramPayload | null>(null);
   const [status, setStatus] = useState<"loading" | "live" | "fallback">("loading");
 
@@ -116,6 +115,7 @@ function InstagramAnalytics() {
 
   return (
     <section>
+      <InstagramSubnav />
       <div className="page-header">
         <div className="page-header-left">
           <h1>Instagram</h1>
@@ -222,23 +222,6 @@ function InstagramAnalytics() {
           </tbody>
         </table>
       </div>
-    </section>
-  );
-}
-
-export default function InstagramPage() {
-  const [tab, setTab] = useState<"overview" | "prospecting" | "followups">("overview");
-
-  return (
-    <section>
-      <nav className="ig-tabs" aria-label="Áreas do Instagram">
-        <button className={tab === "overview" ? "active" : ""} onClick={() => setTab("overview")} type="button">Visão geral</button>
-        <button className={tab === "prospecting" ? "active" : ""} onClick={() => setTab("prospecting")} type="button">Achados</button>
-        <button className={tab === "followups" ? "active" : ""} onClick={() => setTab("followups")} type="button">Leads e follow-ups</button>
-      </nav>
-      {tab === "overview" ? <InstagramAnalytics /> : null}
-      {tab === "prospecting" ? <InstagramProspecting /> : null}
-      {tab === "followups" ? <InstagramFollowups /> : null}
     </section>
   );
 }
