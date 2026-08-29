@@ -15,7 +15,8 @@ type Supabase = ReturnType<typeof getCrmSupabaseAdmin>;
 
 export const CLIENT_SELECT = `
   id, deal_id, name, legal_name, cnpj, state_registration, municipal_registration,
-  email, phone, address, city, state, zip_code, segment, notes, status, source,
+  email, phone, address, city, state, zip_code, representative_name,
+  representative_document, segment, notes, status, source,
   created_at, updated_at
 `;
 

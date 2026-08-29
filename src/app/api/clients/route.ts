@@ -43,6 +43,8 @@ const TEXT_FIELDS: Array<{ body: string; column: string; label: string; max: num
   { body: "city", column: "city", label: "Cidade", max: 120 },
   { body: "state", column: "state", label: "UF", max: 2 },
   { body: "zipCode", column: "zip_code", label: "CEP", max: 12 },
+  { body: "representativeName", column: "representative_name", label: "Representante", max: 240 },
+  { body: "representativeDocument", column: "representative_document", label: "Documento do representante", max: 40 },
   { body: "segment", column: "segment", label: "Segmento", max: 240 },
   { body: "notes", column: "notes", label: "Observacoes", max: 5000 },
 ];
@@ -179,6 +181,14 @@ export async function DELETE(request: NextRequest) {
     // Cliente vindo do pipeline volta na proxima sincronizacao; encerrar e o caminho.
     if (found.client.source === "pipeline") {
       throw new Error("Cliente veio de um deal ganho e seria recriado. Marque como Encerrado.");
+    }
+    const contracts = await supabase
+      .from("client_contracts")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", id);
+    if (contracts.error) throw contracts.error;
+    if ((contracts.count ?? 0) > 0) {
+      throw new Error(`Este cliente tem ${contracts.count} contrato(s). Marque como Encerrado em vez de excluir.`);
     }
 
     const deleted = await supabase.from("clients").delete().eq("id", id).select("id").maybeSingle();

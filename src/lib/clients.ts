@@ -43,6 +43,8 @@ export type Client = {
   city: string;
   state: string;
   zipCode: string;
+  representativeName: string;
+  representativeDocument: string;
   segment: string;
   notes: string;
   status: ClientStatus;
@@ -147,6 +149,8 @@ export function mapClient(value: unknown): Client {
     city: asString(row.city),
     state: asString(row.state),
     zipCode: asString(row.zip_code ?? row.zipCode),
+    representativeName: asString(row.representative_name ?? row.representativeName),
+    representativeDocument: asString(row.representative_document ?? row.representativeDocument),
     segment: asString(row.segment),
     notes: asString(row.notes),
     status: isClientStatus(row.status) ? row.status : "active",

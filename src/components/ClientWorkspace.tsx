@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { ClientContracts } from "@/components/ClientContracts";
 import {
   DEMAND_BILLING_LABELS,
   DEMAND_STATUS_LABELS,
@@ -77,6 +78,8 @@ const FIELDS: Array<{ key: keyof EditableClient; label: string; wide?: boolean; 
   { key: "email", label: "E-mail", maxLength: 240 },
   { key: "phone", label: "Telefone", maxLength: 40 },
   { key: "zipCode", label: "CEP", maxLength: 12 },
+  { key: "representativeName", label: "Representante no contrato", maxLength: 240, wide: true },
+  { key: "representativeDocument", label: "CPF/documento do representante", maxLength: 40 },
   { key: "address", label: "Endereco", maxLength: 400, wide: true },
   { key: "city", label: "Cidade", maxLength: 120 },
   { key: "state", label: "UF", maxLength: 2 },
@@ -87,6 +90,7 @@ type EditableClient = Pick<
   ClientWithTotals,
   | "name" | "legalName" | "cnpj" | "stateRegistration" | "municipalRegistration"
   | "email" | "phone" | "address" | "city" | "state" | "zipCode" | "segment" | "notes"
+  | "representativeName" | "representativeDocument"
 >;
 
 function toDraft(client: ClientWithTotals): EditableClient {
@@ -102,6 +106,8 @@ function toDraft(client: ClientWithTotals): EditableClient {
     city: client.city,
     state: client.state,
     zipCode: client.zipCode,
+    representativeName: client.representativeName,
+    representativeDocument: client.representativeDocument,
     segment: client.segment,
     notes: client.notes,
   };
@@ -257,6 +263,10 @@ export function ClientWorkspace({ clientId, month, onClose, onChanged }: ClientW
               {client.cnpj ? (
                 <p className="demand-billing-hint demand-property-wide">CNPJ formatado para a nota: {formatCnpj(client.cnpj)}</p>
               ) : null}
+            </section>
+
+            <section className="demand-editor-section">
+              <ClientContracts client={client} onClientChanged={() => void load()} />
             </section>
 
             <section className="demand-editor-section">
