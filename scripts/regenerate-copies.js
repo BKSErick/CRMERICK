@@ -109,12 +109,12 @@ function extrairCidade(html) {
  * - Prova antes de pitch (nome, cidade, reputacao Maps)
  * - UM problema, nunca lista
  * - Max ~80 palavras, SEM link na mensagem 1 (link vai apos resposta)
- * - Fecha SEMPRE com o CTA canonico (CTA_FINAL): nomeia o que chega na msg 2
- *   (o exemplo de cliente real) e pede so um "quer ver?" — nunca "pode ser?"
+ * - Fecha SEMPRE com a PERGUNTA DE RECONHECIMENTO: a msg 1 nao pede mais o "quer
+ *   ver?" (v3, 31/08). Ver o bloco PERGUNTA DE RECONHECIMENTO abaixo.
  */
-// CTA canonico da mensagem 1 (decidido por Erick 2026-07-30). Nomeia o que chega
-// depois do "sim" (exemplo de cliente real, ex.: sitejotta.vercel.app) e pede um
-// sim barato. NAO usar "pode ser?" — soa hesitante e nao diz o que o lead recebe.
+// CTA canonico da mensagem 1 ATE a v2 (decidido por Erick 2026-07-30). Mantido aqui
+// porque gerarCopyAntiga() ainda o usa como referencia do formato anterior. A msg 1
+// viva NAO usa mais este CTA: ver perguntaDeReconhecimento().
 const CTA_FINAL = 'Separei um exemplo de página que faz isso pra uma empresa do mesmo ramo. Quer ver?';
 
 // Prova por segmento. REGRA ANTI-INVENCAO: o texto tem que descrever o case que sera
@@ -156,6 +156,33 @@ const ehLocal = (cidade) => semAcento(cidade).includes(MINHA_CIDADE);
 function ctaLocal(seg) {
   return `Fiz ${CASE_LOCAL[seg.nome] || CASE_LOCAL.geral}. Quer ver como ficou?`;
 }
+
+// ─── PERGUNTA DE RECONHECIMENTO (v3, 31/08) ──────────────────────────────────
+// A msg 1 parou de pedir "quer ver?". Pedir o exemplo antes de o lead reconhecer o
+// problema entrega a oferta para quem ainda nao admitiu ter a dor: o "manda ai" que
+// volta e educacao, nao intencao, e ele suja a taxa de resposta e morre no M2.
+// A pergunta abaixo e respondivel sem admitir incompetencia — o dono pode dizer
+// "chega certinho" e sair inteiro —, e e ela que diz se existe dor antes de gastar
+// o case. O convite para o exemplo migrou para o followup M1.
+// PROIBIDO trocar por "faz sentido pra voce?": pergunta generica nao mede nada e
+// convida o lead a encerrar por educacao.
+const PERGUNTA_POR_SEGMENTO = {
+  usinagem: 'Hoje o pedido chega assim aí, ou vocês precisam puxar medida e desenho por mensagem antes de orçar?',
+  caldeiraria: 'Hoje o pedido chega assim aí, ou vocês precisam puxar medida e material por mensagem antes de orçar?',
+  manutencao: 'Hoje o pedido chega assim aí, ou vocês precisam puxar equipamento e urgência por mensagem antes de orçar?',
+  automacao: 'Hoje o pedido chega assim aí, ou vocês precisam puxar equipamento e urgência por mensagem antes de orçar?',
+  climatizacao: 'Hoje o cliente já chama dizendo o que precisa, ou vocês descobrem isso no meio da conversa?',
+  geral: 'Hoje o pedido chega com essas informações, ou vocês precisam puxar por mensagem antes de orçar?',
+};
+
+function perguntaDeReconhecimento(seg) {
+  return PERGUNTA_POR_SEGMENTO[seg.nome] || PERGUNTA_POR_SEGMENTO.geral;
+}
+
+// Lead SEM site tem outra rachadura, e ela nao e o escopo do pedido: e nao existir um
+// ponto proprio onde quem chega valide a empresa. Perguntar sobre escopo para quem nao
+// tem site mistura duas dores na mesma mensagem, e a doutrina manda apontar UMA.
+const PERGUNTA_SEM_SITE = 'Hoje quem recebe uma indicação de vocês consegue confirmar tudo num lugar só, ou acaba procurando em canal diferente antes de chamar?';
 
 // DECLARACAO DE PAPEL (02/08) — a correcao mais cara que o funil pediu.
 //
@@ -204,11 +231,24 @@ function detectarSegmento(empresa) {
   return SEGMENTOS.find((s) => s.re.test(empresa)) || { nome: 'geral', b2b: true, prova: 'o serviço de vocês' };
 }
 
-// Promessa calibrada. B2B industrial fala de processo comercial; local fala de contato.
-function promessa(seg) {
+// Friccao como HIPOTESE, nao como promessa (v3, 31/08). Ate a v2 esta frase afirmava o
+// resultado ("o pedido chega com o escopo ja definido"), o que e vender antes de o lead
+// reconhecer que tem o problema. Agora ela descreve o que costuma acontecer no ramo e
+// deixa o dono confirmar ou corrigir na resposta.
+// B2B industrial fala de processo comercial; local fala de contato.
+function hipoteseDeFriccao(seg) {
   return seg.b2b
-    ? 'o pedido chega com o escopo já definido, em vez de virar troca de mensagem'
-    : 'o cliente chama no WhatsApp já dizendo o que precisa';
+    ? 'boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa'
+    : 'boa parte da conversa vai embora descobrindo o que o cliente precisa';
+}
+
+// O detalhe que torna a hipotese concreta. Separado por segmento porque "material,
+// medida e prazo" e vocabulario de quem fabrica sob desenho: mandar isso para
+// climatizacao entrega que a mensagem e template, e o dono le como disparo em massa.
+function detalheDaFriccao(seg) {
+  return seg.b2b
+    ? 'Material, medida e prazo saem na conversa, não antes dela.'
+    : 'O serviço, o local e a urgência saem na conversa, não antes dela.';
 }
 
 // wa.me, perfil de rede social e encurtador NAO sao site. Contar como site faz a
@@ -233,7 +273,14 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   // e mais forte que prova generica, e nao custa nada: os dois cases sao daqui.
   const local = ehLocal(cidade);
   const OI = local ? aberturaLocal(ab) : abertura(ab);
-  const CTA = local ? ctaLocal(seg) : ctaDoSegmento(seg);
+  // v3: o fecho e pergunta, nao CTA. O case (ctaLocal/ctaDoSegmento) so aparece no M1,
+  // depois que o lead reconhece a friccao — ver followups no sales-playbook.json.
+  const PERGUNTA = temSite ? perguntaDeReconhecimento(seg) : PERGUNTA_SEM_SITE;
+  // O bloco 2 ja nomeou o ramo ("...o tamanho do trabalho de voces em peca usinada sob
+  // desenho"). Repetir a mesma expressao no bloco seguinte soa robotico e entrega o
+  // template, entao aqui a referencia e por demonstrativo. Segmento 'geral' nao tem ramo
+  // nomeavel — prova = "o servico de voces" —, entao descreve o comportamento.
+  const comQuem = seg.nome === 'geral' ? 'quem atende pedido sob orçamento' : 'quem trabalha nesse ramo';
   // Nome comercial gigante repetido inteiro soa robotico. Regra em lib/nomeEmpresa.
   const nomeCurto = nomeDaEmpresa(empresa);
   // Se a abertura ja disse "de Monlevade mesmo", repetir a cidade no elogio soa robotico.
@@ -246,10 +293,11 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   // portugues indo pro lead, justamente vendendo pagina.
   const emProva = seg.nome === 'geral' ? '' : ` em ${seg.prova}`;
 
-  // FORMATO CANONICO (decidido 30/07): 4 blocos curtos.
-  // 1) elogio ancorado em fato verificavel  2) o que da pra somar, sempre positivo
-  // 3) promessa calibrada pelo porte        4) CTA que nomeia o que chega depois do sim
-  // PROIBIDO: apontar o que falta no site do lead. Isso pega o ego do dono na hora.
+  // FORMATO CANONICO v3 (31/08): 4 blocos curtos, um degrau de consciencia por vez.
+  // 1) quem fala, papel declarado          2) sinal concreto, sempre positivo
+  // 3) friccao como HIPOTESE, nao promessa 4) pergunta que o lead responde sem se expor
+  // PROIBIDO: apontar o que falta no site do lead (pega o ego do dono na hora) e fechar
+  // com oferta — o lead ainda nao disse que tem o problema.
   if (!temSite) {
     const prova = mapsInfo
       ? `Vi a ${nomeCurto} no Google${ondeLocal}. ${mapsInfo} no Maps é operação de verdade, com cliente que volta.`
@@ -257,16 +305,15 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
     // Mesma armadilha do emProva acima, do outro lado do gerador: 'geral' nao tem
     // substantivo que encaixe depois de "precisa de", sairia "quem precisa de o
     // servico de voces". Sem segmento nomeavel, vai a ponte que nao nomeia nada.
+    // ANTI-INVENCAO: a ponte descreve o caminho do comprador, nunca afirma que o lead
+    // esta perdendo cliente. Perda sem prova e a acusacao que fecha a porta.
     const ponte = seg.nome === 'geral'
-      ? `Hoje o comprador pesquisa antes de ligar. Uma página simples põe vocês na frente dele nessa hora.`
-      : [
-          `Hoje quem precisa de ${seg.prova} pesquisa antes de ligar, e quem aparece nessa hora entra na cotação.`,
-          `Hoje o comprador pesquisa antes de ligar. Uma página simples põe vocês na frente dele nessa hora.`,
-        ][seed % 2];
-    return `${OI}\n\n${prova}\n\n${ponte} E ${promessa(seg)}.\n\n${CTA}`;
+      ? `Hoje o comprador costuma pesquisar antes de ligar, e sem uma página própria ele junta essa informação em outro canal.`
+      : `Hoje quem precisa de ${seg.prova} costuma pesquisar antes de ligar, e sem uma página própria essa pessoa junta a informação em outro canal.`;
+    return `${OI}\n\n${prova}\n\n${ponte}\n\n${PERGUNTA}`;
   }
 
-  return `${OI}\n\nPassei pelo site da ${nomeCurto}${ondeLocal}${fechaAposto} e dá pra ver o tamanho do trabalho de vocês${emProva}.\n\nA prova que vocês já têm está espalhada. Reunida numa página, ela trabalha na hora em que o comprador decide, e ${promessa(seg)}.\n\n${CTA}`;
+  return `${OI}\n\nPassei pelo site da ${nomeCurto}${ondeLocal}${fechaAposto} e dá pra ver o tamanho do trabalho de vocês${emProva}.\n\nUma coisa que escuto direto de ${comQuem}: ${hipoteseDeFriccao(seg)}. ${detalheDaFriccao(seg)}\n\n${PERGUNTA}`;
 }
 
 function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {

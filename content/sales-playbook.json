@@ -1,5 +1,5 @@
 {
-  "copyVersion": "copy-2026-08-14.1",
+  "copyVersion": "copy-2026-08-31.1",
   "offer": {
     "version": "offer-site-industrial-1000-150-v1",
     "name": "Pagina industrial com Ficha de Escopo",
@@ -10,19 +10,19 @@
   },
   "mechanism": "Ficha de Escopo",
   "experiment": {
-    "id": "wa-opening-2026-08-v2",
-    "name": "Abertura cordial vs direta (enquadramento por resultado)",
+    "id": "wa-opening-2026-08-v3",
+    "name": "Abertura cordial vs direta (progressao de consciencia)",
     "hypothesis": "A abertura direta aumenta respostas validas sem reduzir reunioes realizadas.",
     "isolatedVariable": "opening",
     "variants": ["A", "B"],
-    "_nota": "v2 em 14/08/2026: saiu 'faço página de vendas pra indústria' (nomeia a mercadoria e posiciona como fornecedor tático) e entrou o resultado operacional. Os 124 disparos do v1 NAO sao comparaveis com os do v2: filtre por experiment_id ao ler taxa. A/B continua sendo cordial vs direta, e os prefixos 'Oi, tudo bem?' / 'Fala!' foram preservados porque detectVariantFromCopy() os usa para inferir a variante.",
+    "_nota": "v3 em 31/08/2026: a sequencia inteira passou a avancar UM degrau por mensagem, alinhada a doutrina do Garimpo (lib/prompts.ts). Msg 1 nao pede mais 'quer ver?': ela levanta a friccao como hipotese e termina numa pergunta de reconhecimento, que o lead responde sem admitir incompetencia. O convite pro case migrou pro M1 e a pergunta de prioridade pro M2. Saiu o pedido de reuniao de 15 minutos dos follow-ups: em lead frio industrial o CTA e pergunta, nunca call. A declaracao de papel foi PRESERVADA na abertura (licao da Alpina Torres, que achou que o Erick era comprador pedindo cotacao), mas voltou a nomear a mercadoria em vez de entregar a promessa fechada, porque a promessa agora vira hipotese no terceiro bloco. Os disparos de v2 NAO sao comparaveis com os de v3: filtre por experiment_id ao ler taxa. Os prefixos 'Oi, tudo bem?' / 'Fala!' seguem preservados porque detectVariantFromCopy() os usa para inferir a variante.",
     "openings": {
-      "A": "Oi, tudo bem? Erick aqui. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos.",
-      "B": "Fala! Erick aqui. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos."
+      "A": "Oi, tudo bem? Erick aqui, eu faço página de vendas pra indústria.",
+      "B": "Fala! Erick aqui, eu faço página de vendas pra indústria."
     },
     "localOpenings": {
-      "A": "Oi, tudo bem? Erick aqui, de Monlevade mesmo. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos.",
-      "B": "Fala! Erick aqui, de Monlevade mesmo. Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos."
+      "A": "Oi, tudo bem? Erick aqui, de Monlevade mesmo. Eu faço página de vendas pra indústria.",
+      "B": "Fala! Erick aqui, de Monlevade mesmo. Eu faço página de vendas pra indústria."
     }
   },
   "cases": {
@@ -31,9 +31,9 @@
   },
   "followups": {
     "bot": "Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da {{company}} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.",
-    "M1": "Oi, Erick de novo. Uma coisa que escuto direto de quem trabalha com {{segmentDescription}}: boa parte do tempo do orçamento vai embora descobrindo o que o cliente precisa. Material, medida, prazo. Dá pra fazer a página perguntar isso antes de chegar em você. Quer ver como ficou pra uma empresa do ramo?",
-    "M2Local": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, aqui de João Monlevade. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Te mostro como ficou em 15 minutos. Passo aí ou prefere uma chamada rápida?",
-    "M2Remote": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, duas indústrias aqui do Médio Piracicaba. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Te mostro como ficou numa chamada de 15 minutos. Qual o melhor dia pra você?",
-    "M3": "Oi! Última mensagem daqui, pra não virar chateação. Quando aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo. Se quiser ver em 15 minutos o que fiz pra Jotta e pra Metalthec, é só falar. Caso contrário, sucesso aí!"
+    "M1": "Oi, Erick de novo. Pergunto porque, em {{segmentDescription}}, o orçamento costuma virar ida e volta de mensagem até sair material, medida e prazo. Isso aparece na rotina da {{company}} ou quem chama já chega com o escopo definido?",
+    "M2Local": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, aqui de João Monlevade. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
+    "M2Remote": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, duas indústrias aqui do Médio Piracicaba. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
+    "M3": "Oi! Última mensagem daqui, pra não virar chateação. Se essa parte já estiver redonda aí, fico tranquilo. Se um dia aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo, e é só me chamar. Sucesso aí!"
   }
 }
