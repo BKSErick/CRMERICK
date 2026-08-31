@@ -52,6 +52,9 @@ type FollowupItem = {
   window: string;
   message: string;
   signal: LeadSignal | null;
+  value: number;
+  fundoReview: boolean;
+  fundo: { motivo: string; dias: number | null; nota: string } | null;
   healthReview: boolean;
   health: { score: number; classification: string; confidence: number; recommendation: string } | null;
   qualificationReview: boolean;
@@ -562,11 +565,11 @@ export default function ComandoPage() {
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila de follow-up</div>
-            <span className="card-badge">janelas, saude e qualificacao</span>
+            <span className="card-badge">fundo, janelas, saude e qualificacao</span>
           </div>
           {(data.followupQueue ?? []).length === 0 ? (
             <div className="connection-status fallback">
-              Ninguem na janela de follow-up agora. Quem foi abordado entra aqui em D+2 (M1), D+5 (M2 com prova) e D+10 (M3 breakup).
+              Ninguem na janela de follow-up agora. Quem foi abordado entra aqui em D+2 (M1), D+5 (M2 com prova) e D+10 (M3 breakup), e quem ja esta em qualified/proposta/negociacao entra assim que ficar 5 dias sem contato ou responder sem retorno.
             </div>
           ) : (
             <div className="table-wrap">
@@ -586,6 +589,11 @@ export default function ComandoPage() {
                       <td>
                         <div>{item.company}{signalBadge(item.signal)}</div>
                         <span className={`status-pill ${item.stage}`}>{item.stage}</span>
+                        {item.fundoReview && item.value > 0 ? (
+                          <span className="status-pill" style={{ marginLeft: "6px" }}>
+                            R${item.value.toLocaleString("pt-BR")}
+                          </span>
+                        ) : null}
                         {item.health ? (
                           <span className="status-pill" style={{ marginLeft: "6px" }}>
                             Saude {item.health.score}/100
@@ -605,16 +613,20 @@ export default function ComandoPage() {
                         <strong style={{ fontSize: "12px" }}>{item.tierLabel}</strong>
                         <span className="muted-copy" style={{ marginLeft: "6px", fontSize: "11px" }}>{item.window}</span>
                         <div className="muted-copy" style={{ fontSize: "12px", marginTop: "4px" }}>
-                          {item.healthReview
-                            ? item.health?.recommendation
-                            : item.qualificationReview
-                              ? `Lacunas de qualificacao: ${item.qualification?.pendingLabels.join(", ")}.`
-                              : item.message}
+                          {item.fundoReview
+                            ? item.fundo?.nota
+                            : item.healthReview
+                              ? item.health?.recommendation
+                              : item.qualificationReview
+                                ? `Lacunas de qualificacao: ${item.qualification?.pendingLabels.join(", ")}.`
+                                : item.message}
                         </div>
                       </td>
                       <td className="font-mono">{item.phone ? `+${item.phone}` : "--"}</td>
                       <td>
-                        {item.healthReview || item.qualificationReview ? (
+                        {item.fundoReview ? (
+                          <a className="topbar-btn primary" href={`/pipeline?dealId=${item.id}`}>Abrir deal</a>
+                        ) : item.healthReview || item.qualificationReview ? (
                           <a className="topbar-btn" href={`/pipeline?dealId=${item.id}`}>Revisar deal</a>
                         ) : (
                           <a

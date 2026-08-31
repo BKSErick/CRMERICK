@@ -601,3 +601,86 @@ export function followupMessage(
 ) {
   return renderFollowupMessage({ tier, company: companyRaw, responseType, segment, city });
 }
+
+// FUNDO DE FUNIL (31/08/2026). A fila de cadencia da Sala de Comando so consultava
+// abordado/followup. Quem AVANCAVA para qualified/proposal/negotiation saia da fila e
+// nao entrava em nenhuma outra: as duas portas laterais existentes (saude e
+// qualificacao) exigem score de saude ja calculado ou lacuna de qualificacao, e ambas
+// so marcam revisao quando a cadencia diz "aguardar". Resultado medido em 31/08: dos
+// 29 deals de fundo, 23 estavam sem contato ha mais de 14 dias e dois (ATFM e RC
+// Performance) ha 41. Ou seja, o lead que disse "me interessa" era justamente o unico
+// que ninguem cobrava. Aqui o fundo vira fila explicita.
+export const FUNDO_STAGES = ["qualified", "proposal", "negotiation"] as const;
+
+// D+5 e mais curto que o D+10 do breakup frio de proposito: aqui o lead ja demonstrou
+// interesse, entao silencio de uma semana ja e risco de perder o timing.
+export const FUNDO_SEM_CONTATO_DIAS = 5;
+
+export type FundoMotivo = "inbound_sem_resposta" | "parado" | "sem_contato";
+
+export type FundoReview = {
+  motivo: FundoMotivo;
+  dias: number | null;
+  nota: string;
+} | null;
+
+// Ordem de trabalho: responder quem falou com voce vem antes de reaquecer quem calou,
+// e quem nunca foi contatado vem por ultimo (nao ha timing perdido, so trabalho nao feito).
+const FUNDO_ORDEM: Record<FundoMotivo, number> = {
+  inbound_sem_resposta: 0,
+  parado: 1,
+  sem_contato: 2,
+};
+
+export function fundoOrdem(motivo: FundoMotivo) {
+  return FUNDO_ORDEM[motivo];
+}
+
+export function fundoDeFunilReview(
+  deal: {
+    stage?: string | null;
+    lastInboundAt?: string | null;
+    lastOutboundAt?: string | null;
+  },
+  nowIso = new Date().toISOString(),
+): FundoReview {
+  if (!FUNDO_STAGES.includes(String(deal.stage ?? "") as (typeof FUNDO_STAGES)[number])) {
+    return null;
+  }
+  const now = new Date(nowIso).getTime();
+  const inbound = deal.lastInboundAt ? new Date(deal.lastInboundAt).getTime() : null;
+  const outbound = deal.lastOutboundAt ? new Date(deal.lastOutboundAt).getTime() : null;
+  const emDias = (t: number) => Math.max(0, Math.floor((now - t) / 86400000));
+
+  // O lead falou por ultimo e ninguem respondeu. Vale mesmo se foi hoje: e divida aberta.
+  if (inbound !== null && (outbound === null || outbound < inbound)) {
+    const dias = emDias(inbound);
+    return {
+      motivo: "inbound_sem_resposta",
+      dias,
+      nota:
+        dias === 0
+          ? "O lead falou hoje e ainda nao teve resposta."
+          : `O lead falou ha ${dias} dia(s) e ainda nao teve resposta.`,
+    };
+  }
+
+  if (outbound === null) {
+    return {
+      motivo: "sem_contato",
+      dias: null,
+      nota: "Deal avancou de etapa sem nenhum contato registrado. Conferir se o historico se perdeu.",
+    };
+  }
+
+  const dias = emDias(outbound);
+  if (dias >= FUNDO_SEM_CONTATO_DIAS) {
+    return {
+      motivo: "parado",
+      dias,
+      nota: `Sem contato seu ha ${dias} dia(s). Retomar antes que esfrie.`,
+    };
+  }
+
+  return null;
+}

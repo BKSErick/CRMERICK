@@ -7,11 +7,15 @@ import { QUALIFICATION_REVIEW_STAGES, summarizeDealQualification } from "@/lib/d
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
 import { diagnoseLead } from "@/lib/leadScoring";
 import {
+  FUNDO_STAGES,
   TIER_INFO,
   classifyInboundResponse,
   followupMessage,
+  fundoDeFunilReview,
+  fundoOrdem,
   mensagemDecisorIndicado,
   tierForDays,
+  type FundoMotivo,
 } from "@/lib/followup";
 import { getCompanySignals, signalAliases, signalWeight, type CompanySignal } from "@/lib/sinais";
 
@@ -30,6 +34,12 @@ function startOfToday(now: Date): Date {
 function cleanPhone(value?: string | null): string {
   return (value ?? "").replace(/\D/g, "");
 }
+
+const FUNDO_LABEL: Record<FundoMotivo, string> = {
+  inbound_sem_resposta: "Respondeu e esta esperando",
+  parado: "Fundo parado",
+  sem_contato: "Fundo sem contato",
+};
 
 // A description da activity guarda o texto com o prefixo do sincronismo da Uazapi
 // ("[UAZAPI-HISTORY <id>] WhatsApp recebido: ..."). Sem tirar isso, o texto na tela fica
@@ -235,8 +245,8 @@ export async function GET(request: NextRequest) {
 
     // Fila de follow-up: quem ja foi contatado (abordado/followup) e esta na janela
     // (M1 D+2, M2 D+5 com prova, M3 D+10 breakup). Mais atrasado primeiro.
-    const followupSelect = "id, company, phone, whatsapp, name, stage, contact_id, deal_health_score, deal_health_classification, deal_health_confidence, deal_health_recommended_action, qualification";
-    const [cadenceRows, healthRiskRows, qualificationRows] = await Promise.all([
+    const followupSelect = "id, company, phone, whatsapp, name, stage, value, contact_id, last_inbound_at, last_outbound_at, deal_health_score, deal_health_classification, deal_health_confidence, deal_health_recommended_action, qualification";
+    const [cadenceRows, healthRiskRows, qualificationRows, fundoRows] = await Promise.all([
       supabase
         .from("deals")
         .select(followupSelect)
@@ -254,13 +264,25 @@ export async function GET(request: NextRequest) {
         .select(followupSelect)
         .in("stage", [...QUALIFICATION_REVIEW_STAGES])
         .limit(1000),
+      // Fundo de funil inteiro, sem pre-filtro: quem decide se entra na fila e a regra
+      // fundoDeFunilReview, nao a query. Antes desta linha o fundo simplesmente nao era
+      // consultado e os deals apodreciam em silencio.
+      supabase
+        .from("deals")
+        .select(followupSelect)
+        .in("stage", [...FUNDO_STAGES])
+        .limit(1000),
     ]);
     if (cadenceRows.error) throw cadenceRows.error;
     if (healthRiskRows.error) throw healthRiskRows.error;
     if (qualificationRows.error) throw qualificationRows.error;
-    const fuRows = [...(cadenceRows.data ?? []), ...(healthRiskRows.data ?? []), ...(qualificationRows.data ?? [])].filter(
-      (row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index,
-    );
+    if (fundoRows.error) throw fundoRows.error;
+    const fuRows = [
+      ...(cadenceRows.data ?? []),
+      ...(healthRiskRows.data ?? []),
+      ...(qualificationRows.data ?? []),
+      ...(fundoRows.data ?? []),
+    ].filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index);
 
     const followupQueue = (fuRows ?? [])
       .map((d) => {
@@ -282,12 +304,24 @@ export async function GET(request: NextRequest) {
         const qualificationSummary = summarizeDealQualification(d.qualification);
         const hasQualificationGaps = QUALIFICATION_REVIEW_STAGES.includes(String(d.stage)) && qualificationSummary.pendingFields.length > 0;
         const qualificationReview = hasQualificationGaps && cadenceTier === "aguardar" && !healthReview;
-        const tier = healthReview ? "saude" : qualificationReview ? "qualificacao" : cadenceTier;
+        // O fundo tem precedencia sobre saude e qualificacao: nao adianta apontar lacuna
+        // de cadastro num deal cujo dono esta esperando resposta ha duas semanas.
+        const fundo = fundoDeFunilReview(
+          {
+            stage: d.stage as string,
+            lastInboundAt: d.last_inbound_at as string | null,
+            lastOutboundAt: d.last_outbound_at as string | null,
+          },
+          now.toISOString(),
+        );
+        const tier = fundo ? "fundo" : healthReview ? "saude" : qualificationReview ? "qualificacao" : cadenceTier;
         return {
           id: Number(d.id),
           company,
           phone,
           stage: String(d.stage ?? "abordado"),
+          value: Number(d.value ?? 0),
+          fundo,
           days,
           msgCount: wa?.count ?? 0,
           // Abriu a pagina depois de ser abordado: e o follow-up mais quente da lista.
@@ -296,9 +330,14 @@ export async function GET(request: NextRequest) {
             : null,
           signalWeight: signalWeight(signal),
           tier,
-          tierLabel: healthReview ? "Revisar saude" : qualificationReview ? "Lacunas de qualificacao" : cadenceTier === "aguardar" ? "Aguardar D+2" : TIER_INFO[cadenceTier].label,
-          window: healthReview || qualificationReview ? "Sem envio automatico" : cadenceTier === "aguardar" ? "" : TIER_INFO[cadenceTier].window,
-          message: healthReview || qualificationReview ? "" : cadenceTier === "aguardar" ? "" : followupMessage(cadenceTier, company),
+          tierLabel: fundo
+            ? FUNDO_LABEL[fundo.motivo]
+            : healthReview ? "Revisar saude" : qualificationReview ? "Lacunas de qualificacao" : cadenceTier === "aguardar" ? "Aguardar D+2" : TIER_INFO[cadenceTier].label,
+          window: fundo || healthReview || qualificationReview ? "Sem envio automatico" : cadenceTier === "aguardar" ? "" : TIER_INFO[cadenceTier].window,
+          // Fundo nao recebe mensagem de template. Lead que ja disse "me interessa" e que
+          // ja viu o case merece resposta escrita na mao, e M1/M2/M3 sao copy de lead frio.
+          message: fundo || healthReview || qualificationReview ? "" : cadenceTier === "aguardar" ? "" : followupMessage(cadenceTier, company),
+          fundoReview: Boolean(fundo),
           healthReview,
           qualificationReview,
           health: healthScore == null ? null : {
@@ -315,9 +354,18 @@ export async function GET(request: NextRequest) {
           } : null,
         };
       })
-      .filter((d) => d.tier !== "aguardar" && (d.healthReview || d.qualificationReview || (d.phone && isWhatsappMobile(d.phone))))
+      // O fundo entra mesmo com telefone fixo: metade da industria pequena atende no fixo, e
+      // aqui o proximo passo e humano (responder, ligar, mandar proposta), nao disparo em lote.
+      .filter((d) => d.tier !== "aguardar" && (d.fundoReview || d.healthReview || d.qualificationReview || (d.phone && isWhatsappMobile(d.phone))))
       // Sinal primeiro, atraso depois: quem reabriu a pagina vale mais que quem so envelheceu.
       .sort((a, b) => {
+        if (a.fundoReview !== b.fundoReview) return Number(b.fundoReview) - Number(a.fundoReview);
+        if (a.fundo && b.fundo) {
+          const ordem = fundoOrdem(a.fundo.motivo) - fundoOrdem(b.fundo.motivo);
+          if (ordem !== 0) return ordem;
+          // Dentro do mesmo motivo, valor maior primeiro; empate desempata pelo mais parado.
+          return (b.value || 0) - (a.value || 0) || (b.fundo.dias ?? 0) - (a.fundo.dias ?? 0);
+        }
         if (a.healthReview !== b.healthReview) return Number(b.healthReview) - Number(a.healthReview);
         if (a.healthReview && b.healthReview) return (a.health?.score ?? 101) - (b.health?.score ?? 101);
         if (a.qualificationReview !== b.qualificationReview) return Number(b.qualificationReview) - Number(a.qualificationReview);

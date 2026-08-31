@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  FUNDO_SEM_CONTATO_DIAS,
   buildWhatsappActivitySummary,
   classifyInboundResponse,
   classificationUpdate,
+  fundoDeFunilReview,
+  fundoOrdem,
   normalizeClientActivityType,
   nextActionAfterInbound,
   nextActionAfterOutbound,
@@ -219,4 +222,95 @@ test("mapeia campos operacionais com fallback retrocompativel", () => {
     response_type_source: "manual",
     response_time_minutes: 90,
   });
+});
+
+const AGORA = "2026-08-31T18:00:00.000Z";
+
+test("fundo de funil: deal fora de qualified/proposal/negotiation nao entra na fila", () => {
+  for (const stage of ["prospect", "abordado", "followup", "won", "lost"]) {
+    assert.equal(
+      fundoDeFunilReview(
+        { stage, lastInboundAt: "2026-07-01T12:00:00.000Z", lastOutboundAt: null },
+        AGORA,
+      ),
+      null,
+      `${stage} nao deveria entrar no fundo`,
+    );
+  }
+});
+
+test("fundo de funil: lead que falou por ultimo vira divida aberta, mesmo no mesmo dia", () => {
+  // Caso Salatini: o dono mandou audio hoje e o card nao tem saida registrada.
+  const hoje = fundoDeFunilReview(
+    { stage: "qualified", lastInboundAt: "2026-08-31T12:19:00.000Z", lastOutboundAt: null },
+    AGORA,
+  );
+  assert.equal(hoje?.motivo, "inbound_sem_resposta");
+  assert.equal(hoje?.dias, 0);
+  assert.match(String(hoje?.nota), /falou hoje/);
+
+  // Inbound mais novo que o ultimo outbound tambem conta.
+  const antigo = fundoDeFunilReview(
+    {
+      stage: "negotiation",
+      lastInboundAt: "2026-08-25T12:00:00.000Z",
+      lastOutboundAt: "2026-08-20T12:00:00.000Z",
+    },
+    AGORA,
+  );
+  assert.equal(antigo?.motivo, "inbound_sem_resposta");
+  assert.equal(antigo?.dias, 6);
+});
+
+test("fundo de funil: outbound depois do inbound sai da divida e cai na regra de silencio", () => {
+  const respondido = fundoDeFunilReview(
+    {
+      stage: "proposal",
+      lastInboundAt: "2026-08-30T12:00:00.000Z",
+      lastOutboundAt: "2026-08-30T13:00:00.000Z",
+    },
+    AGORA,
+  );
+  // Respondido ontem: nada a fazer ainda.
+  assert.equal(respondido, null);
+
+  const parado = fundoDeFunilReview(
+    {
+      stage: "proposal",
+      lastInboundAt: "2026-07-20T12:00:00.000Z",
+      lastOutboundAt: "2026-07-21T12:00:00.000Z",
+    },
+    AGORA,
+  );
+  assert.equal(parado?.motivo, "parado");
+  assert.equal(parado?.dias, 41);
+});
+
+test("fundo de funil: a janela de silencio abre exatamente em D+5", () => {
+  const vespera = fundoDeFunilReview(
+    { stage: "qualified", lastInboundAt: null, lastOutboundAt: "2026-08-27T18:00:00.000Z" },
+    AGORA,
+  );
+  assert.equal(vespera, null, "D+4 ainda nao entra");
+
+  const naJanela = fundoDeFunilReview(
+    { stage: "qualified", lastInboundAt: null, lastOutboundAt: "2026-08-26T18:00:00.000Z" },
+    AGORA,
+  );
+  assert.equal(naJanela?.motivo, "parado");
+  assert.equal(naJanela?.dias, FUNDO_SEM_CONTATO_DIAS);
+});
+
+test("fundo de funil: deal que avancou sem nenhum contato registrado e sinalizado", () => {
+  const semContato = fundoDeFunilReview(
+    { stage: "negotiation", lastInboundAt: null, lastOutboundAt: null },
+    AGORA,
+  );
+  assert.equal(semContato?.motivo, "sem_contato");
+  assert.equal(semContato?.dias, null);
+});
+
+test("fundo de funil: responder quem falou vem antes de reaquecer e de cobrar historico", () => {
+  assert.ok(fundoOrdem("inbound_sem_resposta") < fundoOrdem("parado"));
+  assert.ok(fundoOrdem("parado") < fundoOrdem("sem_contato"));
 });
