@@ -93,7 +93,9 @@ export default function DemandasPage() {
   const [windowDays, setWindowDays] = useState(7);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<DemandStatus[]>([]);
-  const [showCompleted, setShowCompleted] = useState(false);
+  // Entregue nasce visivel: escondida por padrao, marcar "Entregue" fazia a demanda
+  // sumir da lista, do contador da pasta e do total de uma vez so, e parecia bug de save.
+  const [showCompleted, setShowCompleted] = useState(true);
   const [query, setQuery] = useState("");
 
   const [showCreate, setShowCreate] = useState(false);

@@ -480,6 +480,7 @@ export type DemandOverview = {
   overdue: ClientDemand[];
   days: DemandOverviewDay[];
   noDue: ClientDemand[];
+  completed: ClientDemand[];
   beyondWindow: number;
   scheduledTotal: number;
 };
@@ -494,10 +495,21 @@ function compareDemands(left: ClientDemand, right: ClientDemand) {
   return left.id - right.id;
 }
 
+/** Entregue mais recente primeiro; sem data de conclusao cai na ordem normal de prazo. */
+function compareCompletedDemands(left: ClientDemand, right: ClientDemand) {
+  const byCompleted = (right.completedAt ?? "").localeCompare(left.completedAt ?? "");
+  if (byCompleted !== 0) return byCompleted;
+  return compareDemands(left, right);
+}
+
 /**
  * Recorta as demandas na janela do Overview: atrasadas primeiro, depois um bucket
  * por dia dentro da janela, o que nao tem prazo e a contagem do que fica alem dela.
- * Agrupa pelo prazo e ignora o status - quem decide se as entregues entram e o filtro.
+ *
+ * Entregue e cancelada nunca entram em atrasadas nem nas contagens: se o prazo delas
+ * cai dentro da janela ficam no dia (a demanda nao pula de lugar quando voce marca
+ * entregue), e o resto vai para o bucket `completed`. Sem isso toda entrega antiga
+ * voltava para o topo como atrasada e a tela virava lixo em duas semanas.
  */
 export function buildDemandOverview(
   demands: ClientDemand[],
@@ -510,26 +522,29 @@ export function buildDemandOverview(
 
   const overdue: ClientDemand[] = [];
   const noDue: ClientDemand[] = [];
+  const completed: ClientDemand[] = [];
   const byDay = new Map<string, ClientDemand[]>();
   let beyondWindow = 0;
 
   for (const demand of demands) {
-    if (!demand.dueAt) {
-      noDue.push(demand);
+    const closed = isClosedDemand(demand);
+    const due = demand.dueAt ? new Date(demand.dueAt) : null;
+    const dueKey = due && !Number.isNaN(due.getTime()) ? dateKeyInTimeZone(due, timeZone) : null;
+
+    if (!dueKey) {
+      if (closed) completed.push(demand);
+      else noDue.push(demand);
       continue;
     }
-    const due = new Date(demand.dueAt);
-    if (Number.isNaN(due.getTime())) {
-      noDue.push(demand);
-      continue;
-    }
-    const dueKey = dateKeyInTimeZone(due, timeZone);
     if (dueKey < todayKey) {
-      overdue.push(demand);
+      if (closed) completed.push(demand);
+      else overdue.push(demand);
     } else if (dueKey <= lastKey) {
       const bucket = byDay.get(dueKey);
       if (bucket) bucket.push(demand);
       else byDay.set(dueKey, [demand]);
+    } else if (closed) {
+      completed.push(demand);
     } else {
       beyondWindow += 1;
     }
@@ -537,6 +552,7 @@ export function buildDemandOverview(
 
   overdue.sort(compareDemands);
   noDue.sort(compareDemands);
+  completed.sort(compareCompletedDemands);
 
   const days = Array.from(byDay.entries())
     .sort((left, right) => left[0].localeCompare(right[0]))
@@ -546,13 +562,19 @@ export function buildDemandOverview(
       demands: items.sort(compareDemands),
     }));
 
+  const scheduledInDays = days.reduce(
+    (total, day) => total + day.demands.filter((demand) => !isClosedDemand(demand)).length,
+    0,
+  );
+
   return {
     windowDays,
     overdue,
     days,
     noDue,
+    completed,
     beyondWindow,
-    scheduledTotal: overdue.length + days.reduce((total, day) => total + day.demands.length, 0),
+    scheduledTotal: overdue.length + scheduledInDays,
   };
 }
 

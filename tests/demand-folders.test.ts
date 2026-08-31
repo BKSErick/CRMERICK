@@ -217,6 +217,38 @@ test("janela maior recupera o que estava alem dela", () => {
   assert.equal(buildDemandOverview(demands, { windowDays: 30, now }).beyondWindow, 0);
 });
 
+test("entregue fica no dia dela e nunca volta como atrasada", () => {
+  const now = new Date("2026-08-21T15:00:00-03:00");
+  const demands = [
+    demand({ dueAt: due("2026-08-18"), status: "todo", title: "Atrasada de verdade" }),
+    demand({ dueAt: due("2026-08-18"), status: "done", completedAt: "2026-08-18T18:00:00.000Z", title: "Entregue no prazo vencido" }),
+    demand({ dueAt: due("2026-08-21"), status: "done", completedAt: "2026-08-21T17:00:00.000Z", title: "Entregue hoje" }),
+    demand({ dueAt: due("2026-09-10"), status: "cancelled", title: "Cancelada la na frente" }),
+    demand({ dueAt: null, status: "done", completedAt: "2026-08-20T12:00:00.000Z", title: "Entregue sem prazo" }),
+  ];
+
+  const overview = buildDemandOverview(demands, { windowDays: 7, now });
+
+  // Atrasadas, sem prazo e a contagem alem da janela so enxergam demanda aberta.
+  assert.deepEqual(overview.overdue.map((item) => item.title), ["Atrasada de verdade"]);
+  assert.equal(overview.noDue.length, 0);
+  assert.equal(overview.beyondWindow, 0);
+
+  // Entregue com prazo na janela nao pula de lugar: continua no dia dela.
+  assert.deepEqual(overview.days.map((day) => day.dateKey), ["2026-08-21"]);
+  assert.deepEqual(overview.days[0].demands.map((item) => item.title), ["Entregue hoje"]);
+
+  // Mas nao entra na conta do que ainda ha para fazer.
+  assert.equal(overview.scheduledTotal, 1);
+
+  // O resto cai em Entregues, conclusao mais recente primeiro.
+  assert.deepEqual(overview.completed.map((item) => item.title), [
+    "Entregue sem prazo",
+    "Entregue no prazo vencido",
+    "Cancelada la na frente",
+  ]);
+});
+
 test("prazo no fim do dia em Sao Paulo nao vaza para o dia seguinte", () => {
   // 2026-08-21T23:59:59-03:00 e 2026-08-22T02:59:59Z: agrupar em UTC quebraria aqui.
   const overview = buildDemandOverview(

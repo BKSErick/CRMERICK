@@ -2812,6 +2812,16 @@ button.demand-chip.active {
   cursor: grabbing;
 }
 
+/* Entregue/cancelada continua na lista, so recuada visualmente. */
+.demand-group-table tbody tr.demand-row-closed {
+  opacity: 0.65;
+}
+
+.demand-group-table tbody tr.demand-row-closed .demand-cell-title strong {
+  color: var(--color-slate);
+  text-decoration: line-through;
+}
+
 .demand-group-table tbody tr:hover,
 .demand-group-table tbody tr:focus-visible {
   background: #faf9ff;
@@ -2911,8 +2921,24 @@ button.demand-chip.active {
 
 .demand-beyond-window {
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--color-slate);
+  font: inherit;
   font-size: 12px;
+  text-align: left;
+}
+
+button.demand-beyond-window {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button.demand-beyond-window:hover,
+button.demand-beyond-window:focus-visible {
+  color: var(--color-charcoal);
 }
 
 .demand-workspace-overlay {

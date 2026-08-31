@@ -6,6 +6,7 @@ import {
   DEMAND_TIME_ZONE,
   demandClientName,
   formatDemandCurrency,
+  isClosedDemand,
   type ClientDemand,
   type DemandOverview as DemandOverviewData,
   type DemandStatus,
@@ -17,6 +18,7 @@ import type { DemandTreeNode } from "@/lib/demandFolders";
 const VIEWS = [{ id: "overview", label: "Overview" }] as const;
 
 const WINDOW_OPTIONS = [7, 14, 30] as const;
+const WIDEST_WINDOW = WINDOW_OPTIONS[WINDOW_OPTIONS.length - 1];
 
 /** Chips de recorte rapido: so os estados abertos. Entregue/Cancelada entram por "Mostrar entregues". */
 const FILTER_STATUSES: DemandStatus[] = ["todo", "in_progress", "review"];
@@ -94,6 +96,7 @@ function DemandRows({ demands, overdue, onOpenDemand, onDeleteDemand }: {
         <tbody>
           {demands.map((demand) => (
             <tr
+              className={isClosedDemand(demand) ? "demand-row-closed" : ""}
               draggable
               key={demand.id}
               onClick={() => onOpenDemand(demand.id)}
@@ -124,7 +127,8 @@ function DemandRows({ demands, overdue, onOpenDemand, onDeleteDemand }: {
                   <span className="demand-cell-muted">-</span>
                 )}
               </td>
-              <td className={`demand-cell-date ${overdue ? "overdue" : ""}`}>{shortDate(demand.dueAt)}</td>
+              {/* Entregue nunca sai em vermelho: o atraso e do grupo, mas ela ja saiu da conta. */}
+              <td className={`demand-cell-date ${overdue && !isClosedDemand(demand) ? "overdue" : ""}`}>{shortDate(demand.dueAt)}</td>
               <td className="demand-cell-value">
                 {demand.value > 0 ? (
                   <>
@@ -204,11 +208,15 @@ export function DemandOverview({
 }: DemandOverviewProps) {
   const heading = path.length > 0 ? path[path.length - 1].label : "Todas as demandas";
   const breadcrumb = path.slice(0, -1).map((node) => node.label);
-  const empty = overview.scheduledTotal === 0 && overview.noDue.length === 0 && overview.beyondWindow === 0;
+  const empty = overview.scheduledTotal === 0
+    && overview.noDue.length === 0
+    && overview.completed.length === 0
+    && overview.beyondWindow === 0;
   const visible = [
     ...overview.overdue,
     ...overview.days.flatMap((day) => day.demands),
     ...overview.noDue,
+    ...overview.completed,
   ];
   const visibleTotal = sumValues(visible);
 
@@ -339,10 +347,32 @@ export function DemandOverview({
         />
       ) : null}
 
+      {/* Entregue com prazo dentro da janela fica no dia dela; o resto cai aqui em vez
+          de voltar como atrasada. So aparece com "Mostrar entregues" ligado. */}
+      {overview.completed.length > 0 ? (
+        <DemandGroup
+          count={overview.completed.length}
+          defaultOpen={false}
+          demands={overview.completed}
+          onDeleteDemand={onDeleteDemand}
+          onOpenDemand={onOpenDemand}
+          overdue={false}
+          title="Entregues"
+        />
+      ) : null}
+
+      {/* Na janela maxima nao ha para onde esticar: vira so aviso. */}
       {overview.beyondWindow > 0 ? (
-        <p className="demand-beyond-window">
-          Mais {overview.beyondWindow} tarefa(s) com vencimento alem de {overview.windowDays} dias.
-        </p>
+        windowDays < WIDEST_WINDOW ? (
+          <button className="demand-beyond-window" onClick={() => onWindowDaysChange(WIDEST_WINDOW)} type="button">
+            Mais {overview.beyondWindow} tarefa(s) com vencimento alem de {overview.windowDays} dias.
+            {" "}Ver em {WIDEST_WINDOW} dias.
+          </button>
+        ) : (
+          <p className="demand-beyond-window">
+            Mais {overview.beyondWindow} tarefa(s) com vencimento alem de {overview.windowDays} dias.
+          </p>
+        )
       ) : null}
     </div>
   );
