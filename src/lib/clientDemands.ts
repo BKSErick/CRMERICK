@@ -417,6 +417,34 @@ export function sumDemandValues(demands: BillableDemand[], monthKey: string) {
   return demands.reduce((total, demand) => total + demandValueInMonth(demand, monthKey), 0);
 }
 
+/** Teto do acumulado de uma mensal (50 anos): trava dado corrompido, nao regra de negocio. */
+const MAX_RECURRING_MONTHS = 600;
+
+/**
+ * Tudo que a demanda ja gerou de cobranca ate a competencia de referencia, sem recortar
+ * por mes. E o numero do relatorio "todo o periodo": pontual vale o preco dela, parcelado
+ * vale a soma das parcelas e mensal vale um mes por competencia viva.
+ */
+export function demandBilledTotal(demand: BillableDemand, untilMonth = currentMonthKey()) {
+  if (demand.status === "cancelled") return 0;
+  if (demand.billingType === "installment") return installmentSummary(demand).total;
+  if (demand.billingType === "monthly") {
+    return recurringMonthsUntil(demand, untilMonth, MAX_RECURRING_MONTHS).length * demand.value;
+  }
+  return demand.value;
+}
+
+/** Do que a demanda gerou, quanto ja foi baixado. Mesmo recorte de `demandBilledTotal`. */
+export function demandPaidTotal(demand: BillableDemand, untilMonth = currentMonthKey()) {
+  if (demand.status === "cancelled") return 0;
+  if (demand.billingType === "installment") return installmentSummary(demand).paidValue;
+  if (demand.billingType === "monthly") {
+    return recurringMonthsUntil(demand, untilMonth, MAX_RECURRING_MONTHS)
+      .reduce((total, month) => total + demandPaidInMonth(demand, month), 0);
+  }
+  return isMonthPaid(demand, demandBillingMonth(demand) ?? untilMonth) ? demand.value : 0;
+}
+
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function formatDemandCurrency(value: number) {

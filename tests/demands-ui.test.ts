@@ -7,6 +7,8 @@ const page = readFileSync(new URL("../src/app/demandas/page.tsx", import.meta.ur
 const tree = readFileSync(new URL("../src/components/DemandTree.tsx", import.meta.url), "utf8");
 const dialog = readFileSync(new URL("../src/components/DemandDialog.tsx", import.meta.url), "utf8");
 const overview = readFileSync(new URL("../src/components/DemandOverview.tsx", import.meta.url), "utf8");
+const deliveredReport = readFileSync(new URL("../src/components/DemandDeliveredReport.tsx", import.meta.url), "utf8");
+const reportRoute = readFileSync(new URL("../src/app/api/demands/report/route.ts", import.meta.url), "utf8");
 const workspace = readFileSync(new URL("../src/components/DemandWorkspace.tsx", import.meta.url), "utf8");
 const dealWorkspace = readFileSync(new URL("../src/components/DealWorkspace.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
@@ -118,6 +120,40 @@ test("overview traz janela 7-14-30, chips de status, entregues e grupos em tabel
   for (const column of ["Demanda", "Cliente", "Resp\\.", "Data", "Prioridade", "Status"]) {
     assert.match(overview, new RegExp(`<th scope="col">${column}</th>`));
   }
+});
+
+test("aba Entregues existe, troca de visao e nao sofre a janela de dias", () => {
+  // As abas eram decorativas: um botao sempre "active" sem onClick.
+  assert.match(overview, /\{ id: "delivered", label: "Entregues" \}/);
+  assert.match(overview, /onClick=\{\(\) => setView\(item\.id\)\}/);
+  assert.match(overview, /aria-selected=\{view === item\.id\}/);
+  assert.match(overview, /view === "delivered" \?/);
+  assert.match(overview, /<DemandDeliveredReport/);
+  // A pagina precisa entregar a lista crua e o cliente do relatorio.
+  assert.match(page, /nodeDemands=\{scoped\}/);
+  assert.match(page, /reportClientId=\{reportClientId\}/);
+});
+
+test("aba Entregues soma o periodo e oferece o PDF por cliente", () => {
+  assert.match(deliveredReport, /buildDemandReport/);
+  assert.match(deliveredReport, /type="month"/);
+  assert.match(deliveredReport, /Gerar relatorio PDF/);
+  assert.match(deliveredReport, /\/api\/demands\/report\?clientId=/);
+  for (const total of ["Total entregue", "Ja pago", "A cobrar"]) {
+    assert.ok(deliveredReport.includes(total), `aba Entregues nao mostra ${total}`);
+  }
+  // Sem cliente resolvido o PDF nao pode ser gerado: o link nem existe.
+  assert.match(deliveredReport, /reportClientId\s*\?[\s\S]*?:\s*null/);
+  assert.match(css, /\.demand-delivered-totals/);
+});
+
+test("rota do relatorio autentica, aceita mes ou tudo e devolve PDF anexo", () => {
+  assert.match(reportRoute, /requireDemandAdminSession/);
+  assert.match(reportRoute, /rawMonth !== "all"/);
+  assert.match(reportRoute, /isMonthKey/);
+  assert.match(reportRoute, /\.eq\("status", "done"\)/);
+  assert.match(reportRoute, /"Content-Type": "application\/pdf"/);
+  assert.match(reportRoute, /Content-Disposition/);
 });
 
 test("rotulos de status vivem so no dominio", () => {

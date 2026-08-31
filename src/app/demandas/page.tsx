@@ -495,6 +495,11 @@ export default function DemandasPage() {
     }
   }
 
+  // O relatorio em PDF sai por cliente. Pasta sem cliente resolvido trava o botao em vez
+  // de gerar um documento sem dono.
+  const selectedClientId = Number(clientIdForSelection());
+  const reportClientId = Number.isInteger(selectedClientId) && selectedClientId > 0 ? selectedClientId : null;
+
   return (
     <section className="demands-page">
       <div className="demands-shell">
@@ -628,6 +633,8 @@ export default function DemandasPage() {
               overview={overview}
               path={path}
               query={query}
+              nodeDemands={scoped}
+              reportClientId={reportClientId}
               selectedAssignees={selectedAssignees}
               selectedStatuses={selectedStatuses}
               showCompleted={showCompleted}

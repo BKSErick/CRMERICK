@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { DemandDeliveredReport } from "@/components/DemandDeliveredReport";
 import {
   DEMAND_PRIORITY_LABELS,
   DEMAND_STATUS_LABELS,
@@ -15,7 +17,12 @@ import { DEMAND_DRAG_TYPE } from "@/components/DemandTree";
 import type { DemandTreeNode } from "@/lib/demandFolders";
 
 /** Visoes da aba. Lista/Quadro/Calendario entram aqui quando existirem. */
-const VIEWS = [{ id: "overview", label: "Overview" }] as const;
+const VIEWS = [
+  { id: "overview", label: "Overview" },
+  { id: "delivered", label: "Entregues" },
+] as const;
+
+type DemandView = (typeof VIEWS)[number]["id"];
 
 const WINDOW_OPTIONS = [7, 14, 30] as const;
 const WIDEST_WINDOW = WINDOW_OPTIONS[WINDOW_OPTIONS.length - 1];
@@ -41,6 +48,9 @@ type DemandOverviewProps = {
   onDeleteDemand: (demand: ClientDemand) => void;
   onCreateDemand: () => void;
   createLabel: string;
+  /** Demandas cruas da pasta, sem janela nem filtro de status: a aba Entregues precisa de tudo. */
+  nodeDemands: ClientDemand[];
+  reportClientId: number | null;
 };
 
 function initials(value: string) {
@@ -205,7 +215,10 @@ export function DemandOverview({
   onDeleteDemand,
   onCreateDemand,
   createLabel,
+  nodeDemands,
+  reportClientId,
 }: DemandOverviewProps) {
+  const [view, setView] = useState<DemandView>("overview");
   const heading = path.length > 0 ? path[path.length - 1].label : "Todas as demandas";
   const breadcrumb = path.slice(0, -1).map((node) => node.label);
   const empty = overview.scheduledTotal === 0
@@ -231,13 +244,25 @@ export function DemandOverview({
       </header>
 
       <div className="demand-view-tabs" role="tablist" aria-label="Visoes da aba Demandas">
-        {VIEWS.map((view) => (
-          <button aria-selected={true} className="active" key={view.id} role="tab" type="button">
-            {view.label}
+        {VIEWS.map((item) => (
+          <button
+            aria-selected={view === item.id}
+            className={view === item.id ? "active" : ""}
+            key={item.id}
+            onClick={() => setView(item.id)}
+            role="tab"
+            type="button"
+          >
+            {item.label}
           </button>
         ))}
       </div>
 
+      {/* A aba Entregues e para faturar: ela ignora a janela de dias e soma o periodo inteiro. */}
+      {view === "delivered" ? (
+        <DemandDeliveredReport demands={nodeDemands} onOpenDemand={onOpenDemand} reportClientId={reportClientId} />
+      ) : (
+      <>
       <div className="demand-filterbar" aria-label="Filtros de demandas">
         <div className="demand-segmented" role="group" aria-label="Janela de prazo">
           {WINDOW_OPTIONS.map((days) => (
@@ -374,6 +399,8 @@ export function DemandOverview({
           </p>
         )
       ) : null}
+      </>
+      )}
     </div>
   );
 }

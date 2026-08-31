@@ -2919,6 +2919,64 @@ button.demand-chip.active {
 .demand-flag.high { background: #fff6df; color: #956600; }
 .demand-flag.low { background: #edf7ff; color: #25648a; }
 
+/* Aba Entregues: a tela de faturar. */
+.demand-delivered {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.demand-delivered-month {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-slate);
+  font-size: 12px;
+}
+
+.demand-delivered-pdf {
+  margin-left: auto;
+  text-decoration: none;
+}
+
+.demand-delivered-pdf-hint {
+  margin-left: auto;
+  max-width: 320px;
+  text-align: right;
+}
+
+.demand-delivered-table {
+  padding: 0;
+  overflow: hidden;
+}
+
+.demand-delivered-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: auto;
+  width: min(100%, 340px);
+}
+
+.demand-delivered-totals div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--color-slate);
+  font-size: 13px;
+}
+
+.demand-delivered-totals div.due {
+  padding-top: 10px;
+  border-top: 1px solid var(--color-linen);
+  color: var(--color-charcoal);
+}
+
+.demand-delivered-totals div.due strong {
+  font-size: 20px;
+}
+
 .demand-beyond-window {
   margin: 0;
   padding: 0;
