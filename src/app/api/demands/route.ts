@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  DEMAND_ATTACHMENTS_BUCKET,
   isDemandBillingType,
   isDemandDestination,
   isDemandPriority,
@@ -18,12 +17,14 @@ import {
   DEMAND_SUMMARY_SELECT,
   ORPHAN_DEMAND_MESSAGE,
   appendDemandEvent,
+  applyDemandUpdate,
   assertDemandFolderExists,
   boundedDemandText,
   demandErrorResponse,
   demandId,
   isOrphanDemand,
   nullableIso,
+  purgeDemands,
 } from "@/lib/demandServer";
 
 export const runtime = "nodejs";
@@ -228,11 +229,9 @@ export async function PATCH(request: NextRequest) {
       updates.billing_type = body.billingType; changed.push("cobranca");
       // Sair do parcelado apaga as parcelas: mantidas, elas continuariam aparecendo na
       // conta do mes de uma demanda que agora e pontual ou mensal. As baixas de pagamento
-      // de pontual/mensal (uma cobranca por mes) nao entram nessa limpeza.
-      if (current.data.billing_type === "installment" && body.billingType !== "installment") {
-        const cleared = await supabase.from("client_demand_charges").delete().eq("demand_id", id);
-        if (cleared.error) throw cleared.error;
-      }
+      // de pontual/mensal (uma cobranca por mes) nao entram nessa limpeza. Quem apaga e a
+      // RPC, na mesma transacao do update - aqui isso deixava a demanda parcelada sem
+      // parcelas quando o update logo abaixo falhava.
     }
     if (body.billingMonth !== undefined) {
       updates.billing_month = nullableMonthKey(body.billingMonth, "Mes de cobranca"); changed.push("mes de cobranca");
@@ -266,10 +265,9 @@ export async function PATCH(request: NextRequest) {
     }
     if (changed.length === 0) return demandErrorResponse(new Error("Nenhuma alteracao valida informada."), 400);
 
-    const result = await supabase.from("client_demands").update(updates).eq("id", id).select("id").single();
-    if (result.error) throw result.error;
-    await appendDemandEvent(supabase, {
+    await applyDemandUpdate(supabase, {
       demandId: id,
+      updates,
       actor: auth.session.email,
       eventType: body.status !== undefined ? "status_changed" : "updated",
       description: `Demanda atualizada: ${changed.join(", ")}.`,
@@ -279,26 +277,6 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     return demandErrorResponse(error, error instanceof Error ? 400 : 500);
   }
-}
-
-/** Apaga de vez: linhas filhas caem por cascade, mas os arquivos do bucket nao. */
-async function purgeDemands(
-  supabase: ReturnType<typeof getCrmSupabaseAdmin>,
-  ids: number[],
-) {
-  const attachments = await supabase
-    .from("client_demand_attachments")
-    .select("storage_path")
-    .in("demand_id", ids);
-  if (attachments.error) throw attachments.error;
-  const paths = (attachments.data ?? []).map((row) => String(row.storage_path)).filter(Boolean);
-  if (paths.length > 0) {
-    const removed = await supabase.storage.from(DEMAND_ATTACHMENTS_BUCKET).remove(paths);
-    if (removed.error) throw removed.error;
-  }
-  const result = await supabase.from("client_demands").delete().in("id", ids).select("id");
-  if (result.error) throw result.error;
-  return (result.data ?? []).length;
 }
 
 export async function DELETE(request: NextRequest) {
@@ -314,9 +292,13 @@ export async function DELETE(request: NextRequest) {
         .map((value) => demandId(value))
         .filter((value): value is number => value !== null);
       if (ids.length === 0) return demandErrorResponse(new Error("Informe ao menos um demandId valido."), 400);
-      const deleted = await purgeDemands(supabase, Array.from(new Set(ids)));
-      if (deleted === 0) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);
-      return NextResponse.json({ ok: true, deleted });
+      const purged = await purgeDemands(supabase, Array.from(new Set(ids)));
+      if (purged.deleted === 0) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);
+      return NextResponse.json(
+        purged.orphanedPaths.length > 0
+          ? { ok: true, deleted: purged.deleted, orphanedFiles: purged.orphanedPaths.length }
+          : { ok: true, deleted: purged.deleted },
+      );
     }
 
     const id = demandId(request.nextUrl.searchParams.get("demandId"));
@@ -325,11 +307,9 @@ export async function DELETE(request: NextRequest) {
     if (current.error) throw current.error;
     if (!current.data) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);
     if (isOrphanDemand(current.data)) throw new Error(ORPHAN_DEMAND_MESSAGE);
-    const result = await supabase.from("client_demands").update({ status: "cancelled", completed_at: null }).eq("id", id).select("id").maybeSingle();
-    if (result.error) throw result.error;
-    if (!result.data) return demandErrorResponse(new Error("Demanda nao encontrada."), 404);
-    await appendDemandEvent(supabase, {
+    await applyDemandUpdate(supabase, {
       demandId: id,
+      updates: { status: "cancelled", completed_at: null },
       actor: auth.session.email,
       eventType: "cancelled",
       description: "Demanda cancelada.",

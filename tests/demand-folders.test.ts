@@ -312,16 +312,19 @@ test("mapDemandFolder e idempotente e a pagina nao remapeia a resposta da rota",
   assert.doesNotMatch(page, /import[\s\S]*?mapDemandFolder[\s\S]*?from "@\/lib\/demandFolders"/);
 });
 
-test("exclusao definitiva limpa o bucket antes de apagar, e o cancelar continua o padrao", () => {
+test("exclusao definitiva apaga no banco antes do bucket, e o cancelar continua o padrao", () => {
   const route = source("src/app/api/demands/route.ts");
+  const server = source("src/lib/demandServer.ts");
   // hard=1 apaga; sem ele o DELETE historico segue cancelando.
   assert.match(route, /searchParams\.get\("hard"\) === "1"/);
   assert.match(route, /demandIds/);
-  assert.match(route, /DEMAND_ATTACHMENTS_BUCKET/);
-  assert.match(route, /\.storage\.from\(DEMAND_ATTACHMENTS_BUCKET\)\.remove/);
   assert.match(route, /status: "cancelled"/);
-  // A limpeza do storage precisa vir antes do delete, senao os paths somem no cascade.
-  const purge = route.match(/async function purgeDemands[\s\S]*?\n\}/)?.[0] ?? "";
-  assert.ok(purge, "purgeDemands deve existir");
-  assert.ok(purge.indexOf(".remove(") < purge.indexOf('.from("client_demands").delete()'));
+
+  // O banco vem primeiro. A RPC coleta os storage_path dentro da propria transacao,
+  // entao o cascade nao perde os caminhos - e uma falha ali nao apaga arquivo nenhum.
+  assert.match(server, /DEMAND_ATTACHMENTS_BUCKET/);
+  assert.match(server, /\.storage\.from\(DEMAND_ATTACHMENTS_BUCKET\)\.remove/);
+  const purge = server.match(/export async function purgeDemands[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.ok(purge, "purgeDemands deve existir em demandServer");
+  assert.ok(purge.indexOf("purge_demands_atomic") < purge.indexOf(".remove("));
 });

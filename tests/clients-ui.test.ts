@@ -80,8 +80,13 @@ test("parcelamento tem geracao, edicao por parcela e baixa de pagamento", () => 
   assert.match(charges, /paid_at/);
   assert.match(demandWorkspace, /Marcar pago/);
   assert.match(demandWorkspace, /\/api\/demands\/charges/);
-  // Sair do parcelado limpa as parcelas: senao elas seguiriam somando no mes.
-  assert.match(demandsRoute, /client_demand_charges/);
+  // Sair do parcelado limpa as parcelas: senao elas seguiriam somando no mes. Quem
+  // apaga e a RPC, na mesma transacao do update da demanda.
+  assert.match(demandsRoute, /applyDemandUpdate/);
+  assert.match(
+    source("scripts/migrations/20260901_demandas_atomicas.sql"),
+    /delete from public\.client_demand_charges where demand_id = p_demand_id/i,
+  );
   assert.match(demandsPage, /Parcelas/);
   assert.match(css, /\.demand-installment-row/);
 });

@@ -74,6 +74,41 @@ test("anexos usam upload e download assinados no bucket privado", () => {
   assert.doesNotMatch(text, /getPublicUrl/);
 });
 
+test("mutacao de demanda roda em transacao unica no banco", () => {
+  const migration = source("scripts/migrations/20260901_demandas_atomicas.sql");
+  const schema = source("scripts/supabase-schema.sql");
+
+  for (const sql of [migration, schema]) {
+    for (const fn of ["apply_demand_update_atomic", "purge_demands_atomic"]) {
+      assert.match(sql, new RegExp(`create or replace function public\\.${fn}`, "i"));
+      assert.match(sql, new RegExp(`grant execute on function public\\.${fn}[\\s\\S]{0,120}to service_role`, "i"));
+      assert.match(sql, new RegExp(`revoke all on function public\\.${fn}[\\s\\S]{0,120}anon, authenticated`, "i"));
+    }
+    // Lock antes de decidir sobre as cobrancas: o billing_type lido solto pela rota
+    // podia estar velho na hora do update.
+    assert.match(sql, /where id = p_demand_id for update/i);
+    assert.match(sql, /delete from public\.client_demand_charges where demand_id = p_demand_id/i);
+    assert.match(sql, /insert into public\.client_demand_events/i);
+  }
+});
+
+test("rota de demandas nao mexe em cobrancas nem no bucket fora da transacao", () => {
+  const route = source("src/app/api/demands/route.ts");
+  const server = source("src/lib/demandServer.ts");
+
+  // Apagar parcelas e gravar auditoria sao responsabilidade da RPC.
+  assert.doesNotMatch(route, /from\("client_demand_charges"\)[\s\S]{0,40}\.delete\(\)/);
+  assert.doesNotMatch(route, /storage[\s\S]{0,60}\.remove\(/);
+  assert.match(route, /applyDemandUpdate/);
+  assert.match(route, /purgeDemands/);
+
+  // No hard delete o banco vem primeiro; o Storage e limpo depois do commit e a falha
+  // dele nao derruba a requisicao (arquivo orfao e varrivel, demanda fantasma nao e).
+  const purge = server.slice(server.indexOf("export async function purgeDemands"));
+  assert.ok(purge.indexOf("purge_demands_atomic") < purge.indexOf(".remove("), "RPC deve rodar antes do remove");
+  assert.match(purge, /orphanedPaths/);
+});
+
 test("demandas orfas preservam historico e bloqueiam mutacoes", () => {
   const server = source("src/lib/demandServer.ts");
   const mutationRoutes = [

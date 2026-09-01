@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { DEMAND_ATTACHMENTS_BUCKET } from "@/lib/clientDemands";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 
 export const DEMAND_SUMMARY_SELECT = `
@@ -79,6 +80,67 @@ export async function appendDemandEvent(
     metadata: input.metadata ?? {},
   });
   if (error) throw error;
+}
+
+/**
+ * Update + limpeza de cobrancas + auditoria numa transacao so (RPC
+ * apply_demand_update_atomic). Em comandos separados, uma falha no meio deixava a
+ * demanda parcelada sem parcelas, ou devolvia erro HTTP com a alteracao ja gravada.
+ * A validacao de entrada continua aqui em cima; a RPC so revalida sob lock.
+ */
+export async function applyDemandUpdate(
+  supabase: ReturnType<typeof getCrmSupabaseAdmin>,
+  input: {
+    demandId: number;
+    updates: Record<string, unknown>;
+    actor: string;
+    eventType: string;
+    description: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  const result = await supabase
+    .rpc("apply_demand_update_atomic", {
+      p_demand_id: input.demandId,
+      p_updates: input.updates,
+      p_actor: input.actor,
+      p_event_type: input.eventType,
+      p_description: input.description,
+      p_metadata: input.metadata ?? {},
+    })
+    .single();
+  if (result.error) throw result.error;
+  if (!result.data) throw new Error("A transacao nao retornou a demanda atualizada.");
+  return result.data;
+}
+
+/**
+ * Apaga de vez. O banco resolve as linhas numa transacao (filhas caem por cascade) e
+ * devolve os caminhos; so depois do commit os arquivos saem do bucket. Storage nao
+ * entra na transacao, entao a ordem e escolhida pelo lado que da para consertar:
+ * arquivo orfao e varrivel, demanda apontando para arquivo inexistente nao e.
+ */
+export async function purgeDemands(
+  supabase: ReturnType<typeof getCrmSupabaseAdmin>,
+  ids: number[],
+) {
+  const result = await supabase.rpc("purge_demands_atomic", { p_ids: ids });
+  if (result.error) throw result.error;
+  const payload = (result.data ?? {}) as { deleted?: unknown; paths?: unknown };
+  const deleted = Array.isArray(payload.deleted) ? payload.deleted.length : 0;
+  const paths = Array.isArray(payload.paths)
+    ? payload.paths.map((path) => String(path)).filter(Boolean)
+    : [];
+  if (deleted === 0 || paths.length === 0) return { deleted, orphanedPaths: [] as string[] };
+
+  const removed = await supabase.storage.from(DEMAND_ATTACHMENTS_BUCKET).remove(paths);
+  if (removed.error) {
+    // Demanda ja foi. Nao transformamos isso em erro da requisicao: repetir o DELETE
+    // devolveria 404 e o operador acharia que nada aconteceu.
+    console.error("Demandas apagadas, mas arquivos ficaram no bucket:", removed.error.message, paths);
+    return { deleted, orphanedPaths: paths };
+  }
+  return { deleted, orphanedPaths: [] as string[] };
 }
 
 export async function assertDemandExists(
