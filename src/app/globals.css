@@ -3856,3 +3856,82 @@ button.demand-beyond-window:focus-visible {
     grid-template-columns: 52px 1fr 1fr;
   }
 }
+
+/* ================================================================
+   REUNIOES: fase da reuniao (futura x passada) manda no visual
+   ================================================================ */
+
+.meeting-highlight {
+  padding: 4px 2px 14px;
+  border-bottom: 1px solid var(--color-cloud, #e0dcec);
+}
+
+.meeting-highlight-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.meeting-when {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.meeting-meta {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.meeting-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.meeting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.meeting-actions .topbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.meeting-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.meeting-row {
+  border-left: 2px solid var(--color-cloud, #e0dcec);
+  padding-left: 12px;
+}
+
+.meeting-row-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Passada sem desfecho e trabalho parado, nao historico: a barra amarela existe
+   para o operador achar o que precisa marcar sem ler a lista inteira. */
+.meeting-row.pending {
+  border-left-color: var(--color-warning, #ed6c02);
+}
+
+.meeting-pending-mark {
+  font: 500 11px/1.4 var(--font-inter);
+  color: var(--color-warning, #ed6c02);
+  align-self: center;
+}
+
+.meeting-more {
+  margin-top: 14px;
+}
