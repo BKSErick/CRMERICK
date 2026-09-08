@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const { gerarCopy, ehSiteProprio, MINIMO_AVALIACOES } = require(path.join(RAIZ, "scripts/regenerate-copies.js"));
+const { gerarCopy, ehSiteProprio, MINIMO_AVALIACOES, NOTA_MINIMA } = require(path.join(RAIZ, "scripts/regenerate-copies.js"));
 const { normalize } = require(path.join(RAIZ, "src/lib/leadScoring.js"));
 const ingest = require(path.join(RAIZ, "scripts/lib/leadIngest.js"));
 
@@ -54,6 +54,10 @@ function mapsInfoDe(rating, reviews) {
   // Amostra minima: com 1 ou 2 avaliacoes a frase "operacao de verdade, com cliente
   // que volta" prova o contrario do que promete. Sem prova, vai a versao sem numero.
   if (n < MINIMO_AVALIACOES) return null;
+  // Nota baixa tem o mesmo problema do lado errado: 3,1 estrelas nao sustenta "cliente
+  // que volta". Achado em 03/09/2026 (deal #1402). Espelha extrairMapsInfo() em
+  // regenerate-copies.js -- mudar aqui obriga mudar la.
+  if (rating && Number(rating) < NOTA_MINIMA) return null;
   const partes = [];
   if (rating) partes.push(`${String(rating).replace(".", ",")} estrelas`);
   if (n) partes.push(`${n} ${n === 1 ? "avaliação" : "avaliações"}`);
@@ -76,8 +80,16 @@ function mapsInfoDe(rating, reviews) {
   const C = Object.fromEntries(contatos.map((c) => [c.id, c]));
 
   const alvo = normalize(CIDADE);
+  // O filtro is_prospect=not.is.false acima NAO segura os orfaos "WhatsApp NNNN": o
+  // webhook cria esses deals com is_prospect NULL, e NULL passa por not.is.false.
+  // Achado em 08/09/2026 com 20 deles na fila de geracao. Gerar copy pra eles produz
+  // "Vi a WhatsApp 5682 no Google, e da pra ver que e operacao de verdade" — que,
+  // disparada, queima o numero e o lead, exatamente o que o filtro queria evitar.
+  // Guarda pelo formato do nome, que e o sintoma direto e nao depende do flag.
+  const NOME_ORFAO = /^whatsapp\s*\d+$/i;
   const fila = deals
     .map((d) => ({ ...d, contato: C[d.id] || {} }))
+    .filter((d) => !NOME_ORFAO.test(String(d.company || "").trim()))
     .filter((d) => (FORCE ? true : !d.copy_text))
     .filter((d) => !alvo || normalize(d.contato.city).includes(alvo))
     .slice(0, LIMITE);
@@ -87,6 +99,7 @@ function mapsInfoDe(rating, reviews) {
   if (!fila.length) return;
 
   let locais = 0;
+  let regionais = 0;
   const gerados = fila.map((d) => {
     const c = d.contato;
     const copy = gerarCopy({
@@ -98,10 +111,16 @@ function mapsInfoDe(rating, reviews) {
       cidade: c.city || null,
     });
     if (/de Monlevade mesmo/.test(copy)) locais++;
+    else if (/do Vale do Aço mesmo/.test(copy)) regionais++;
     return { id: d.id, empresa: d.company, copy };
   });
 
-  console.log(`Com a variante local (case nomeado): ${locais}/${gerados.length}\n`);
+  // v4: tres niveis de proximidade. Lead nacional nao recebe marca geografica
+  // nenhuma, entao aparece aqui como o resto da conta.
+  const nacionais = gerados.length - locais - regionais;
+  console.log(
+    `Proximidade: ${locais} local (Monlevade) | ${regionais} regional (Vale do Aço) | ${nacionais} nacional (sem região)\n`,
+  );
   for (const g of gerados.slice(0, GO ? 3 : 6)) {
     console.log(`── #${g.id} ${g.empresa}`);
     console.log(g.copy.split("\n").map((l) => "   " + l).join("\n") + "\n");

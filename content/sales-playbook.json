@@ -1,39 +1,70 @@
 {
-  "copyVersion": "copy-2026-08-31.1",
+  "copyVersion": "copy-2026-09-08.1",
   "offer": {
     "version": "offer-site-industrial-1000-150-v1",
-    "name": "Pagina industrial com Ficha de Escopo",
+    "name": "Pagina industrial com Pedido Pronto",
     "setupPrice": 1000,
     "monthlyPrice": 150,
     "currency": "BRL",
     "meetingMinutes": 15
   },
-  "mechanism": "Ficha de Escopo",
+  "mechanism": "Pedido Pronto",
   "experiment": {
-    "id": "wa-opening-2026-08-v3",
+    "id": "wa-opening-2026-09-v4",
     "name": "Abertura cordial vs direta (progressao de consciencia)",
     "hypothesis": "A abertura direta aumenta respostas validas sem reduzir reunioes realizadas.",
     "isolatedVariable": "opening",
     "variants": ["A", "B"],
+    "_nota_v4": "v4 em 08/09/2026, tres mudancas. (1) MERCADORIA: saiu 'faco pagina de vendas pra industria', entrou 'trabalho com presenca digital de industria'. Motivo: 'pagina de vendas' e vocabulario de infoproduto e lancamento; dono de metalurgica com decadas de operacao le como guru digital e fecha antes do segundo bloco. Diagnostico do clone Willian Celso na conversa da Imagem X (08/09): o simbolo cai na gaveta de propaganda, nao na de institucional, e nao existe como descontaminar isso no meio da conversa. (2) REGIAO EM TRES NIVEIS: localOpenings (Joao Monlevade) > regionalOpenings (Vale do Aco / Medio Piracicaba) > openings (nacional, sem nenhuma marca geografica). A prospeccao passou a ser nacional e afirmar regiao para quem nao e da regiao entrega template. (3) MECANISMO: a ponte com site passou de 'Pedido Pronto' para 'indicacao vaza' — ver PONTE_INDICACAO em scripts/regenerate-copies.js. Disparos de v3 NAO sao comparaveis com os de v4: filtre por experiment_id ao ler taxa. Os prefixos 'Oi, tudo bem?' / 'Fala!' seguem preservados porque detectVariantFromCopy() os usa para inferir a variante.",
     "_nota": "v3 em 31/08/2026: a sequencia inteira passou a avancar UM degrau por mensagem, alinhada a doutrina do Garimpo (lib/prompts.ts). Msg 1 nao pede mais 'quer ver?': ela levanta a friccao como hipotese e termina numa pergunta de reconhecimento, que o lead responde sem admitir incompetencia. O convite pro case migrou pro M1 e a pergunta de prioridade pro M2. Saiu o pedido de reuniao de 15 minutos dos follow-ups: em lead frio industrial o CTA e pergunta, nunca call. A declaracao de papel foi PRESERVADA na abertura (licao da Alpina Torres, que achou que o Erick era comprador pedindo cotacao), mas voltou a nomear a mercadoria em vez de entregar a promessa fechada, porque a promessa agora vira hipotese no terceiro bloco. Os disparos de v2 NAO sao comparaveis com os de v3: filtre por experiment_id ao ler taxa. Os prefixos 'Oi, tudo bem?' / 'Fala!' seguem preservados porque detectVariantFromCopy() os usa para inferir a variante.",
+    "_nota_nicho": "{{nicho}} e preenchido por nichoDoSegmento() em scripts/regenerate-copies.js e vale 'de indústria', 'de clínica' ou vazio. Estava fixo em 'de indústria' ate 08/09/2026, quando a base ja tinha clinica odontologica dentro e recebia declaracao de papel de industria — o lead le como disparo em massa e a mensagem morre no primeiro bloco.",
     "openings": {
-      "A": "Oi, tudo bem? Erick aqui, eu faço página de vendas pra indústria.",
-      "B": "Fala! Erick aqui, eu faço página de vendas pra indústria."
+      "A": "Oi, tudo bem? Erick aqui, eu trabalho com presença digital {{nicho}}.",
+      "B": "Fala! Erick aqui, eu trabalho com presença digital {{nicho}}."
+    },
+    "regionalOpenings": {
+      "A": "Oi, tudo bem? Erick aqui, do Vale do Aço mesmo. Trabalho com presença digital {{nicho}}.",
+      "B": "Fala! Erick aqui, do Vale do Aço mesmo. Trabalho com presença digital {{nicho}}."
     },
     "localOpenings": {
-      "A": "Oi, tudo bem? Erick aqui, de Monlevade mesmo. Eu faço página de vendas pra indústria.",
-      "B": "Fala! Erick aqui, de Monlevade mesmo. Eu faço página de vendas pra indústria."
+      "A": "Oi, tudo bem? Erick aqui, de Monlevade mesmo. Trabalho com presença digital {{nicho}}.",
+      "B": "Fala! Erick aqui, de Monlevade mesmo. Trabalho com presença digital {{nicho}}."
     }
   },
   "cases": {
     "metalthecUrl": "https://site-metalthec.vercel.app/",
     "jottaUrl": "https://sitejotta.vercel.app/"
   },
+  "postResponse": {
+    "version": "fluxo-2026-09-02.1",
+    "doutrina": "Depois que o lead responde a msg 1, o funil tem UMA mensagem ate a decisao. O processo tem que custar menos que o ticket: uma pagina de entrada nao paga entrevista de descoberta nem cinco rodadas de ida e volta. A msg 2 entrega o case, diz o preco e oferece a vaga de producao. O lead responde sim, responde objecao (ha carta pronta pra cada uma) ou nao responde. Material e informacao da empresa so entram DEPOIS do sim.",
+    "regras": [
+      "Preco entra na msg 2, escrito. Em prospeccao fria de ticket baixo o preco e o filtro, nao o premio: quem acha caro sai agora e nao consome a semana.",
+      "Uma mensagem, tres blocos: (1) confirma a fricção na lingua do lead + case, (2) o que seria pra empresa dele + preco e mensal, (3) fecho pela vaga de producao.",
+      "O fecho oferece a agenda de quem entrega, nao pede aprovacao: 'Minha proxima entrada de producao e {dia}. Coloco a {empresa} nela?'. Quem tem territorio informa a condicao; quem pede licenca negocia de baixo.",
+      "O mensal e descrito por ESTADO ('manter ela no ar e atualizada'), nunca por trabalho. Em publico industrial, nomear trabalho faz o dono medir o servico em hora tecnica e criar atrito na primeira cobranca extra.",
+      "Objecao que voltar tem carta pronta no Comando (mensalidade, 'ja tenho quem faca', 'sou pequeno', preco). Nao improvisar."
+    ],
+    "proibido": [
+      "Perguntar permissao pra mostrar ('posso te mostrar uma ideia?', 'faz sentido pra voces?') — o lead ja disse sim na msg 1 e cada sim extra e um lugar pra perder o negocio.",
+      "Sequencia de perguntas de diagnostico antes do preco. Entrevista e processo de ticket alto.",
+      "Pedir foto, lista de servicos ou qualquer material antes do sim. Antes do sim isso e licao de casa pra quem ainda nao comprou.",
+      "Pedir aprovacao de escopo por escrito. Coloca trabalho no colo do lead e sobe o denominador da equacao de valor.",
+      "Garantia de devolucao de dinheiro. Ticket baixo entregue por operacao de uma pessoa nao sustenta estorno, e convida a pegar o trabalho pronto e pedir o dinheiro de volta.",
+      "Garantia de prazo amarrada a material que o lead precisa mandar: o relogio passaria a depender dele e a multa cairia no Erick.",
+      "A palavra 'manutencao' pro mensal — no ramo do lead ela significa OS, apontamento de hora e visita tecnica.",
+      "CTA de reuniao/call na abordagem fria. Lead frio industrial nesse ticket nao vai pra call, e a call nao se paga.",
+      "Apontar defeito no site do lead. Pega o ego do dono e fecha a porta."
+    ],
+    "proximaEntrada": "quinta",
+    "msg2": "Isso mesmo. {{caseIntro}} o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: {{caseUrl}}\n\nPra {{company}} eu faço igual, com os serviços de vocês. {{setupPrice}} a página, mais {{monthlyPrice}}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco a {{company}} nela?",
+    "_nota": "Escrito em 02/09/2026 depois de ler as 142 conversas da base. Substitui o fecho anterior da mensagemExemplo() ('Te mostro em 15 min (...) amanha de manha ou a tarde?'), reprovado em 12/08 e nunca reescrito, e o 'faz sentido pra voces?' que estava sendo digitado na mao. Medicao que motivou: dos 54 leads que receberam o case, so 11 chegaram a falar preco (20%) e 32 sumiram sem responder — e nas conversas que chegaram a preco foi quase sempre o LEAD que puxou o assunto. A msg 2 nunca teve um degrau seguinte. O fecho pela vaga de producao e a troca de 'trocas de texto e foto' por 'manter no ar e atualizada' vieram da calibragem do clone Willian Celso: 'topa?' derrubava a autoridade construida por 'comeco quinta', e 'manutencao' pertence a cadeia de simbolos do cliente, nao a do servico."
+  },
   "followups": {
     "bot": "Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da {{company}} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.",
     "M1": "Oi, Erick de novo. Pergunto porque, em {{segmentDescription}}, o orçamento costuma virar ida e volta de mensagem até sair material, medida e prazo. Isso aparece na rotina da {{company}} ou quem chama já chega com o escopo definido?",
-    "M2Local": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, aqui de João Monlevade. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
-    "M2Remote": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, duas indústrias aqui do Médio Piracicaba. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e a cotação sai sem ida e volta. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
+    "M2Local": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, aqui de João Monlevade. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono. Na prática o orçamento sai já na primeira resposta, em vez de depender de duas ou três idas e voltas. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
+    "M2Remote": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, duas indústrias aqui do Médio Piracicaba. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono. Na prática o orçamento sai já na primeira resposta, em vez de depender de duas ou três idas e voltas. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
     "M3": "Oi! Última mensagem daqui, pra não virar chateação. Se essa parte já estiver redonda aí, fico tranquilo. Se um dia aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo, e é só me chamar. Sucesso aí!"
   }
 }

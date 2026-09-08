@@ -40,6 +40,14 @@ function extrairSabotadores(html) {
   return sabotadores;
 }
 
+// Nota abaixo disso nao sustenta "e operacao de verdade, com cliente que volta": a
+// frase vira o contrario do que promete. Achado em 03/09/2026 — deal #1402 saiu com
+// "3,1 estrelas com 9 avaliações no Maps e operacao de verdade, com cliente que
+// volta", que soa como o oposto da propria nota. So o TAMANHO da amostra (MINIMO_
+// AVALIACOES, abaixo) era filtrado; a NOTA em si nunca foi. Compartilhado com
+// mapsInfoDe() de scripts/generate-copies-db.mjs -- mudar aqui obriga mudar la.
+const NOTA_MINIMA = 4;
+
 /**
  * Extrai informações do Google Maps (nota e número de avaliações)
  */
@@ -48,9 +56,12 @@ function extrairMapsInfo(html) {
   // A pagina de auditoria grava "avaliacoes" sem acento; na mensagem sai com acento
   // e no singular quando for uma so ("com 1 avaliações" denuncia texto automatico).
   if (!m) return null;
-  return m[1].trim()
+  const texto = m[1].trim()
     .replace(/avaliacoes/gi, 'avaliações')
     .replace(/\b1 avaliações\b/, '1 avaliação');
+  const nota = texto.match(/^(\d[.,]\d)/);
+  if (nota && parseFloat(nota[1].replace(',', '.')) < NOTA_MINIMA) return null;
+  return texto;
 }
 
 /**
@@ -153,6 +164,26 @@ const CASE_LOCAL = {
 const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const ehLocal = (cidade) => semAcento(cidade).includes(MINHA_CIDADE);
 
+// ─── REGIAO (v4, 08/09) ──────────────────────────────────────────────────────
+// Tres niveis de proximidade, do mais forte pro mais fraco:
+//   local     Joao Monlevade          -> "de Monlevade mesmo"
+//   regional  Vale do Aco / M. Piracicaba -> "do Vale do Aco mesmo"
+//   nacional  o resto                 -> NENHUMA marca geografica
+// A prospeccao virou nacional. Dizer "aqui do Vale do Aco" para uma metalurgica de
+// Caxias do Sul nao aproxima nada: entrega que a mensagem e template com variavel
+// trocada, que e exatamente o que o dono industrial procura antes de responder.
+// So entra cidade cuja industria realmente orbita o eixo Monlevade-Ipatinga.
+const CIDADES_REGIAO = [
+  'ipatinga', 'coronel fabriciano', 'timoteo', 'santana do paraiso', 'nova era',
+  'antonio dias', 'rio piracicaba', 'bela vista de minas', 'sao goncalo do rio abaixo',
+  'barao de cocais', 'itabira', 'joao monlevade', 'alvinopolis', 'sao domingos do prata',
+  'dionisio', 'jaguaracu', 'marlieria', 'catas altas', 'santa barbara', 'ipaba',
+];
+const ehRegional = (cidade) => {
+  const c = semAcento(cidade);
+  return Boolean(c) && CIDADES_REGIAO.some((nome) => c.includes(nome));
+};
+
 function ctaLocal(seg) {
   return `Fiz ${CASE_LOCAL[seg.nome] || CASE_LOCAL.geral}. Quer ver como ficou?`;
 }
@@ -184,6 +215,23 @@ function perguntaDeReconhecimento(seg) {
 // tem site mistura duas dores na mesma mensagem, e a doutrina manda apontar UMA.
 const PERGUNTA_SEM_SITE = 'Hoje quem recebe uma indicação de vocês consegue confirmar tudo num lugar só, ou acaba procurando em canal diferente antes de chamar?';
 
+// ─── MECANISMO INDICACAO (v4, 08/09) ─────────────────────────────────────────
+// Ate a v3 o lead COM site recebia a friccao de orcamento (mecanismo Pedido Pronto) e
+// so o lead SEM site recebia o eixo da indicacao. Estava invertido: a indicacao e o
+// eixo mais barato dos dois, e o publico com site e a maioria da base.
+//
+// Motivo (diagnostico Naval, 08/09): o publico industrial tem sofisticacao ALTA e
+// consciencia do mecanismo BAIXA. Contra sofisticacao alta, argumento novo perde —
+// a friccao de orcamento pede que o dono aceite um problema que ele ainda nao nomeou.
+// A indicacao faz o contrario: ESTENDE uma crenca que ele ja tem e defende. Quanto
+// mais ele acredita em indicacao, mais forte fica a ponte, e a objecao vira combustivel.
+//
+// ANTI-INVENCAO mantida: a ponte descreve o caminho de quem foi indicado e NUNCA
+// afirma que o lead esta perdendo cliente nem que o site dele e ruim. O dono pode
+// responder "encontra tudo certinho" e sair inteiro, que e a regra da v3.
+const PONTE_INDICACAO = 'Uma coisa que quase ninguém mede: quem recebe uma indicação de vocês procura antes de ligar. O que essa pessoa encontra nessa hora decide se a indicação virou orçamento ou virou nada.';
+const PERGUNTA_INDICACAO = 'Vocês têm ideia de quantas indicações chegam até o telefone?';
+
 // DECLARACAO DE PAPEL (02/08) — a correcao mais cara que o funil pediu.
 //
 // Motivo concreto: a Alpina Torres respondeu "Qual seria sua demanda?" e depois
@@ -196,16 +244,28 @@ const PERGUNTA_SEM_SITE = 'Hoje quem recebe uma indicação de vocês consegue c
 // A correcao NAO e cortar o elogio: ele existe porque listar defeito do site pega
 // o ego do dono e fecha a porta. E dizer QUEM FALA antes de dizer o que se viu.
 // Vizinho fala com vizinho: a abertura diz de onde ele e antes de qualquer pedido.
-function aberturaLocal(variante) {
-  return SALES_PLAYBOOK.experiment.localOpenings[variante === 'B' ? 'B' : 'A'];
+// {{nicho}} vem de nichoDoSegmento(). Quando ele volta vazio sobra "presença digital ."
+// com espaco antes do ponto, entao a limpeza tem que acontecer aqui e nao no template.
+function aplicarNicho(template, seg) {
+  return template.replaceAll('{{nicho}}', nichoDoSegmento(seg)).replace(/\s+\./g, '.');
+}
+
+function aberturaLocal(variante, seg) {
+  return aplicarNicho(SALES_PLAYBOOK.experiment.localOpenings[variante === 'B' ? 'B' : 'A'], seg);
+}
+
+// Vizinho de regiao, nao de cidade. Usada so quando ehRegional() e verdadeiro: ver
+// CIDADES_REGIAO acima para o motivo de nao aplicar isso em lead nacional.
+function aberturaRegional(variante, seg) {
+  return aplicarNicho(SALES_PLAYBOOK.experiment.regionalOpenings[variante === 'B' ? 'B' : 'A'], seg);
 }
 
 // Teste A/B da abertura (31/07). A = saudacao atual, ja com 1 resposta em 7 disparos.
 // B = sem "tudo bem?", mais direto, mas mantendo o nome: numero desconhecido sem
 // identificacao aumenta denuncia. Alterna por empresa para dar leitura comparavel.
 // A declaracao de papel entra nas DUAS variantes, para nao contaminar o teste.
-function abertura(variante) {
-  return SALES_PLAYBOOK.experiment.openings[variante === 'B' ? 'B' : 'A'];
+function abertura(variante, seg) {
+  return aplicarNicho(SALES_PLAYBOOK.experiment.openings[variante === 'B' ? 'B' : 'A'], seg);
 }
 
 // Segmento pelo nome da empresa. Serve para elogiar com a palavra certa e para
@@ -225,10 +285,25 @@ const SEGMENTOS = [
     prova: 'automação e elétrica industrial' },
   { re: /refrigera|climatiza|ar.condicionado|exaust/i, nome: 'climatizacao', b2b: false,
     prova: 'climatização e refrigeração' },
+  // Saude entrou na base em 09/2026 (odontologia e radiologia odontologica). Precisa
+  // existir como segmento por um motivo so: a declaracao de papel. Clinica que recebe
+  // "trabalho com presenca digital de industria" le disparo em massa e encerra ali.
+  // semProva: o ramo nao tem substantivo que encaixe depois de "em" nem de "precisa de".
+  // Sem essa marca sai "o tamanho do trabalho de voces em o atendimento de voces".
+  { re: /odonto|dent[ií]st|cl[ií]nic|radiolog|consult[oó]rio|sa[uú]de|m[eé]dic/i, nome: 'saude', b2b: false,
+    nicho: 'de clínica', prova: 'o atendimento de vocês', semProva: true },
 ];
 
+// Declaracao de papel por nicho. Vazio cai em "trabalho com presenca digital." — sem
+// qualificador e melhor que com o qualificador errado.
+function nichoDoSegmento(seg) {
+  if (seg.nicho) return seg.nicho;
+  return seg.nome === 'geral' ? '' : 'de indústria';
+}
+
 function detectarSegmento(empresa) {
-  return SEGMENTOS.find((s) => s.re.test(empresa)) || { nome: 'geral', b2b: true, prova: 'o serviço de vocês' };
+  return SEGMENTOS.find((s) => s.re.test(empresa))
+    || { nome: 'geral', b2b: true, prova: 'o serviço de vocês', semProva: true };
 }
 
 // Friccao como HIPOTESE, nao como promessa (v3, 31/08). Ate a v2 esta frase afirmava o
@@ -265,17 +340,27 @@ function ehSiteProprio(url) {
 // do que quer dizer: uma avaliacao nao mostra cliente que volta.
 const MINIMO_AVALIACOES = 5;
 
-function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
+function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante, mecanismo = 'indicacao' }) {
   const seed = [...empresa].reduce((a, c) => a + c.charCodeAt(0), 0);
   const seg = detectarSegmento(empresa);
   const ab = variante || (seed % 2 === 0 ? 'A' : 'B');
   // Lead da mesma cidade recebe a versao com nome e cidade do case. Prova local
   // e mais forte que prova generica, e nao custa nada: os dois cases sao daqui.
+  // v4: quem e da regiao mas nao da cidade fica no degrau do meio; nacional nao
+  // recebe marca geografica nenhuma. Ver CIDADES_REGIAO.
   const local = ehLocal(cidade);
-  const OI = local ? aberturaLocal(ab) : abertura(ab);
+  const regional = !local && ehRegional(cidade);
+  const OI = local ? aberturaLocal(ab, seg) : regional ? aberturaRegional(ab, seg) : abertura(ab, seg);
   // v3: o fecho e pergunta, nao CTA. O case (ctaLocal/ctaDoSegmento) so aparece no M1,
   // depois que o lead reconhece a friccao — ver followups no sales-playbook.json.
-  const PERGUNTA = temSite ? perguntaDeReconhecimento(seg) : PERGUNTA_SEM_SITE;
+  // v4: com site, o eixo padrao passou a ser a indicacao. mecanismo:'friccao' volta
+  // ao eixo de orcamento da v3 sem precisar editar o gerador.
+  const usaIndicacao = mecanismo !== 'friccao';
+  const PERGUNTA = !temSite
+    ? PERGUNTA_SEM_SITE
+    : usaIndicacao
+      ? PERGUNTA_INDICACAO
+      : perguntaDeReconhecimento(seg);
   // O bloco 2 ja nomeou o ramo ("...o tamanho do trabalho de voces em peca usinada sob
   // desenho"). Repetir a mesma expressao no bloco seguinte soa robotico e entrega o
   // template, entao aqui a referencia e por demonstrativo. Segmento 'geral' nao tem ramo
@@ -291,7 +376,7 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
   // Segmento 'geral' tem prova = "o servico de voces", que nao encaixa depois de
   // "em": sairia "o tamanho do trabalho de voces em o servico de voces". Erro de
   // portugues indo pro lead, justamente vendendo pagina.
-  const emProva = seg.nome === 'geral' ? '' : ` em ${seg.prova}`;
+  const emProva = seg.semProva ? '' : ` em ${seg.prova}`;
 
   // FORMATO CANONICO v3 (31/08): 4 blocos curtos, um degrau de consciencia por vez.
   // 1) quem fala, papel declarado          2) sinal concreto, sempre positivo
@@ -307,13 +392,17 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante }) {
     // servico de voces". Sem segmento nomeavel, vai a ponte que nao nomeia nada.
     // ANTI-INVENCAO: a ponte descreve o caminho do comprador, nunca afirma que o lead
     // esta perdendo cliente. Perda sem prova e a acusacao que fecha a porta.
-    const ponte = seg.nome === 'geral'
-      ? `Hoje o comprador costuma pesquisar antes de ligar, e sem uma página própria ele junta essa informação em outro canal.`
+    const ponte = seg.semProva
+      ? `Hoje quem procura vocês costuma pesquisar antes de ligar, e sem uma página própria essa pessoa junta a informação em outro canal.`
       : `Hoje quem precisa de ${seg.prova} costuma pesquisar antes de ligar, e sem uma página própria essa pessoa junta a informação em outro canal.`;
     return `${OI}\n\n${prova}\n\n${ponte}\n\n${PERGUNTA}`;
   }
 
-  return `${OI}\n\nPassei pelo site da ${nomeCurto}${ondeLocal}${fechaAposto} e dá pra ver o tamanho do trabalho de vocês${emProva}.\n\nUma coisa que escuto direto de ${comQuem}: ${hipoteseDeFriccao(seg)}. ${detalheDaFriccao(seg)}\n\n${PERGUNTA}`;
+  const ponteComSite = usaIndicacao
+    ? PONTE_INDICACAO
+    : `Uma coisa que escuto direto de ${comQuem}: ${hipoteseDeFriccao(seg)}. ${detalheDaFriccao(seg)}`;
+
+  return `${OI}\n\nPassei pelo site da ${nomeCurto}${ondeLocal}${fechaAposto} e dá pra ver o tamanho do trabalho de vocês${emProva}.\n\n${ponteComSite}\n\n${PERGUNTA}`;
 }
 
 function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {
@@ -343,7 +432,7 @@ function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {
 
 // Reaproveitado por scripts/generate-copies-db.mjs, que gera copy para lead que entrou
 // pela puxada por cidade e por isso NAO tem pagina de auditoria em huberick-temp.
-module.exports = { gerarCopy, detectarSegmento, ehLocal, ehSiteProprio, SEGMENTOS, MINIMO_AVALIACOES };
+module.exports = { gerarCopy, detectarSegmento, ehLocal, ehRegional, ehSiteProprio, SEGMENTOS, MINIMO_AVALIACOES, NOTA_MINIMA };
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 // So roda a varredura de arquivos quando chamado direto na linha de comando.
