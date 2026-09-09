@@ -1,3 +1,4 @@
+import { withGaHostnameScope } from "@/lib/googleAnalyticsScope";
 import { getAccessToken, hasServiceAccount, SCOPE_ANALYTICS } from "@/lib/googleServiceAccount";
 
 // Acesso de leitura ao GA4 (Data API) via service account. A autenticacao mora em
@@ -28,11 +29,16 @@ async function runReport(body: Record<string, unknown>): Promise<ReportResponse 
   const token = await getAccessToken(SCOPE_ANALYTICS);
   if (!token || !PROPERTY_ID) return null;
 
+  // O recorte de host entra AQUI, e nao em cada chamada: a propriedade e
+  // compartilhada com OStrack, link-in-bio e previews da Vercel, e uma consulta
+  // nova que esquecesse o filtro voltaria a somar tudo sem ninguem perceber.
+  const escopado = withGaHostnameScope(body);
+
   try {
     const res = await fetch(`${DATA_API}/properties/${PROPERTY_ID}:runReport`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(escopado),
       cache: "no-store",
     });
     if (!res.ok) return null;

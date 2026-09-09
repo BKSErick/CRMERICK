@@ -13,6 +13,7 @@
 // modulo de rede junto.
 import type { GaDayRow, GaDeviceRow, GaEventRow, GaPageRow, GaSourceRow } from "./googleAnalytics.ts";
 import type { GscRow, GscTotals } from "./searchConsole.ts";
+import { isMydrionCtaEvent, isMydrionLeadEvent } from "./googleEventTaxonomy.ts";
 
 export type RankedRow = { label: string; value: number; share: number; extra?: string };
 
@@ -90,15 +91,13 @@ export function dedupeEvents(events: GaEventRow[]): GaEventRow[] {
   return [...grupos.values()];
 }
 
-// Classificacao por PADRAO, nao por lista fixa de nomes.
+// Clique e lead saem da taxonomia explicita (googleEventTaxonomy).
 //
-// A lista fixa era `diagnostico_*`, que vem das paginas de diagnostico do
-// huberick — e essa propriedade do GA4 nunca recebeu nenhum deles. Resultado: o
-// funil mostrava 0 clique enquanto existiam `click`, `blog_internal_link_click`
-// e `ostrack_acimon_cta` no periodo. Cada pagina nova batiza os eventos do seu
-// jeito, entao casar por padrao envelhece melhor.
-const PADRAO_LEAD = /whatsapp|generatelead|lead$/;
-const PADRAO_CTA = /click|cta/;
+// A primeira versao classificava por padrao amplo (/click|cta/) para corrigir a
+// lista `diagnostico_*`, que esta propriedade nunca recebeu. Mas o padrao amplo
+// trocou um erro por outro: passou a somar `click` generico, o link interno do
+// blog e o CTA do OStrack, misturando propriedades diferentes num numero
+// apresentado como desempenho do site da Mydrion.
 const PADRAO_VENDA = /^purchase$/;
 
 export function buildGoogleInsights(input: {
@@ -117,6 +116,8 @@ export function buildGoogleInsights(input: {
   const eventos = dedupeEvents(input.events);
   const somaOnde = (teste: (chave: string) => boolean) =>
     eventos.reduce((total, row) => (teste(normalizeEventKey(row.eventName)) ? total + row.eventCount : total), 0);
+  const somaEventos = (teste: (eventName: string) => boolean) =>
+    eventos.reduce((total, row) => (teste(row.eventName) ? total + row.eventCount : total), 0);
 
   const sessions = input.daily.reduce((acc, d) => acc + d.sessions, 0);
   const pageView = eventos.find((row) => normalizeEventKey(row.eventName) === "pageview");
@@ -126,10 +127,10 @@ export function buildGoogleInsights(input: {
   // institucional, organico) contaria a mesma visita varias vezes e inflaria a
   // base do funil justamente onde ela precisa ser conservadora.
   const views = pageView?.eventCount ?? 0;
-  const leads = somaOnde((chave) => PADRAO_LEAD.test(chave));
+  // A taxonomia ja separa clique de lead, entao nao ha risco de contar duas vezes.
+  const leads = somaEventos(isMydrionLeadEvent);
+  const ctaClicks = somaEventos(isMydrionCtaEvent);
   const sales = somaOnde((chave) => PADRAO_VENDA.test(chave));
-  // Lead ja e um passo adiante: nao pode contar de novo como clique.
-  const ctaClicks = somaOnde((chave) => PADRAO_CTA.test(chave) && !PADRAO_LEAD.test(chave));
 
   const analytics: GoogleInsightsReport["analytics"] = {
     configured: input.gaConfigured,
@@ -259,7 +260,9 @@ export function buildGoogleInsights(input: {
   // NENHUM evento de clique registrado quase sempre e pagina que nao instrumentou
   // o botao; ja zero clique havendo evento de clique no periodo e comportamento.
   if (input.gaConfigured && views > 0 && ctaClicks === 0) {
-    const temAlgumClique = eventos.some((row) => PADRAO_CTA.test(normalizeEventKey(row.eventName)));
+    // "Existe evento de clique" aqui e sobre a taxonomia da Mydrion: clique de
+    // outra propriedade nao prova que ESTE site instrumentou os botoes dele.
+    const temAlgumClique = eventos.some((row) => isMydrionCtaEvent(row.eventName));
     diagnosis.push({
       level: "atencao",
       title: "Nenhum clique em CTA medido",

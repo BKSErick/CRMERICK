@@ -41,10 +41,7 @@ test("o mesmo evento em PascalCase e snake_case nao conta duas vezes", () => {
   assert.equal(unicos.find((e) => normalizeEventKey(e.eventName).startsWith("ostrack"))?.eventCount, 31);
 });
 
-test("clique e lead sao classificados por padrao, nao por lista fixa de nomes", () => {
-  // A lista fixa era `diagnostico_*` e esta propriedade nunca recebeu nenhum:
-  // o funil mostrava 0 clique enquanto existiam click, blog_internal_link_click
-  // e ostrack_acimon_cta no periodo.
+test("CTA Mydrion usa taxonomia explicita sem misturar outras origens", () => {
   const { analytics } = buildGoogleInsights({
     ...base,
     events: [
@@ -54,25 +51,26 @@ test("clique e lead sao classificados por padrao, nao por lista fixa de nomes", 
       { eventName: "OStrackAcimonCta", eventCount: 1, activeUsers: 1 },
       { eventName: "ostrack_acimon_cta", eventCount: 1, activeUsers: 1 },
       { eventName: "diagnostico_whatsapp_click", eventCount: 2, activeUsers: 2 },
-      { eventName: "blog_index_view", eventCount: 9, activeUsers: 8 },
-      { eventName: "organic_page_view", eventCount: 25, activeUsers: 20 },
+      { eventName: "diagnostico_link_click", eventCount: 8, activeUsers: 7 },
+      { eventName: "mydrion_cta_click", eventCount: 4, activeUsers: 3 },
+      { eventName: "organic_cta_click", eventCount: 2, activeUsers: 2 },
+      { eventName: "blog_cta_click", eventCount: 1, activeUsers: 1 },
+      { eventName: "generate_lead", eventCount: 2, activeUsers: 2 },
     ],
   });
 
-  assert.equal(analytics.ctaClicks, 18, "click 14 + blog link 3 + cta 1, sem dobrar o par PascalCase/snake");
-  assert.equal(analytics.leads, 2, "whatsapp click e lead, nao clique");
-  assert.equal(analytics.views, 258, "so o page_view padrao: *_view customizado inflaria a base");
+  assert.equal(analytics.ctaClicks, 7, "canonico 4 + organico legado 2 + blog legado 1");
+  assert.equal(analytics.leads, 2, "somente generate_lead da Mydrion");
+  assert.equal(analytics.views, 258);
 });
 
-test("funil do GA4 soma os eventos certos por passo", () => {
+test("funil do GA4 soma os eventos Mydrion certos por passo", () => {
   const { analytics } = buildGoogleInsights({
     ...base,
     events: [
       { eventName: "page_view", eventCount: 100, activeUsers: 62 },
-      { eventName: "diagnostico_view", eventCount: 20, activeUsers: 15 },
-      { eventName: "diagnostico_link_click", eventCount: 8, activeUsers: 7 },
-      { eventName: "diagnostico_report_click", eventCount: 2, activeUsers: 2 },
-      { eventName: "diagnostico_whatsapp_click", eventCount: 3, activeUsers: 3 },
+      { eventName: "mydrion_cta_click", eventCount: 10, activeUsers: 7 },
+      { eventName: "generate_lead", eventCount: 3, activeUsers: 3 },
       { eventName: "purchase", eventCount: 1, activeUsers: 1 },
     ],
     daily: [
@@ -81,8 +79,8 @@ test("funil do GA4 soma os eventos certos por passo", () => {
     ],
   });
 
-  assert.equal(analytics.views, 100, "so o page_view: somar diagnostico_view contaria a mesma visita duas vezes");
-  assert.equal(analytics.ctaClicks, 10, "link 8 + report 2; o whatsapp_click e lead, nao clique");
+  assert.equal(analytics.views, 100);
+  assert.equal(analytics.ctaClicks, 10);
   assert.equal(analytics.leads, 3);
   assert.equal(analytics.sales, 1);
   assert.equal(analytics.sessions, 70, "sessoes vem da serie diaria, nao dos eventos");
@@ -192,14 +190,15 @@ test("zero clique nao vira acusacao de comportamento quando pode ser tracking", 
   assert.match(aviso.message, /confira se os botoes/);
   assert.doesNotMatch(aviso.message, /nao esta pedindo acao/);
 
-  // Havendo evento de clique registrado (ainda que de outra pagina), zero passa a
-  // ser comportamento de verdade.
+  // Havendo evento de clique DA MYDRION registrado, zero passa a ser comportamento
+  // de verdade. Clique de outra propriedade nao serve de prova: `click` generico
+  // do OStrack nao diz nada sobre o site institucional ter instrumentado botao.
   const comInstrumentacao = buildGoogleInsights({
     ...base,
     gscConfigured: false,
     events: [
       { eventName: "page_view", eventCount: 258, activeUsers: 120 },
-      { eventName: "click", eventCount: 0, activeUsers: 0 },
+      { eventName: "mydrion_cta_click", eventCount: 0, activeUsers: 0 },
     ],
   });
   const aviso2 = comInstrumentacao.diagnosis.find((d) => /Nenhum clique em CTA/.test(d.title));
@@ -213,7 +212,7 @@ test("clique que nao vira lead e apontado separado", () => {
     gscConfigured: false,
     events: [
       { eventName: "page_view", eventCount: 258, activeUsers: 143 },
-      { eventName: "click", eventCount: 18, activeUsers: 12 },
+      { eventName: "mydrion_cta_click", eventCount: 18, activeUsers: 12 },
     ],
   });
   const aviso = report.diagnosis.find((d) => /nao vira lead/.test(d.title));
