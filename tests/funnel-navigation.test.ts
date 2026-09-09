@@ -73,9 +73,21 @@ test("Visao geral remove abas decorativas e preserva filtros de fonte", () => {
   for (const obsolete of ["Winners na pratica", "Fluxo 7 automacoes", "Indicacao Landing"]) {
     assert.doesNotMatch(funil, new RegExp(obsolete));
   }
-  for (const source of ["Consolidado", "Pipeline", "Instagram", "Facebook Pixel", "Google Analytics"]) {
+  for (const source of ["Consolidado", "Pipeline", "Instagram", "Facebook Pixel", "Google Analytics", "E-mail"]) {
     assert.match(funil, new RegExp(source));
   }
+});
+
+test("abas de e-mail e Google trocam o painel inteiro e escondem o placar herdado", () => {
+  const funil = pages.find((page) => page.route === "funil")?.source ?? "";
+  // Nenhuma das duas cabe no funil de 6 passos: entrega, bounce, impressao e
+  // posicao media nao tem equivalente em alcance/cliques/vendas. Entao cada uma
+  // substitui o painel em vez de forcar os dados no formato do outro.
+  assert.match(funil, /activeSource === "email" \? <EmailFunnelPanel \/>/);
+  assert.match(funil, /activeSource === "google" \? <GooglePanel \/>/);
+  // O placar do topo segue a fonte ativa: mantido nessas abas, mostraria o numero
+  // do consolidado sob o rotulo "Conversao total".
+  assert.match(funil, /activeSource === "email" \|\| activeSource === "google" \? null : \(\s*<aside className="funnel-score">/);
 });
 
 test("links das subabas preservam o tratamento responsivo e o foco de teclado", () => {

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { EmailFunnelPanel } from "@/components/EmailFunnelPanel";
 import { FunnelSubnav } from "@/components/FunnelSubnav";
+import { GooglePanel } from "@/components/GooglePanel";
 import { useCRMStore, type DealStage } from "@/store/useCRMStore";
 import type { LossAnalysis } from "@/lib/dealLossReasons.mjs";
 
@@ -11,6 +13,10 @@ type InstagramState =
   | { status: "fallback"; reach: null; message: string };
 
 type FunnelSource = "consolidado" | "pipeline" | "instagram" | "facebook" | "google";
+// E-mail nao entra em FunnelSource porque nao compartilha o funil de 6 passos:
+// entrega, abertura e bounce nao tem equivalente em alcance/cliques/vendas. A aba
+// troca o painel inteiro em vez de forcar os dados num formato que nao e o deles.
+type FunnelTab = FunnelSource | "email";
 type PixelState = {
   status: "loading" | "ready" | "fallback";
   configured: boolean;
@@ -81,7 +87,7 @@ export default function FunilPage() {
     reach: null,
     message: "Buscando metricas do Instagram...",
   });
-  const [activeSource, setActiveSource] = useState<FunnelSource>("consolidado");
+  const [activeSource, setActiveSource] = useState<FunnelTab>("consolidado");
   const [pixel, setPixel] = useState<PixelState>({
     status: "loading",
     configured: false,
@@ -339,7 +345,9 @@ export default function FunilPage() {
       sourceLabel: string;
     }>;
 
-    const selected = sourceMetrics[activeSource];
+    // A aba de e-mail troca o painel inteiro, entao este bloco nunca aparece nela:
+    // cai no consolidado so para o hook manter um retorno valido.
+    const selected = sourceMetrics[activeSource === "email" ? "consolidado" : activeSource];
     const { reach, clicks } = selected;
     const conversion = reach > 0 ? (selected.won / reach) * 100 : 0;
 
@@ -430,11 +438,16 @@ export default function FunilPage() {
             O desenho de cada funil de aquisicao nasce a cada resposta concreta, cada passo e a acao que a IA dispara em cada passo para destravar.
           </p>
         </div>
-        <aside className="funnel-score">
-          <span>Conversao total</span>
-          <strong>{funnel.conversion.toFixed(2).replace(".", ",")}%</strong>
-          <small>Alcance para vendas</small>
-        </aside>
+        {/* O placar segue a fonte ativa. Nas abas que trocam o painel inteiro ele
+            mostraria o numero do consolidado sob o rotulo errado, entao some: cada
+            painel proprio tem seu indicador (entrega no e-mail, CTR no Google). */}
+        {activeSource === "email" || activeSource === "google" ? null : (
+          <aside className="funnel-score">
+            <span>Conversao total</span>
+            <strong>{funnel.conversion.toFixed(2).replace(".", ",")}%</strong>
+            <small>Alcance para vendas</small>
+          </aside>
+        )}
       </header>
 
       <FunnelSubnav />
@@ -446,11 +459,12 @@ export default function FunilPage() {
           ["instagram", "Instagram"],
           ["facebook", "Facebook Pixel"],
           ["google", "Google Analytics"],
+          ["email", "E-mail"],
         ].map(([source, label]) => (
           <button
             className={activeSource === source ? "active" : ""}
             key={source}
-            onClick={() => setActiveSource(source as FunnelSource)}
+            onClick={() => setActiveSource(source as FunnelTab)}
             type="button"
           >
             {label}
@@ -458,6 +472,7 @@ export default function FunilPage() {
         ))}
       </div>
 
+      {activeSource === "email" ? <EmailFunnelPanel /> : activeSource === "google" ? <GooglePanel /> : (
       <div className="editorial-funnel-panel">
         <div className="editorial-funnel-panel-header">
           <div>
@@ -507,13 +522,9 @@ export default function FunilPage() {
           <article>
             <span>Diagnostico</span>
             <strong>{bottleneck}</strong>
-            <p>
-              {activeSource === "facebook"
-                ? pixel.message
-                : activeSource === "google"
-                  ? google.message
-                  : instagram.message}
-            </p>
+            {/* Google saiu daqui: a aba tem painel proprio, entao este bloco so e
+                alcancado por consolidado, pipeline, instagram e facebook. */}
+            <p>{activeSource === "facebook" ? pixel.message : instagram.message}</p>
           </article>
           <article>
             <span>Pipeline</span>
@@ -617,6 +628,7 @@ export default function FunilPage() {
           </article>
         </div>
       </div>
+      )}
     </section>
   );
 }

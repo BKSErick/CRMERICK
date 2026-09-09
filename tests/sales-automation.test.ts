@@ -50,7 +50,9 @@ test("follow-ups saem do playbook compartilhado e cada toque traz angulo novo", 
   const m2 = renderFollowupMessage({ tier: "M2", company: "Acme Usinagem", segment: "usinagem", city: "Joao Monlevade" });
   const m3 = renderFollowupMessage({ tier: "M3", company: "Acme Usinagem", segment: "usinagem" });
   assert.match(m1, /or[cç]amento|Material/i);
-  assert.match(m2, /Ficha de Escopo/i);
+  // O mecanismo virou "Pedido Pronto" no reposicionamento; "Ficha de Escopo" morreu
+  // e o site e a fonte da verdade. Este teste tinha ficado para tras da copy.
+  assert.match(m2, /Pedido Pronto/i);
   assert.match(m3, /[uú]ltima mensagem/i);
   assert.equal(new Set([m1, m2, m3]).size, 3);
 });

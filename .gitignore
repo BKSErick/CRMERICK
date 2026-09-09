@@ -32,6 +32,8 @@ lista-de-ataque.html
 # Dados do disparo de email (PII) — nao commitar
 scripts/email/email_queue.json
 scripts/email/sent_log.json
+# Enderecos bloqueados por hard bounce/spam: e lista de e-mail de lead real.
+scripts/email/blocklist.json
 preview-emails.html
 
 # Reconciliacao WhatsApp x CRM (PII: telefones e transcricao de conversa)
