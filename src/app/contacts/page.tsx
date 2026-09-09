@@ -314,7 +314,7 @@ export default function ContactsPage() {
                 ) : (
                   <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
                     {detail.activities.map((a, i) => (
-                      <li key={i} style={{ borderLeft: "2px solid var(--line, #e0dcec)", paddingLeft: "12px" }}>
+                      <li key={i} style={{ borderLeft: "2px solid var(--line, #dedbd3)", paddingLeft: "12px" }}>
                         <div style={{ fontSize: "13px", fontWeight: 600 }}>{activityLabel[a.type ?? "note"] ?? a.type}</div>
                         <div className="muted-copy" style={{ fontSize: "12px" }}>{a.description}</div>
                         <div className="muted-copy" style={{ fontSize: "11px" }}>{fmtDate(a.created_at)}</div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -16,6 +17,8 @@ const iconPaths: Record<string, string> = {
   funil: "M4 4h16l-6 7v6l-4 3v-9L4 4z",
   pipeline: "M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01",
   lista: "M4 5h16 M4 12h16 M4 19h16",
+  emails: "M3 5h18v14H3z M3 7l9 6 9-6",
+  automacoes: "M4 6h7 M15 6h5 M13 4v4 M4 12h3 M11 12h9 M9 10v4 M4 18h9 M17 18h3 M15 16v4",
   insights: "M9 21h6 M10 3.2a6 6 0 0 0-2 11.1c.6.5 1 1.3 1 2.1V17h6v-.6c0-.8.4-1.6 1-2.1A6 6 0 0 0 10 3.2z",
   contacts: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M23 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8",
   conteudo: "M3 3h18v18H3z M8.5 8.5h.01 M21 15l-5-5L5 21",
@@ -55,13 +58,17 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar" id="sidebar">
-      <div className="sidebar-brand">
-        <div className="sidebar-logo">H</div>
-        <div>
-          <div className="sidebar-brand-text">Hub</div>
-          <div className="sidebar-brand-sub">Operacional</div>
-        </div>
-      </div>
+      <Link className="sidebar-brand" href="/" aria-label="Mydrion CRM, início">
+        <Image
+          className="sidebar-wordmark"
+          src="/brand/mydrion-contract.svg"
+          alt="Mydrion"
+          width={1502}
+          height={251}
+          priority
+        />
+        <span className="sidebar-brand-sub">Operação comercial</span>
+      </Link>
 
       <nav className="sidebar-nav" aria-label="Navegacao principal">
         {groups.map((group) => (

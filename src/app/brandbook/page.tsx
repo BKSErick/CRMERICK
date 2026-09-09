@@ -119,7 +119,7 @@ export default function BrandbookPage() {
         <div className="page-header-left">
           <h1>Brandbook</h1>
           <div className="subtitle">
-            Fonte de verdade da marca, do posicionamento e da narrativa. Governa conteudo, copy, funil, oferta e agentes do Hub Operacional.
+            Fonte de verdade da marca, do posicionamento e da narrativa. Governa conteudo, copy, funil, oferta e agentes da operacao comercial Mydrion.
           </div>
         </div>
         <div className="page-header-right">

@@ -116,8 +116,8 @@ export default function NorthStarPage() {
           </div>
 
           <div className="card" style={{ margin: "8px 0 24px" }}>
-            <div style={{ height: "10px", borderRadius: "6px", background: "var(--color-cloud, #e8e8e8)", overflow: "hidden" }}>
-              <span style={{ display: "block", height: "100%", width: `${Math.min(100, data.pct * 100)}%`, background: "var(--color-brand-violet, #7b68ee)" }} />
+            <div style={{ height: "10px", borderRadius: "6px", background: "var(--color-line, #e8e8e8)", overflow: "hidden" }}>
+              <span style={{ display: "block", height: "100%", width: `${Math.min(100, data.pct * 100)}%`, background: "var(--color-brand-accent, #8d5c25)" }} />
             </div>
           </div>
 

@@ -76,14 +76,14 @@ comprador industrial desconta autoridade de influenciador.
 
 ### Link
 
-Um só, e direto para conversa: `wa.me/55<DDD><NUMERO>?text=Vi%20seu%20perfil%20e%20quero%20entender%20a%20Ficha%20de%20Escopo`
+Um só, e direto para conversa: `wa.me/55<DDD><NUMERO>?text=Vi%20seu%20perfil%20e%20quero%20entender%20a%20Pedido%20Pronto`
 
 Não use agregador de links. Três opções na tela é uma decisão a mais para quem já estava
 disposto a falar com você.
 
 ### Destaques fixos (ordem importa)
 
-1. **Ficha de Escopo** — o mecanismo, com a tela e os campos reais
+1. **Pedido Pronto** — o mecanismo, com a tela e os campos reais
 2. **Metalthec** — case de usinagem e caldeiraria
 3. **Jotta** — case de manutenção industrial (nunca "predial")
 4. **Bastidor** — o Herói: a operação rodando, a disciplina
@@ -103,7 +103,7 @@ disposto a falar com você.
 ### Headline (220 caracteres)
 
 ```
-Sistemas, automações e páginas para indústria | O pedido do cliente chega já com serviço, medida e prazo definidos | Ficha de Escopo, ordem de serviço e PCP | Atendo o Brasil, entrega remota
+Sistemas, automações e páginas para indústria | O pedido do cliente chega já com serviço, medida e prazo definidos | Pedido Pronto, ordem de serviço e PCP | Atendo o Brasil, entrega remota
 ```
 
 189 caracteres. A headline é o que aparece em comentário, busca e convite. Ela precisa
@@ -121,7 +121,7 @@ relatório nenhum, e é onde o dinheiro vaza.
 
 O que eu faço é mudar o que chega. Antes de falar com você, o cliente informa o serviço,
 o equipamento, a medida, o material e a urgência, e anexa a foto ou o desenho. O pedido
-cai no seu WhatsApp já preenchido. Chamo isso de Ficha de Escopo, e ela é o ponto: o
+cai no seu WhatsApp já preenchido. Chamo isso de Pedido Pronto, e ela é o ponto: o
 visual da página é commodity, a triagem não é.
 
 Trabalho com usinagem, caldeiraria, recuperação, manutenção e automação industrial, no
@@ -154,7 +154,7 @@ perfil ser lido como escolha e não como necessidade.
 
 - **Cargo:** Sistemas para indústria
 - **Empresa:** Mydrion
-- **Descrição:** Páginas industriais com Ficha de Escopo e sistemas de operação (ordem de
+- **Descrição:** Páginas industriais com Pedido Pronto e sistemas de operação (ordem de
   serviço, prazo, peritagem, PCP) para usinagem, caldeiraria, manutenção e automação.
   Clientes na região: Metalthec e Jotta Manutenções.
 
@@ -162,7 +162,7 @@ perfil ser lido como escolha e não como necessidade.
 
 - **Foto:** enquadramento de ombro, fundo limpo, camisa. Sem óculos escuro, sem academia,
   sem carro. O comprador industrial lê ostentação como sinal de quem precisa aparentar.
-- **Capa:** ambiente industrial real ou a tela da Ficha de Escopo. Nunca frase motivacional
+- **Capa:** ambiente industrial real ou a tela da Pedido Pronto. Nunca frase motivacional
   sobre fundo escuro.
 
 ---
@@ -264,7 +264,7 @@ de Governante, e é o que impede o lead descartado de voltar para a fila em trê
 
 Um item só:
 
-- **Nome:** Página industrial com Ficha de Escopo
+- **Nome:** Página industrial com Pedido Pronto
 - **Descrição:** O cliente informa serviço, equipamento, medida, material e urgência, e
   anexa foto ou desenho, antes de falar com você. O pedido cai no seu WhatsApp já
   preenchido.

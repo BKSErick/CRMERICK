@@ -1,190 +1,243 @@
-# Plano de conteúdo: Instagram @euericksena
+---
+date: 2026-08-17
+last_updated: 2026-09-02
+description: Plano de montagem de conteudo do Instagram da Mydrion / @euericksena. Nivel de consciencia, sofisticacao de mercado, arquetipo por peca e pipeline de 7 passos.
+tags: [mydrion, erick-sena, conteudo, instagram, plano, montagem, willian-celso]
+status: ativo
+versao: 5.0
+---
 
-**Atualizado em 17/08/2026.** Alinhado ao `content/brandbook.json` **v4.0** e ao
-`docs/PERFIS-publicos.md`.
+# Plano de montagem de conteúdo: @euericksena
 
-> **Arquétipos, pelo v4.0:** Mago dominante (o mecanismo demonstrado), Governante na mesa
-> (preço, escopo, fronteira), Herói no bastidor (a operação rodando). Vale igual para
-> Mydrion e para Erick Sena, porque Erick é a voz da Mydrion, não uma segunda marca.
-> Regra do palco: o Mago nunca fala preço e o Governante nunca demonstra ferramenta.
->
-> **Território:** sem cidade nos posts e na bio. Proximidade só na conversa fria com lead
-> da região.
+**Reescrito em 02/09/2026, versão 5.0.** Esta versão substitui o plano de 17/08.
 
-O gate abriu: primeira venda fechada (R$997) e brandbook reescrito. Antes disso o
-conteúdo publicaria confusão com alcance.
+> **Antes de qualquer coisa, leia isto.**
+> O nome do mecanismo é **Pedido Pronto**. "Ficha de Escopo" está morto e não pode aparecer em post, legenda, roteiro ou bio.
+> A oferta vigente é **a partir de R$1.800 de setup mais R$200 por mês, no ar em 4 dias**. E ela **não é assunto de conteúdo**, pelo motivo explicado logo abaixo.
+> Fonte da verdade da copy: `apps/mydrion-site/src/data/siteContent.ts`. Se este documento divergir do site, o site ganha.
 
 ---
 
-## A regra que governa tudo: publique o insight, nunca o funil
+## 1. Por que o conteúdo sai ruim hoje
 
-Você tem 1.362 empresas industriais mapeadas e um CRM que mede consciência,
-sofisticação e travas por segmento. É repertório que ninguém no seu nicho tem.
+O diagnóstico não é falta de criatividade. É **descompasso de nível de consciência**.
 
-E é justamente por isso que ele precisa de um filtro antes de virar post.
+Quando você escreve "faço página por R$1.800 mais R$200 por mês", você está produzindo conteúdo de **nível 5** (o cara já conhece você, já quer, só falta o preço) e servindo para uma plateia que está no **nível 1 ou 2** (ela ainda nem nomeou o problema que você resolve).
 
-| Pode publicar | Nunca publicar |
-|---|---|
-| "Olhei 1.362 empresas industriais e vi um padrão" | "Abordei 317 por WhatsApp frio" |
-| "O orçamento sem escopo aparece em todo segmento" | "19% respondem minha abordagem" |
-| "Refrigeração responde mais e compra menos que usinagem" | Nome de lead que não é cliente |
-| Print da Ficha de Escopo funcionando | Print do CRM com empresas identificáveis |
+O dono de usinagem que te vê no feed não está pensando "preciso de uma página". Ele está pensando em prazo, em cliente ligando, em peça parada. Ele nunca formulou a frase "eu perco hora técnica descobrindo o que o cliente quer". **Esse é o degrau que falta, e é o único trabalho do seu conteúdo.**
 
-**Por quê:** metade dos seus seguidores locais são leads da sua própria base. Publicar
-taxa de resposta transforma o leitor em item de planilha e desvaloriza a abordagem que
-ele recebeu. O repertório vira autoridade; o funil exposto vira constrangimento.
-
-O mesmo vale para o CRM Erick: ele é ferramenta interna, **não é vitrine**. Bastidor de
-código sim, tela com nome de empresa não.
+Conteúdo aqui é elevação de consciência, um degrau por post. Não é vitrine.
 
 ---
 
-## Cadência
+## 2. Onde o seu ICP está (mapa de consciência)
 
-**3 posts por semana.** Não é número de vaidade: abaixo disso não constrói repertório,
-acima disso você entra em modo produção e a qualidade cai, o que num posicionamento de
-autoridade custa mais do que não postar.
+| Nível | Estado mental do dono | Ele já pensou | Seu conteúdo entra? |
+|---|---|---|---|
+| **1. Inconsciente** | "Meu problema é que falta cliente" | Não sabe que perde dinheiro na entrada do pedido | **SIM. Maioria dos posts.** |
+| **2. Consciente do problema** | "Perco tempo demais no WhatsApp respondendo orçamento" | Sente a dor, não sabe que tem solução | **SIM. Segundo maior volume.** |
+| **3. Consciente da solução** | "Devia ter um jeito de o cliente já mandar tudo" | Sabe que existe caminho, não conhece o seu | **SIM, com moderação.** |
+| **4. Consciente do produto** | "Esse Pedido Pronto do Erick parece resolver" | Conhece, não decidiu | Raro. É conversa de direct. |
+| **5. Mais consciente** | "Quanto custa e quando começa?" | Só falta o acordo | **NUNCA em post.** É call e proposta. |
+
+**Regra dura:** 80% do conteúdo mora nos níveis 1 e 2. Se um post só faz sentido para quem já está no nível 4, ele não é post, é mensagem de follow-up.
+
+---
+
+## 3. Sofisticação do mercado: por qual porta entrar
+
+Este é o ponto que decide se o post é ignorado ou lido, e quase ninguém acerta.
+
+**A porta "site" está queimada.** O dono de indústria ouve promessa de agência há quinze anos. "Site que vende", "presença digital", "seu concorrente está na frente". Isso é mercado em **sofisticação 4 e 5**: ele já viu todas as versões da promessa e desenvolveu imunidade. Entrar por aí é competir com ruído acumulado de uma década, e você perde antes de começar.
+
+**A porta "pedido sem escopo" está virgem.** Ninguém no nicho nomeia esse custo. Isso é mercado em **sofisticação 1**: basta enunciar com clareza e a afirmação sozinha já é diferenciação.
+
+| Porta de entrada | Sofisticação | Usar? |
+|---|---|---|
+| "Sua empresa precisa de um site" | 5, saturado | Nunca |
+| "Presença digital", "ser encontrado no Google" | 4, saturado | Nunca |
+| "O pedido chega vago e consome sua hora técnica" | 1, aberto | **Sempre** |
+| "O prazo se perde no intervalo entre etapas, não na máquina" | 1, aberto | **Sempre** |
+| "Cotação não precisa de mais gente atendendo, precisa de triagem antes" | 2, quase aberto | Sim |
+
+**Consequência prática:** o produto que você vende é página, mas o assunto do conteúdo nunca é página. O assunto é o custo invisível na entrada do pedido. A página aparece como consequência, e só quando o leitor já concordou com o problema.
+
+---
+
+## 4. Arquétipo por peça (separação do Willian Celso)
+
+Um arquétipo por post, sozinho no palco. Misturar faz o leitor ver vendedor no lugar de especialista.
+
+### Mago (dominante, cerca de 70% dos posts)
+
+O mecanismo demonstrado. A estrutura aparecendo onde antes tinha bagunça.
+
+- **Entra em:** níveis 1, 2 e 3 de consciência.
+- **Exige artefato.** Print, gravação de tela, antes e depois, diagrama. Mago sem artefato é charlatão.
+- **Nunca fala preço.** Nem "a partir de", nem "investimento", nem "cabe no seu bolso".
+- Símbolos que pertencem a ele: a ordem surgindo do caos, o campo preenchido, a linha que separa o que estava misturado.
+- Símbolos proibidos: fundo neon, glassmorphism, dashboard descontextualizado, imagem de banco.
+
+### Governante (cerca de 25%)
+
+Princípio com custo. É o arquétipo da fronteira.
+
+- **Entra em:** posts de decisão, não de ensino.
+- **Exige custo real.** "Recusei um cliente que ia pagar" vale porque doeu. "Eu prezo pela qualidade" não vale nada.
+- **Nunca demonstra ferramenta.** Se apareceu tela, virou Mago.
+- Símbolos: a fila, o painel, a etapa carimbada, a aprovação, a grade, o documento que fecha.
+- **Aqui é o único lugar onde escopo e dinheiro podem ser mencionados**, e mesmo assim como princípio, nunca como oferta. "Não dou desconto, reduzo escopo" é Governante. "R$1.800 mais R$200" é anúncio.
+
+### Herói (cerca de 5%, raro)
+
+Constância da operação. Trabalho mostrado como trabalho.
+
+- Sem vitimismo, sem madrugada épica, sem "acordei às 5h".
+- É o posto que menos vende sozinho e o mais fácil de exagerar.
+
+---
+
+## 5. O pipeline de montagem (7 passos)
+
+Este é o procedimento. Não pule passo, e não comece pelo texto.
+
+### Passo 1: escolher o nível de consciência do post
+
+Decida antes de escrever: este post fala com nível 1, 2 ou 3? Escreva o número no topo do rascunho. Se você não consegue decidir, o post ainda não existe.
+
+### Passo 2: escolher a porta de entrada
+
+Consulte a tabela da seção 3. Se a porta escolhida for "site", "presença digital" ou "marketing", **pare e troque**. A porta tem que ser um custo invisível da operação.
+
+### Passo 3: escolher o arquétipo, e só um
+
+Mago se você vai mostrar mecanismo. Governante se você vai defender uma fronteira. Herói se é constância. Escreva o nome no topo do rascunho junto com o nível.
+
+### Passo 4: escrever o hook pela dor nomeada, não pela solução
+
+O hook precisa fazer o dono pensar *"isso acontece aqui toda semana"*. Teste: se o hook funcionaria igual para uma padaria, ele é genérico demais e não serve.
+
+Formatos que funcionam neste nicho:
+- A frase que ele recebe e odeia: *"Quanto custa usinar uma peça?" é a mensagem mais cara que sua empresa recebe.*
+- A inversão contraintuitiva: *A sua máquina não é o gargalo.*
+- O custo que ninguém mede: *Ninguém cronometra o tempo até descobrir o que o cliente quer.*
+
+### Passo 5: desenvolver em três movimentos
+
+1. **Nomear o custo.** Onde exatamente o dinheiro ou o tempo vaza. Concreto, com a linguagem do chão de fábrica.
+2. **Mostrar por que o jeito antigo não resolve.** Responder mais rápido não conserta pedido vago. Atacar o processo, nunca o leitor.
+3. **Entregar o insight ou o artefato.** Aqui entra o print, o antes e depois, ou o princípio. Entregue de verdade, sem reter a parte boa para a call.
+
+### Passo 6: CTA de conversa, nunca de venda
+
+O CTA certo abre diálogo e mede intenção:
+- "Acontece aí toda semana?"
+- "Como chega o pedido de vocês hoje?"
+- "Quer ver como ficaria pro seu serviço?"
+
+CTA proibido: "chama no direct que eu te passo o valor", "link na bio", "vagas limitadas", qualquer coisa com preço.
+
+### Passo 7: rodar os checkpoints da seção 8
+
+Se falhar em qualquer um, o post não sai. Não negocie com o checklist.
+
+---
+
+## 6. Banco de ângulos, organizado por nível
+
+### Nível 1 (inconsciente): fazer ele enxergar o custo
+
+1. **O orçamento que morre antes de nascer.** A ida e volta até chegar em medida, material e prazo consome a hora mais cara da empresa, e o cliente some no meio. Mago.
+2. **O gargalo não é a máquina, é o intervalo.** O tempo que a peça passa parada esperando aprovação, terceiro ou resposta. Invisível, e é onde o prazo se perde. Mago.
+3. **O custo que não aparece em relatório nenhum.** Ninguém contabiliza hora técnica virando atendimento. Mago.
+4. **O comprador industrial não liga mais primeiro.** Ele pesquisa, compara e decide antes de te chamar. Tensão de canal, não geracional. Mago.
+
+### Nível 2 (consciente do problema): mostrar que tem saída
+
+5. **Responder rápido não resolve, receber melhor resolve.** Enquanto o pedido chegar vago, responder em dois minutos só antecipa a próxima pergunta. Mago.
+6. **Formulário e triagem não são a mesma coisa.** Formulário pergunta nome, e-mail e "mensagem". Triagem pergunta serviço, equipamento, medida, material, urgência, e pede a foto ou o desenho. Um gera lead, o outro gera orçamento. Mago.
+7. **O segmento que responde mais é o que compra menos.** Métrica de resposta engana, métrica de profundidade não. Mago. **Este é o ângulo mais forte do banco:** é contraintuitivo, é seu, e ninguém no nicho tem o repertório para escrever.
+8. **Planilha registra o que aconteceu, não mostra onde travou.** Ponte para o segundo gargalo sem vender OStrack. Mago.
+
+### Nível 3 (consciente da solução): mostrar o mecanismo funcionando
+
+9. **Pedido Pronto na tela.** Gravação: o cliente preenchendo, o pedido caindo no WhatsApp já completo. Sem narração de venda, o artefato fala. Mago.
+10. **Metalthec, o antes e o depois do que chega.** Não mostrar "o site ficou bonito". Mostrar o que mudou na mensagem que chega. Mago.
+11. **Jotta Manutenções.** Sempre **manutenção industrial**, nunca "predial". Esse erro já apareceu duas vezes e não pode aparecer em conteúdo. Mago.
+12. **A OS com etapa, responsável e tempo parado.** A fila do OStrack. Mago, com símbolo de Governante na imagem.
+
+### Governante: princípio com custo
+
+13. **Recusei um cliente que ia pagar.** Fora do ICP eu não entrego o resultado que prometo. Custou dinheiro no mês, e é por isso que vale como post.
+14. **Não dou desconto, reduzo escopo.** Preço que cede uma vez cede sempre, e no metalmecânico todo mundo conversa.
+15. **Onde eu entro e onde eu não entro.** Publicar a fronteira inteira, sem suavizar. É o que faz o resto ser lido como escolha e não como necessidade.
+16. **O que o mensal cobre, palavra por palavra.** O escopo do recorrente publicado sem letra miúda. Governante, e é a única situação em que o recorrente pode ser citado, porque o assunto é transparência de escopo e não venda.
+17. **Não prospecto quem pediu para não ser prospectado.** Princípio operacional, não discurso.
+
+### Herói: constância
+
+18. **Bastidor de construção.** Código, rotina, a mesma disciplina todo dia. Sem vitimismo e sem épico.
+
+---
+
+## 7. Cadência e proporção
+
+**3 posts por semana.** Abaixo disso não constrói repertório. Acima disso você entra em modo produção e a qualidade cai, o que num posicionamento de autoridade custa mais caro do que não postar.
 
 | Dia | Pilar | Arquétipo | Formato |
 |---|---|---|---|
-| Segunda | Prova o que Entendo | Mago / Governante | Carrossel ou vídeo falado |
-| Quarta | Prova o que Resolvo | Mago | Print, tela, antes e depois |
-| Sexta | Prova Quem Sou | Herói / Governante | Bastidor, decisão, princípio |
+| Segunda | Prova o que Entendo | Mago | Carrossel ou vídeo falado |
+| Quarta | Prova o que Resolvo | Mago com artefato | Print, tela, antes e depois |
+| Sexta | Prova Quem Sou | Governante, às vezes Herói | Vídeo falado, decisão, princípio |
 
-Proporção mensal alvo, conforme o Método 3Ps: **50 / 30 / 20** (Entendo / Quem Sou /
-Resolvo). Na prática, com 12 posts por mês: 6 de repertório, 3 a 4 de quem você é, 2 a 3
-de prova. Esta é a proporção canônica do brandbook v4.0; qualquer doc que disser 50/20/30
-está desatualizado.
+**Proporção mensal canônica, método dos 3 Prova: 50 / 30 / 20.** Em 12 posts: 6 de repertório (Entendo), 3 a 4 de quem você é (Quem Sou), 2 a 3 de prova (Resolvo). Qualquer documento que disser 50/20/30 está desatualizado.
 
----
-
-## Pilar 1 (50%): Prova o que Entendo
-
-O objetivo aqui não é ensinar. É fazer o dono de indústria pensar *"esse cara já viu a
-minha operação por dentro"*.
-
-**1. O orçamento que morre antes de nascer**
-Hook: "Quanto custa usinar uma peça?" é a mensagem mais cara que a sua empresa recebe.
-Desenvolve: a ida e volta até chegar em medida, material e prazo consome a hora do
-técnico ou a sua. E o cliente some no meio. Esse tempo não aparece em relatório nenhum.
-Arquétipo: Mago. CTA: "acontece aí toda semana?"
-
-**2. Por que o comprador industrial não liga mais primeiro**
-Hook: ele já decidiu quem vai chamar antes de te chamar.
-Desenvolve: o comprador pesquisa, compara e decide com o que encontra. Do outro lado o
-fornecedor ainda espera o telefone tocar. A tensão não é geracional, é de canal.
-
-**3. Responder rápido não resolve. Receber melhor resolve.**
-Hook: você não precisa responder mais rápido.
-Desenvolve: a virada não é velocidade de resposta, é qualidade do que chega. Enquanto o
-pedido chegar vago, responder em 2 minutos só antecipa a próxima pergunta.
-
-**4. O segmento que responde mais é o que compra menos**
-Hook: alta taxa de resposta pode ser o pior sinal do seu comercial.
-Desenvolve: operação pequena responde tudo, entende pela metade e diz não. Operação com
-pedido técnico responde menos e pede orçamento. Métrica de resposta engana; métrica de
-profundidade não.
-**Este é o post mais forte da lista.** É contraintuitivo, é seu, e nenhum concorrente
-tem o dado para escrever.
-
-**5. Ficha, não formulário**
-Hook: formulário de contato e ficha de escopo não são a mesma coisa.
-Desenvolve: formulário pergunta nome, email e "mensagem". Ficha pergunta serviço,
-equipamento, medida, material, urgência, e pede a foto ou o desenho. Um gera lead, o
-outro gera orçamento.
-
-**6. O gargalo não é a máquina**
-Hook: a sua máquina não é o gargalo. O intervalo entre as etapas é.
-Desenvolve: o tempo que a peça passa parada esperando aprovação, peça de terceiro ou
-uma resposta. É invisível e é onde o prazo se perde.
-Arquétipo: Governante. Serve de ponte para o OStrack sem vender OStrack.
+> Nota de rastreabilidade: os três pilares "prova que entendo, prova quem sou, prova que resolvo" são formulação verbatim do Willian Celso. A divisão percentual 50/30/20 é convenção interna da Mydrion, não é regra documentada dele.
 
 ---
 
-## Pilar 2 (20%): Prova o que Resolvo
+## 8. Anti-padrões: o post não sai se tiver isso
 
-**7. Metalthec, o antes e o depois do que chega**
-Não mostre "o site ficou bonito". Mostre o que mudou na mensagem que chega no WhatsApp.
-
-**8. Jotta Manutenções**
-Sempre **manutenção industrial**. Nunca "predial". Esse erro já apareceu duas vezes no
-código e não pode aparecer em conteúdo.
-
-**9. A Ficha de Escopo preenchida**
-Gravação de tela: o cliente preenchendo, e o pedido caindo no WhatsApp já completo. Sem
-narração de venda. O artefato fala.
-
-**10. A primeira venda**
-Sem valor, sem euforia. O que ela provou: que a faixa fecha. E o que ela não provou: qual
-é o teto. Honestidade aqui constrói mais autoridade que comemoração.
+1. **Preço, valor, mensalidade ou "a partir de".** Em nenhuma hipótese, nem em story, nem em legenda, nem em call to action. A única exceção é o ângulo 16, e lá o assunto é escopo, não compra.
+2. **"Ficha de Escopo".** Termo morto. O mecanismo se chama **Pedido Pronto**.
+3. **Entrar pela porta "site" ou "presença digital".** Sofisticação queimada.
+4. **Apontar falha no negócio do leitor.** "Reparei que o site de vocês está desatualizado" e variantes. Ataque o processo antigo, nunca o prospect.
+5. **Expor o funil.** Taxa de resposta, número de abordagens, nome de lead que não é cliente, print do CRM com empresa identificável. Metade dos seus seguidores locais está na sua própria base: publicar taxa de resposta transforma o leitor em item de planilha.
+6. **Mago falando preço ou Governante demonstrando ferramenta.** Quebra da regra do palco.
+7. **Promessa sem prova.** "Reduz o tempo de cotação em X%" só sai se vier de cliente medindo.
+8. **Palavras da lista de evitadas:** hackear, hacker, AI Architect, landing page, disruptivo, revolucionário, método secreto, fórmula mágica, resultado exponencial, game changer, predial.
+9. **Travessão.** Vírgula, ponto ou dois pontos.
+10. **Cidade como atributo.** Sem cravar João Monlevade nem região na bio ou no post. Proximidade só na conversa fria.
+11. **Imagem de banco.** Foto de indústria real, tela real, mão real.
+12. **Projeto não entregue apresentado como prova.** Big Festas ERP está em desenvolvimento e não sobe como case fechado.
 
 ---
 
-## Pilar 3 (30%): Prova Quem Sou
+## 9. Checkpoints antes de publicar
 
-Este é o pilar que quase todo mundo erra, porque confunde "quem sou" com rotina. Rotina
-sem princípio é diário. O que constrói o Governante é **decisão com custo**.
-
-**11. Recusei um cliente que ia pagar**
-O lead a R$600 descartado por estar fora do ICP. O princípio: cliente fora de perfil que
-fecha barato contamina a tabela por meses, e eu não entrego o resultado que prometo fora
-dele. Custou dinheiro no mês. É por isso que vale como post.
-
-**12. Não dou desconto. Reduzo escopo.**
-Hook: se você não paga o valor, eu não baixo o preço. Eu tiro coisa da entrega.
-Desenvolve: preço que cede uma vez cede sempre, e no metalmecânico todo mundo conversa.
-Arquétipo: Governante puro.
-
-**13. O que os R$150 por mês cobrem, palavra por palavra**
-Hospedagem e troca de texto e foto. Mudança maior é combinada e cobrada antes de
-executar. Publicar o escopo real do recorrente é o oposto do que o mercado faz, e é
-exatamente por isso que funciona.
-
-**14. Não prospecto quem pediu para não ser prospectado**
-A lista de não prospecção existe e é respeitada. Princípio operacional, não discurso.
-
-**15. Bastidor de construção**
-O Herói: código, madrugada, a disciplina de rodar a mesma rotina todo dia. Sem
-vitimismo e sem épico. Trabalho mostrado como trabalho.
+1. Qual nível de consciência este post atende, e ele está escrito para esse nível?
+2. Por qual porta ele entra, e essa porta está aberta ou queimada?
+3. Qual arquétipo está no palco, e ele está sozinho?
+4. Tem artefato, se for Mago? Tem custo real, se for Governante?
+5. O conteúdo ataca o processo antigo ou o prospect?
+6. Isso expõe o funil ou entrega o insight?
+7. A afirmação tem prova no CRM ou é estimativa vestida de dado?
+8. Tem preço, mensalidade ou "Ficha de Escopo" em algum canto?
+9. Existe chamada clara de conversa, sem pedir compra?
 
 ---
 
-## Formato e estética
-
-- **Identidade visual:** mantenha a base escura com violeta do design system Mydrion.
-  Ela transmite precisão técnica e já é congruente.
-- **Sem estoque genérico.** Foto de indústria real, tela real, mão real. Banco de
-  imagem destrói a prova de que você esteve lá.
-- **Legenda com respiro.** O leitor é dono de operação lendo no intervalo. Parágrafo
-  curto, sem parede de texto.
-- **Sem travessão.** Vírgula, ponto ou dois pontos.
-- **Vídeo falado vale mais que carrossel** para o Pilar 3. Princípio precisa de rosto.
-
----
-
-## Checkpoints antes de publicar
-
-Os mesmos do brandbook, mais os dois específicos deste canal:
-
-1. Isso expõe o funil ou entrega o insight?
-2. Tem nome de empresa que não é cliente com autorização?
-3. O conteúdo ataca o processo antigo ou o prospect?
-4. A afirmação tem prova no CRM ou é estimativa vestida de dado?
-5. Qual arquétipo está no palco, e está sozinho?
-6. Tem palavra da lista de evitadas do brandbook?
-7. Existe chamada clara para o próximo passo?
-
----
-
-## O que medir, e o que ignorar
+## 10. O que medir, e o que ignorar
 
 **Ignore:** seguidor, curtida, alcance. Nenhum deles paga.
 
-**Meça uma coisa só:** conversa iniciada no direct que vira lead no CRM. Registre com
-`origin = instagram` para separar do WhatsApp frio.
+**Meça uma coisa só:** conversa iniciada no direct que vira lead no CRM, com `origin = instagram` para separar do WhatsApp frio.
 
-O brandbook v3.0 é explícito nisso e vale repetir: **100% das suas conversas reais até
-hoje vieram de abordagem fria por WhatsApp.** O Instagram é sustentação de autoridade
-para quem já está falando com você, não motor de aquisição. Se em 90 dias ele não tiver
-gerado uma conversa registrada, ele não virou canal, e a conclusão honesta é reduzir a
-cadência, não dobrar a aposta.
+O Instagram é **sustentação de autoridade**, não motor de aquisição. Ele confirma em três segundos que do outro lado existe gente organizada, para quem já está falando com você. Enquanto não gerar conversa medida no CRM, ele não é canal, é aposta. E aposta honesta tem data de julgamento: se em 90 dias de cadência cumprida não houver uma conversa registrada, a conclusão é reduzir, não dobrar.
+
+---
+
+## Links
+[[Mydrion]] · [[Brandbook_Mydrion_v4]] · [[OStrack]] · [[Erick Sena]]
+
+> Origem: sessões com o clone `aios-clone-willian-celso` (17-18/08/2026 e 02/09/2026). Cópia de trabalho: `D:/001Gravity/CRM ERICK/docs/PLANO-conteudo-instagram.md`.

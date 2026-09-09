@@ -1,8 +1,9 @@
 {
   "generatedAt": "",
   "source": "v4.0 reescrito em 17/08/2026. A v3.0 corrigiu o ICP da PESSOA (Erick Sena) mas deixou a EMPRESA (Mydrion) na v2.0: sem cercadinho, falando com founder e startup, enquanto a operacao real vende para industria. Esta versao resolve a hierarquia (Mydrion e a marca, Erick e a voz, OStrack e o produto proprio), da fronteira a Mydrion, alinha o arquetipo entre marca e rosto, e define posto arquetipico proprio para o OStrack. Decisao de 17/08: territorio geografico sai do posicionamento. Atendimento e Brasil inteiro, de qualquer lugar. Proximidade continua sendo recurso de conversa na abordagem fria, nunca atributo de marca.",
-  "version": "4.0",
-  "updatedLabel": "Atualizado em Agosto/2026",
+  "version": "5.0",
+  "updatedLabel": "Atualizado em Setembro/2026",
+  "avisoParaAgentes": "LEIA ANTES DE GERAR QUALQUER COPY. 1) O mecanismo se chama PEDIDO PRONTO. 'Ficha de Escopo' e termo MORTO e nao pode aparecer em copy, post, bio, roteiro ou proposta. 2) PRECO TEM DUAS FAIXAS VIVAS POR DECISAO, confirmada pelo Erick em 02/09/2026. Isso e regra deliberada, NAO e erro e NAO deve ser 'corrigido' unificando as duas. Prospeccao fria usa R$1.000 + R$150/mes (content/sales-playbook.json). Site publico usa a partir de R$1.800 + R$200/mes (apps/mydrion-site). Use a faixa do canal em que voce esta e NUNCA cite as duas na mesma peca. R$997 e historico. 3) Preco NUNCA e assunto de conteudo de Instagram: publicar oferta e conteudo de nivel 5 de consciencia servido a uma plateia de nivel 1. Ver PLANO-conteudo-instagram.md antes de escrever post. 4) A fonte da verdade da copy publica e apps/mydrion-site/src/data/siteContent.ts no repo aios-core. Se este JSON divergir do site na COPY, o site ganha.",
   "hero": {
     "name": "Mydrion",
     "role": "Tecnologia sob medida para industria. Erick Sena e a voz e o rosto da marca.",
@@ -10,7 +11,7 @@
     "arquetipo": "Mago dominante (o mecanismo), Governante na mesa (preco e escopo), Heroi no bastidor (a operacao rodando). Mesmo arquetipo para Mydrion e Erick Sena. OStrack inverte o posto: Governante dominante, Mago no mecanismo.",
     "tese": "Cotacao nao precisa de mais gente atendendo. Precisa de triagem antes.",
     "icp": "Donos e gestores de usinagem, caldeiraria, recuperacao, manutencao e automacao industrial. Brasil inteiro, entrega remota, sem recorte geografico.",
-    "diferencial": "Mecanismo proprio demonstravel (Ficha de Escopo e OStrack) e case industrial real, nao portfolio generico de software house"
+    "diferencial": "Mecanismo proprio demonstravel (Pedido Pronto e OStrack) e case industrial real, nao portfolio generico de software house"
   },
   "sections": [
     {
@@ -48,7 +49,7 @@
         {
           "title": "Mydrion e Erick Sena",
           "badge": "Mago dominante",
-          "body": "O Mago transforma o caos do cliente em ordem, e a autoridade dele vem do mecanismo demonstrado, nunca do adjetivo. Aqui o caos e o pedido vago e a operacao tocada por planilha, WhatsApp e memoria. A ordem e a Ficha de Escopo preenchida e a fila unica com etapa e responsavel. Mago sem artefato na tela e charlatao: toda vez que o Mago fala, tem que ter tela, print ou antes e depois junto."
+          "body": "O Mago transforma o caos do cliente em ordem, e a autoridade dele vem do mecanismo demonstrado, nunca do adjetivo. Aqui o caos e o pedido vago e a operacao tocada por planilha, WhatsApp e memoria. A ordem e o Pedido Pronto preenchido e a fila unica com etapa e responsavel. Mago sem artefato na tela e charlatao: toda vez que o Mago fala, tem que ter tela, print ou antes e depois junto."
         },
         {
           "title": "Governante na mesa",
@@ -182,7 +183,7 @@
             "Eu faco o pedido do cliente chegar no seu WhatsApp ja com servico, medida e prazo definidos.",
             "Cotacao nao precisa de mais gente atendendo. Precisa de triagem antes.",
             "A Mydrion organiza o comercial e a operacao de quem fabrica.",
-            "O que faz diferenca ali nao e o visual, e a Ficha de Escopo.",
+            "O que faz diferenca ali nao e o visual, e o Pedido Pronto.",
             "Voce nao perde cliente por falta de demanda. Perde por descobrir a medida por mensagem.",
             "O comprador ja decidiu digital. O fornecedor ainda atende no grito.",
             "A sua maquina nao e o gargalo. O intervalo entre as etapas e.",
@@ -211,11 +212,11 @@
       "columns": [
         {
           "title": "Palavras-chave",
-          "items": ["Ficha de Escopo", "Triagem", "Orcamento", "Cotacao", "Hora tecnica", "Ordem de servico", "Etapa", "Tempo parado", "Rastreabilidade", "Medida", "Prazo", "Escopo", "Operacao"]
+          "items": ["Pedido Pronto", "Triagem", "Orcamento", "Cotacao", "Hora tecnica", "Ordem de servico", "Etapa", "Tempo parado", "Rastreabilidade", "Medida", "Prazo", "Escopo", "Operacao"]
         },
         {
           "title": "Palavras a evitar",
-          "items": ["Hackear o crescimento", "Hacker", "AI Architect", "Landing page", "Disruptivo", "Revolucionario", "Metodo secreto", "Formula magica", "Resultado exponencial", "Game changer", "Predial (o case Jotta e manutencao INDUSTRIAL)", "Sob medida usado sozinho, sem dizer para que problema"]
+          "items": ["Ficha de Escopo (MORTO: o mecanismo se chama Pedido Pronto)", "Hackear o crescimento", "Hacker", "AI Architect", "Landing page", "Disruptivo", "Revolucionario", "Metodo secreto", "Formula magica", "Resultado exponencial", "Game changer", "Predial (o case Jotta e manutencao INDUSTRIAL)", "Sob medida usado sozinho, sem dizer para que problema"]
         }
       ]
     },
@@ -236,7 +237,7 @@
         },
         {
           "title": "03 - O mecanismo",
-          "badge": "Ficha de Escopo",
+          "badge": "Pedido Pronto",
           "body": "A triagem tecnica que acontece antes do contato chegar no dono. Servico, equipamento, medida, material, urgencia, foto ou desenho anexados. Nao e o visual da pagina: o visual e commodity, a triagem nao. E o item que justifica o preco e o que separa a oferta de mais uma pagina."
         },
         {
@@ -252,7 +253,7 @@
         {
           "title": "06 - A escada",
           "badge": "Da pagina ao produto e a automacao",
-          "body": "A pagina com Ficha de Escopo e a porta de entrada, nao o teto. Depois vem o OStrack para quem opera ordem de servico, e depois os sistemas e automacoes sob medida para o que sobrar de trabalho manual. A escada e uma so, e cada degrau so se sobe com o anterior entregue. Entrega remota, Brasil inteiro."
+          "body": "A pagina com Pedido Pronto e a porta de entrada, nao o teto. Depois vem o OStrack para quem opera ordem de servico, e depois os sistemas e automacoes sob medida para o que sobrar de trabalho manual. A escada e uma so, e cada degrau so se sobe com o anterior entregue. Entrega remota, Brasil inteiro."
         }
       ]
     },
@@ -284,12 +285,12 @@
         {
           "title": "Meio de Funil",
           "badge": "O mecanismo na tela",
-          "body": "Ficha de Escopo funcionando, antes e depois de como o pedido chegava, print do WhatsApp com o pedido preenchido, fila do OStrack com etapa e tempo parado. Mostrar o artefato, nao o beneficio abstrato. Mago sem artefato e charlatao."
+          "body": "Pedido Pronto funcionando, antes e depois de como o pedido chegava, print do WhatsApp com o pedido preenchido, fila do OStrack com etapa e tempo parado. Mostrar o artefato, nao o beneficio abstrato. Mago sem artefato e charlatao."
         },
         {
           "title": "Fundo de Funil",
           "badge": "Call de 15 minutos com valor na mesa",
-          "body": "O CTA nao e 'quer que eu monte a ficha?', que gera trabalho e nao marca nada. E agendamento em escolha dupla, com sinalizacao de que o valor sai na call. Isso mata a negociacao improvisada por mensagem."
+          "body": "O CTA nao e 'quer que eu monte o Pedido Pronto?', que gera trabalho e nao marca nada. E agendamento em escolha dupla, com sinalizacao de que o valor sai na call. Isso mata a negociacao improvisada por mensagem."
         },
         {
           "title": "Linhas Editoriais",
@@ -308,7 +309,7 @@
           "items": [
             "'Reduz o tempo de cotacao' - precisa vir de cliente medindo, nao de estimativa",
             "'Aumenta orcamento fechado em X%' - precisa vir de dado do funil do cliente",
-            "'Ficha de Escopo' - precisa mostrar a tela com os campos reais",
+            "'Pedido Pronto' - precisa mostrar a tela com os campos reais",
             "'Rastreabilidade' e 'lead time' no OStrack - precisa vir de transicao de etapa registrada, nao de tela de demonstracao",
             "Numero de leads, taxa de resposta, faturamento - so o que estiver no CRM"
           ]
@@ -317,10 +318,13 @@
           "title": "Riscos de exagero",
           "items": [
             "Prometer volume de cliente novo: a pagina melhora a entrada do pedido, nao gera demanda",
-            "Vender o mensal de R$150 como 'a Ficha de Escopo evoluindo': o escopo e hospedagem e troca de texto e foto",
+            "Vender o mensal como 'o Pedido Pronto evoluindo': o escopo e manter a pagina no ar e trocar texto e foto",
             "Generalizar a primeira venda (cliente pequeno) como referencia de mercado",
             "Posicionar o OStrack como ERP ou como substituto de sistema fiscal",
-            "Citar case ou certificacao que nao existe"
+            "Citar case ou certificacao que nao existe",
+            "Publicar preco ou mensalidade como conteudo de Instagram: e oferta de nivel 5 servida a plateia de nivel 1",
+            "Exibir projeto ainda nao entregue como prova (Big Festas ERP esta em desenvolvimento)",
+            "Tratar o portfolio como catalogo de mercadoria em vez de repertorio da mesma tese"
           ]
         },
         {
@@ -355,13 +359,13 @@
       "cards": [
         {
           "title": "Oferta de Entrada",
-          "badge": "Pagina industrial com Ficha de Escopo",
-          "body": "R$997 de setup + R$150/mes. O mensal cobre hospedagem e troca de texto e foto; mudanca maior e combinada e cobrada a parte, sempre antes de executar. Ancora validada em 14/08/2026 com a primeira venda fechada. Cliente pequeno, entao a faixa esta provada, o teto nao."
+          "badge": "Pagina tecnica com Pedido Pronto",
+          "body": "DUAS FAIXAS VIVAS POR DECISAO, confirmada pelo Erick em 02/09/2026. E regra deliberada de canal, nao e divergencia a corrigir: nao unifique as duas. Prospeccao fria (content/sales-playbook.json, offer.setupPrice): R$1.000 de setup + R$150/mes, entrada mais baixa para abrir conversa fria. Site publico (apps/mydrion-site/src/data/siteContent.ts): a partir de R$1.800 de setup + R$200/mes, no ar em 4 dias, ancora publica mais alta. Use a faixa do canal em que voce esta: mensagem fria usa o playbook, pagina e proposta usam o site. NUNCA cite as duas na mesma peca. O mensal mantem a pagina no ar e atualizada (trocas de texto e foto); mudanca maior e combinada e cobrada a parte, sempre antes de executar. Historico: faixa validada em 14/08/2026 a R$997 com a primeira venda fechada, cliente pequeno, entao a faixa esta provada e o teto nao. Evitar a palavra 'manutencao' para o mensal: no ramo do lead ela significa OS e apontamento de hora."
         },
         {
           "title": "Mecanismo",
-          "badge": "Ficha de Escopo",
-          "body": "Triagem tecnica antes do contato chegar no dono: servico, equipamento, medida, material, urgencia, foto ou desenho. Nomeia o artefato, nao o beneficio. O industrial ja usa a palavra 'ficha' todo dia, entao nao soa a marketing, e da pra pedir: 'me manda a ficha'."
+          "badge": "Pedido Pronto",
+          "body": "Triagem tecnica antes do contato chegar no dono: servico, equipamento, medida, material, urgencia, foto ou desenho. Nomeia o resultado que o dono quer (o pedido chegando pronto), nao a burocracia de preencher. Renomeado em 02/09/2026: o nome anterior, 'Ficha de Escopo', esta MORTO e nao pode voltar em copy, post, bio ou proposta. O teste apps/mydrion-site/src/data/siteContent.test.ts trava isso automaticamente no site."
         },
         {
           "title": "Produto proprio",
@@ -375,8 +379,8 @@
         },
         {
           "title": "Prova",
-          "badge": "Metalthec e Jotta Manutencoes",
-          "body": "Metalthec (fabricacao e usinagem) para leads de usinagem e caldeiraria. Jotta Manutencoes (manutencao industrial, nunca 'predial') para manutencao, automacao e climatizacao. Regra anti-invencao: o link citado tem que ser o que sera realmente enviado."
+          "badge": "Palco e bastidor, nao catalogo",
+          "body": "O site publica 6 cases desde 31/08/2026 e eles NAO tem peso igual. PALCO (falam a lingua do cercadinho, usar em abordagem e conteudo): OStrack, Metalthec (fabricacao e usinagem), Jotta Manutencoes (manutencao industrial, nunca 'predial') e CRM Jotta. BASTIDOR (entram so como profundidade tecnica, nunca como oferta de segmento): Big Festas ERP e GT House, porque o cercadinho exclui comercio e servico padronizado. Regra do palco, definida com o clone Willian Celso em 02/09/2026: so sobe ao palco o case que pode ser contado com as palavras do cercadinho (pedido, escopo, ordem de servico, etapa, tempo parado). Portfolio exibido como catalogo de mercadoria dilui o Mago; exibido como repertorio da mesma tese, adensa. Regra anti-invencao: o link citado tem que ser o que sera realmente enviado, e Big Festas ERP esta 'Em desenvolvimento', entao nao e prova fechada."
         },
         {
           "title": "Operacao propria",
@@ -462,7 +466,7 @@
         {
           "title": "Estrutura de Post (Meio)",
           "badge": "Conteudo - Mago com artefato",
-          "body": "Hook: o pedido como ele chegava, ou a OS como ela vivia. Problema: o que faltava. Solucao: print da Ficha de Escopo preenchida no WhatsApp, ou a fila do OStrack com tempo parado. CTA: 'quer ver como ficaria pro seu servico?'."
+          "body": "Hook: o pedido como ele chegava, ou a OS como ela vivia. Problema: o que faltava. Solucao: print do Pedido Pronto preenchido no WhatsApp, ou a fila do OStrack com tempo parado. CTA: 'quer ver como ficaria pro seu servico?'. Sem preco: este post e Mago e Mago nao fala preco."
         },
         {
           "title": "Estrutura de Post (Fundo)",

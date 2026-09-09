@@ -9,6 +9,13 @@
 //
 // Defaults conservadores de propósito (proteger reputação de domínio + ToS Brevo).
 import fs from 'node:fs';
+import {
+  buildActivityPayload,
+  buildBrevoEmailPayload,
+  postActivity,
+  sentAtFromLogEntry,
+  validateMailbox,
+} from './brevo-support.mjs';
 
 const args = process.argv.slice(2);
 const arg = (k, def) => { const a = args.find(x => x.startsWith(`--${k}=`)); return a ? a.split('=').slice(1).join('=') : def; };
@@ -19,6 +26,10 @@ const TEST = arg('test', '');
 const CHECK = has('check');
 const FROM_OVERRIDE = arg('from', '');
 const THROTTLE_MS = parseInt(arg('throttle', '8000'));   // 8s entre envios
+// O dominio remetente pode nao ter MX (caso do mydrion.com.br em 08/09/2026): dai a resposta
+// do lead volta com erro e some. --reply-to manda a resposta para uma caixa que existe.
+const REPLY_TO = arg('reply-to', '');
+const REPLY_TO_EMAIL = REPLY_TO ? validateMailbox(REPLY_TO) : '';
 const DAILY_CAP = parseInt(arg('cap', '250'));           // teto duro de seguranca
 
 const envCRM = Object.fromEntries(
@@ -38,7 +49,9 @@ const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'content-type':
 const sentLogPath = 'sent_log.json';
 const sentLog = fs.existsSync(sentLogPath) ? JSON.parse(fs.readFileSync(sentLogPath, 'utf8')) : {};
 const saveLog = () => fs.writeFileSync(sentLogPath, JSON.stringify(sentLog, null, 1), 'utf8');
-const sentToday = Object.values(sentLog).filter(t => t.slice(0, 10) === new Date().toISOString().slice(0, 10)).length;
+const sentToday = Object.values(sentLog)
+  .map(sentAtFromLogEntry)
+  .filter(t => t.slice(0, 10) === new Date().toISOString().slice(0, 10)).length;
 
 async function pickSender() {
   if (FROM_OVERRIDE) {
@@ -48,9 +61,38 @@ async function pickSender() {
   const r = await fetch('https://api.brevo.com/v3/senders', { headers: BH });
   if (!r.ok) throw new Error(`senders ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const s = (await r.json()).senders || [];
-  const active = s.find(x => x.active) || s[0];
-  if (!active) throw new Error('Nenhum sender cadastrado no Brevo. Cadastre e verifique um remetente antes.');
-  return { name: active.name || 'Erick Sena', email: active.email };
+  const ativos = s.filter(x => x.active);
+  if (ativos.length === 0 && s.length === 0) throw new Error('Nenhum sender cadastrado no Brevo. Cadastre e verifique um remetente antes.');
+
+  // Escolher o PRIMEIRO ativo pegava o gmail so porque ele tem id menor, e sair de
+  // freemail joga o disparo frio em spam mesmo com o dominio autenticado na conta:
+  // o SPF/DKIM que vale e o do dominio do From. Entao a preferencia e, nesta ordem:
+  // dominio autenticado no Brevo > qualquer dominio proprio > o que sobrar.
+  let autenticados = [];
+  try {
+    const d = await fetch('https://api.brevo.com/v3/senders/domains', { headers: BH });
+    if (d.ok) {
+      autenticados = ((await d.json()).domains || [])
+        .filter(x => x.authenticated && x.verified)
+        .map(x => String(x.domain_name || x.domain || '').toLowerCase());
+    }
+  } catch { /* sem lista de dominios: cai na heuristica de freemail */ }
+
+  const FREEMAIL = ['gmail.com', 'hotmail.com', 'outlook.com', 'live.com', 'yahoo.com', 'yahoo.com.br',
+    'icloud.com', 'aol.com', 'msn.com', 'bol.com.br', 'uol.com.br', 'terra.com.br', 'ig.com.br', 'globo.com'];
+  const dominioDe = e => String(e || '').split('@')[1]?.toLowerCase() || '';
+
+  const candidatos = ativos.length ? ativos : s;
+  const escolhido =
+    candidatos.find(x => autenticados.includes(dominioDe(x.email))) ||
+    candidatos.find(x => !FREEMAIL.includes(dominioDe(x.email))) ||
+    candidatos[0];
+
+  if (FREEMAIL.includes(dominioDe(escolhido.email))) {
+    console.warn(`AVISO: remetente ${escolhido.email} e freemail. Entrega vai sofrer em disparo frio.`);
+    console.warn('       Cadastre um remetente no dominio autenticado ou passe --from="Nome <voce@dominio>".');
+  }
+  return { name: escolhido.name || 'Erick Sena', email: escolhido.email };
 }
 
 async function validate() {
@@ -61,20 +103,27 @@ async function validate() {
   console.log('CONTA:', a.email, '| plano:', JSON.stringify(a.plan?.[0] || a.plan));
   console.log('SENDER:', `${sender.name} <${sender.email}>`);
   console.log('ENVIADOS HOJE (log local):', sentToday, '/ cap', DAILY_CAP);
+
+  // Sem MX no dominio do Reply-To, a resposta do lead volta com erro e some.
+  const alvoResposta = validateMailbox(REPLY_TO_EMAIL || sender.email);
+  const dominioResposta = alvoResposta.split('@')[1];
+  console.log('RESPOSTAS VAO PARA:', alvoResposta);
+  try {
+    const { promises: dns } = await import('node:dns');
+    const mx = await dns.resolveMx(dominioResposta).catch(() => []);
+    if (!mx.length) {
+      console.warn(`\n*** ATENCAO: ${dominioResposta} NAO tem registro MX. ***`);
+      console.warn('    Resposta de lead vai voltar com erro. Configure recebimento no dominio');
+      console.warn('    ou rode com --reply-to=umendereco@quefunciona.com\n');
+    } else {
+      console.log('MX do dominio de resposta:', mx.map(m => m.exchange).join(', '));
+    }
+  } catch { /* checagem de DNS e best-effort */ }
   return { a, sender };
 }
 
 async function sendOne(sender, item) {
-  const body = {
-    sender,
-    to: [{ email: item.email, name: item.company }],
-    subject: item.subject,
-    htmlContent: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#1a1a1a">${item.html}
-<p style="font-size:11px;color:#999;margin-top:20px">Se não quiser receber mais contato, responda com "sair" que eu removo.</p></div>`,
-    replyTo: sender,
-    tags: ['diagnostico-industrial', item.semSite ? 'sem-site' : 'com-site'],
-    headers: { 'List-Unsubscribe': `<mailto:${sender.email}?subject=unsubscribe>` },
-  };
+  const body = buildBrevoEmailPayload(sender, item, REPLY_TO_EMAIL);
   const r = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', headers: BH, body: JSON.stringify(body) });
   const txt = await r.text();
   if (!r.ok) throw new Error(`${r.status}: ${txt.slice(0, 200)}`);
@@ -82,13 +131,8 @@ async function sendOne(sender, item) {
 }
 
 async function logActivity(item, messageId) {
-  try {
-    await fetch(`${SB_URL}/rest/v1/activities`, {
-      method: 'POST', headers: { ...SBH, Prefer: 'return=minimal' },
-      body: JSON.stringify({ type: 'email_sent', description: item.company,
-        created_at: new Date().toISOString() }),
-    });
-  } catch { /* nao bloqueia envio */ }
+  const payload = buildActivityPayload(item, messageId);
+  await postActivity({ fetchFn: fetch, supabaseUrl: SB_URL, headers: SBH, payload });
 }
 
 // ---- MAIN ----
@@ -114,15 +158,32 @@ if (budget <= 0) { console.log(`Cap diário atingido (${sentToday}/${DAILY_CAP})
 const batch = pending.slice(0, budget);
 console.log(`Fila pendente: ${pending.length} | vou enviar: ${batch.length} (throttle ${THROTTLE_MS}ms)`);
 
-let ok = 0, err = 0;
+let ok = 0, err = 0, crmErr = 0;
 for (const item of batch) {
   try {
     const id = await sendOne(sender, item);
-    sentLog[item.email] = new Date().toISOString();
+    const sentAt = new Date().toISOString();
+    sentLog[item.email] = {
+      sentAt,
+      messageId: id,
+      dealId: item.dealId ?? null,
+      contactId: item.contactId ?? null,
+      crmActivityLogged: false,
+    };
     saveLog();
-    await logActivity(item, id);
     ok++;
-    console.log(`✓ ${ok}/${batch.length} ${item.company} <${item.email}>`);
+    try {
+      await logActivity(item, id);
+      sentLog[item.email].crmActivityLogged = true;
+      sentLog[item.email].crmActivityLoggedAt = new Date().toISOString();
+      saveLog();
+      console.log(`✓ ${ok}/${batch.length} ${item.company} <${item.email}>`);
+    } catch (activityError) {
+      crmErr++;
+      console.error(`! EMAIL ENVIADO, mas o CRM nao registrou ${item.company}: ${activityError.message}`);
+      console.error('  O destinatario ficou no sent_log e NAO sera reenviado. Interrompendo o lote para reconciliar.');
+      break;
+    }
   } catch (e) {
     err++;
     console.log(`✗ ${item.company} <${item.email}>: ${e.message}`);
@@ -130,4 +191,5 @@ for (const item of batch) {
   }
   if (item !== batch[batch.length - 1]) await sleep(THROTTLE_MS);
 }
-console.log(`\nFim: ${ok} enviados, ${err} erros. Total hoje: ${sentToday + ok}/${DAILY_CAP}.`);
+console.log(`\nFim: ${ok} enviados, ${err} erros de envio, ${crmErr} erros de CRM. Total hoje: ${sentToday + ok}/${DAILY_CAP}.`);
+if (crmErr) process.exitCode = 2;

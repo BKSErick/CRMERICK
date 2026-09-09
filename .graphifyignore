@@ -1,0 +1,40 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dependencies and generated output
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.vercel/
+graphify-out/
+tsconfig.tsbuildinfo
+
+# PII and operational material
+data/
+logs/
+.cache/
+huberick-temp/
+public/huberick-temp/
+scratchpad/
+legacy/
+scripts/email/email_queue.json
+scripts/email/sent_log.json
+lista-de-ataque.html
+preview-emails.html
+reconciliacao-whatsapp.md
+
+# Temporary and editor files
+tmp-next-app/
+.tmp/
+tmp/
+.idea/
+.vscode/
+*.log

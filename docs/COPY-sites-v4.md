@@ -75,7 +75,7 @@ quatro degraus em sequência.
 
 **Degrau 01** (`id: "sites"`)
 - `eyebrow`: `"Entrada"`
-- `title`: `"Páginas industriais com Ficha de Escopo"`
+- `title`: `"Páginas industriais com Pedido Pronto"`
 - `body`: `"O cliente informa serviço, equipamento, medida, material e urgência, e anexa foto ou desenho, antes de falar com você. O pedido cai no WhatsApp já preenchido em vez de virar uma ida e volta até descobrir o que ele quer."`
 - `outcome`: `"Menos hora técnica virando atendimento."`
 

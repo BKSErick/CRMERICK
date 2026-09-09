@@ -320,51 +320,86 @@ export function primeiroNome(nome: string) {
 //
 // REGRA ANTI-INVENCAO: o link citado tem que ser o que sera REALMENTE enviado.
 
-export const MECANISMO = salesPlaybookModule.SALES_PLAYBOOK.mechanism;
+const SALES_PLAYBOOK = salesPlaybookModule.SALES_PLAYBOOK;
 
+export const MECANISMO = SALES_PLAYBOOK.mechanism;
+
+// `intro` e o sujeito da primeira frase da msg 2 ("Na Jotta o cliente informa...").
+// Tem que ser o MESMO case do `url`, senao a frase cita uma empresa e o link abre outra.
 const CASE_LINK = {
-  usinagem: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de usinagem" },
-  caldeiraria: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de fabricação e caldeiraria" },
-  manutencao: { url: "https://sitejotta.vercel.app/", desc: "uma manutenção industrial aqui de Monlevade" },
-  automacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção e automação industrial" },
-  climatizacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção industrial" },
-  geral: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção industrial" },
+  usinagem: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de usinagem", intro: "Na Metalthec" },
+  caldeiraria: { url: "https://site-metalthec.vercel.app/", desc: "uma metalúrgica de fabricação e caldeiraria", intro: "Na Metalthec" },
+  manutencao: { url: "https://sitejotta.vercel.app/", desc: "uma manutenção industrial aqui de Monlevade", intro: "Na Jotta" },
+  automacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção e automação industrial", intro: "Na Jotta" },
+  climatizacao: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção industrial", intro: "Na Jotta" },
+  geral: { url: "https://sitejotta.vercel.app/", desc: "uma empresa de manutenção industrial", intro: "Na Jotta" },
 } as const;
 
 export function exemploDoSegmento(segment?: string | null) {
   return CASE_LINK[(segment ?? "geral") as keyof typeof CASE_LINK] ?? CASE_LINK.geral;
 }
 
+const PRECO = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: SALES_PLAYBOOK.offer.currency,
+  minimumFractionDigits: 0,
+});
+
 /**
- * Msg 2: entra depois do "quer ver?". Estrutura:
- *   1. entrega o exemplo prometido (sem enrolar, ele disse sim pra isso)
- *   2. nomeia o MECANISMO e diz o que ele faz, em coisa concreta na tela
- *   3. traduz pro ganho operacional dele
- *   4. AGENDA: propoe call curta com valor na mesa, em escolha dupla
+ * Msg 2 — a UNICA mensagem entre a resposta do lead e a decisao. Tres blocos:
+ *   1. confirma a friccao na lingua do lead e entrega o case
+ *   2. o que seria pra empresa dele + preco e mensal, escritos
+ *   3. fecho pela vaga de producao
  *
- * O CTA mudou em 10/08/2026. Antes era "quer que eu monte a ficha?", um sim/nao
- * que gerava trabalho pro Erick e nao marcava nada: das 11 respostas do funil,
- * ZERO virou call agendada com preco na mesa. O fundo do funil nao existia --
- * a venda era tentada no proprio chat, sem etapa de reuniao.
+ * REESCRITA EM 02/09/2026, depois de ler as 142 conversas da base. O texto
+ * anterior fechava em "Te mostro em 15 min (...) amanha de manha ou a tarde?",
+ * reprovado pelo Erick em 12/08 e nunca corrigido; na pratica o que era digitado
+ * na mao terminava em "faz sentido pra voces?". Medicao: dos 54 leads que
+ * receberam o case, 11 chegaram a falar preco (20%) e 32 sumiram — e nas
+ * conversas que chegaram a preco foi quase sempre o LEAD que puxou o assunto.
+ * A msg 2 nunca teve um degrau seguinte.
  *
- * Agora fecha em agendamento (Lead -> Qualificado -> Agendamento -> Reuniao ->
- * Fechamento) e ja sinaliza que o valor sai na call, o que mata a negociacao
- * improvisada por mensagem. Preco definido: R$1.000 a pagina + R$150/mes.
+ * TRES DECISOES QUE O TEXTO CARREGA (doutrina completa em
+ * content/sales-playbook.json -> postResponse):
  *
- * NAO contamina a medicao dos 400 disparos: a msg 2 so roda DEPOIS que o lead
- * responde, entao nao mexe na taxa de resposta da msg 1, que e a variavel
- * isolada do teste.
+ * 1. PRECO ENTRA AQUI, ESCRITO. Ticket de entrada nao paga entrevista de
+ *    descoberta: o processo tem que custar menos que a venda. Em fria de ticket
+ *    baixo o preco e filtro, nao premio — quem acha caro sai agora, em vez de
+ *    consumir a semana. A versao antiga PROMETIA o valor ("ja te passo o valor
+ *    fechado"), o que gastava uma rodada inteira so pra dizer um numero.
+ *
+ * 2. O FECHO OFERECE A AGENDA, NAO PEDE APROVACAO. "Comeco quinta. Topa?"
+ *    tinha duas coisas brigando: "comeco quinta" e quem tem producao e fila,
+ *    "topa?" e quem pede licenca pra entrar. O lead sente a incongruencia antes
+ *    de ler, e quem precisa negocia de baixo (calibragem do clone Willian
+ *    Celso). A vaga de producao nao e escassez inventada: o Erick e um.
+ *
+ * 3. O MENSAL E DESCRITO POR ESTADO, NUNCA POR TRABALHO. "Manutencao" pertence
+ *    a cadeia de simbolos do CLIENTE — no ramo dele significa OS, apontamento de
+ *    hora e visita tecnica —, entao ele mediria a mensalidade com a regua dele e
+ *    o atrito apareceria na primeira cobranca extra. "Manter no ar e atualizada"
+ *    descreve estado, e ninguem conta hora de estado.
+ *
+ * O que NAO entra aqui, de proposito: pergunta de permissao, bateria de
+ * perguntas de diagnostico, pedido de foto ou lista de servicos (material so
+ * depois do sim), aprovacao de escopo, garantia de devolucao e CTA de call.
+ *
+ * NAO contamina a medicao da msg 1: a msg 2 so roda DEPOIS que o lead responde.
  */
-export function mensagemExemplo(companyRaw: string, segment?: string | null) {
+export function mensagemExemplo(companyRaw: string, segment?: string | null, proximaEntrada?: string) {
   const company = nomeCurto(companyRaw);
   const caso = exemploDoSegmento(segment);
-  return (
-    `Show! Esse é de ${caso.desc}:\n${caso.url}\n\n` +
-    `O que faz diferença ali não é o visual, é a ${MECANISMO}. ` +
-    `Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\n` +
-    `Aí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\n` +
-    `Pra ${company} seria a mesma ideia. Te mostro em 15 min como ficaria com os serviços de vocês e já te passo o valor fechado. ` +
-    `Consegue amanhã de manhã, ou prefere à tarde?`
+  const valores: Record<string, string> = {
+    caseIntro: caso.intro,
+    caseUrl: caso.url,
+    company,
+    setupPrice: PRECO.format(SALES_PLAYBOOK.offer.setupPrice),
+    monthlyPrice: PRECO.format(SALES_PLAYBOOK.offer.monthlyPrice),
+    proximaEntrada: proximaEntrada?.trim() || SALES_PLAYBOOK.postResponse.proximaEntrada,
+  };
+  return Object.entries(valores).reduce(
+    (texto, [chave, valor]) => texto.replaceAll(`{{${chave}}}`, valor),
+    SALES_PLAYBOOK.postResponse.msg2,
   );
 }
 

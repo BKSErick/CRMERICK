@@ -57,7 +57,7 @@ const CLASSIFICATION_LABELS: Record<Statement["classification"], string> = {
 const CLASSIFICATION_COLORS: Record<Statement["classification"], string> = {
   fact: "#37474f",
   rule: "#2e7d32",
-  ai_suggestion: "#6a1b9a",
+  ai_suggestion: "#8d5c25",
 };
 
 /** Busca uma resposta do copiloto. Erro vira mensagem, nunca excecao na tela. */
@@ -238,7 +238,7 @@ export function CopilotAnswerBody({ answer, allowSave = false }: CopilotAnswerBo
           {answer.suggestions.map((suggestion, index) => (
             <div
               key={`${suggestion.kind}-${suggestion.dealId}-${index}`}
-              style={{ background: "var(--color-paper)", border: "1px solid var(--color-cloud)", borderRadius: "6px", padding: "8px" }}
+              style={{ background: "var(--color-surface-muted)", border: "1px solid var(--color-line)", borderRadius: "6px", padding: "8px" }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
                 <span>
@@ -323,11 +323,11 @@ export function CopilotPanel({
   return (
     <div
       className="copilot-panel"
-      style={{ border: "1px solid var(--color-cloud)", borderRadius: "8px", padding: "12px", marginTop: "12px" }}
+      style={{ border: "1px solid var(--color-line)", borderRadius: "8px", padding: "12px", marginTop: "12px" }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
         <div>
-          <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>{title}</strong>
+          <strong style={{ fontSize: "13px", color: "var(--color-ink-950)" }}>{title}</strong>
           {hint ? <div className="muted-copy" style={{ fontSize: "11px" }}>{hint}</div> : null}
         </div>
         <button className="topbar-btn" type="button" onClick={load} disabled={loading}>

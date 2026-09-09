@@ -196,13 +196,25 @@ async function carregarFila() {
     .sort((a, b) => b.dias - a.dias);
 }
 
-async function enviar(fone, texto) {
-  const r = await fetch(`${BASE}/send/text`, {
-    method: "POST",
-    headers: { token: TOKEN, "Content-Type": "application/json" },
-    body: JSON.stringify({ number: fone, text: texto, linkPreview: false }),
-  });
-  return { ok: r.ok, status: r.status, corpo: await r.json().catch(() => ({})) };
+// Espelha uazapi-send-batch.mjs: queda de rede ganha nova tentativa em vez de matar o
+// processo. Ver o comentario de la para o incidente de 02/09/2026.
+async function enviar(fone, texto, tentativas = 3) {
+  for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+    try {
+      const r = await fetch(`${BASE}/send/text`, {
+        method: "POST",
+        headers: { token: TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ number: fone, text: texto, linkPreview: false }),
+      });
+      return { ok: r.ok, status: r.status, corpo: await r.json().catch(() => ({})) };
+    } catch (erro) {
+      const causa = erro?.cause?.code ?? erro?.message ?? String(erro);
+      const ultima = tentativa === tentativas;
+      console.log(`     rede falhou (${causa}) ${tentativa}/${tentativas}${ultima ? "" : ", nova tentativa em 15s"}`);
+      if (ultima) return { ok: false, status: 0, corpo: { erro: causa } };
+      await dormir(15000);
+    }
+  }
 }
 
 async function registrar(dealId, empresa, tier) {
@@ -224,7 +236,10 @@ async function registrar(dealId, empresa, tier) {
     console.error("--json-out e exclusivo da preparacao em dry-run; remova --go.");
     process.exit(1);
   }
-  const status = await (await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })).json().catch(() => ({}));
+  // .catch() no fetch inteiro, nao so no .json(): sem rede o proprio fetch rejeita.
+  const status = await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })
+    .then((r) => r.json())
+    .catch(() => ({}));
   console.log(`Instancia: ${status?.instance?.status ?? "desconhecida"} (${status?.instance?.owner ?? "-"})`);
   if (GO && status?.instance?.status !== "connected") {
     console.error("Instancia nao conectada. Abortado.");

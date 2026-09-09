@@ -23,7 +23,7 @@ type CalEvent = {
 };
 
 const KIND_META: Record<Kind, { label: string; color: string }> = {
-  reuniao: { label: "Reunião", color: "#6d4aff" },
+  reuniao: { label: "Reunião", color: "#2563a6" },
   lembrete: { label: "Lembrete", color: "#d8891f" },
   compromisso: { label: "Compromisso", color: "#12a37a" },
 };
@@ -271,7 +271,7 @@ export default function CalendarPage() {
       </div>
 
       <div className="table-wrap">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", background: "var(--line, #e0dcec)", border: "1px solid var(--line, #e0dcec)", borderRadius: "10px", overflow: "hidden", minWidth: "680px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "1px", background: "var(--line, #dedbd3)", border: "1px solid var(--line, #dedbd3)", borderRadius: "10px", overflow: "hidden", minWidth: "680px" }}>
           {WEEKDAYS.map((w) => (
             <div key={w} style={{ background: "var(--surface, #fff)", padding: "8px", fontSize: "11px", fontWeight: 700, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.7 }}>{w}</div>
           ))}
@@ -283,7 +283,7 @@ export default function CalendarPage() {
               <div
                 key={i}
                 onClick={() => openCreate(key)}
-                style={{ background: "var(--surface, #fff)", minHeight: "96px", padding: "6px", cursor: "pointer", opacity: inMonth ? 1 : 0.4, outline: key === todayKey ? "2px solid #6d4aff" : "none", outlineOffset: "-2px" }}
+                style={{ background: "var(--surface, #fff)", minHeight: "96px", padding: "6px", cursor: "pointer", opacity: inMonth ? 1 : 0.4, outline: key === todayKey ? "2px solid #2563a6" : "none", outlineOffset: "-2px" }}
               >
                 <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "4px" }}>{d.getDate()}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>

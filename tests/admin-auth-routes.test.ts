@@ -16,6 +16,13 @@ test("login valida senha no Supabase e limita acesso ao email administrativo", (
   assert.doesNotMatch(login, /signInWithOtp|generateLink|createUser/);
 });
 
+test("login nao mascara indisponibilidade do Supabase como credencial invalida", () => {
+  const login = source("../src/app/api/auth/login/route.ts");
+  assert.match(login, /isAuthInfrastructureError\(error\)/);
+  assert.match(login, /Login administrativo temporariamente indisponivel/);
+  assert.match(login, /status:\s*503/);
+});
+
 test("logout revoga a sessao local", () => {
   const logout = source("../src/app/api/auth/logout/route.ts");
   assert.match(logout, /maxAge:\s*0/);

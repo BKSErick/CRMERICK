@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "@/styles/hub.css";
+import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import "@/styles/legacy-pipeline.css";
 import { SessionWatcher } from "@/components/SessionWatcher";
@@ -7,8 +8,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 
 export const metadata: Metadata = {
-  title: "CRM Erick",
-  description: "Hub operacional de CRM, conteudo e pipeline comercial.",
+  title: "Mydrion CRM",
+  description: "Operação comercial da Mydrion: CRM, conteúdo e pipeline.",
 };
 
 export default function RootLayout({

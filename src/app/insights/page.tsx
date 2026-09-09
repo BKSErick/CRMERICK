@@ -242,7 +242,7 @@ export default function InsightsPage() {
             className="topbar-btn"
             onClick={compile}
             disabled={compiling || insights.filter((i) => i.type !== "compilado").length === 0}
-            style={{ background: "var(--color-brand-violet)", color: "#fff", borderColor: "var(--color-brand-violet)" }}
+            style={{ background: "var(--color-brand-accent)", color: "#fff", borderColor: "var(--color-brand-accent)" }}
           >
             {compiling ? "Compilando..." : "Compilar com IA (plano de melhoria)"}
           </button>
@@ -269,7 +269,7 @@ export default function InsightsPage() {
               onClick={() => setTypeFilter(t)}
               style={
                 typeFilter === t
-                  ? { background: "var(--color-brand-violet)", color: "#fff", borderColor: "var(--color-brand-violet)" }
+                  ? { background: "var(--color-brand-accent)", color: "#fff", borderColor: "var(--color-brand-accent)" }
                   : undefined
               }
             >
@@ -297,7 +297,7 @@ export default function InsightsPage() {
               className="card"
               style={{
                 padding: "14px",
-                borderLeft: ins.type === "compilado" ? "3px solid var(--color-brand-violet)" : undefined,
+                borderLeft: ins.type === "compilado" ? "3px solid var(--color-brand-accent)" : undefined,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
@@ -343,7 +343,7 @@ export default function InsightsPage() {
                   </div>
                 </div>
               ) : (
-                <div style={{ fontSize: "13px", lineHeight: "1.5", whiteSpace: "pre-wrap", color: "var(--color-charcoal)" }}>
+                <div style={{ fontSize: "13px", lineHeight: "1.5", whiteSpace: "pre-wrap", color: "var(--color-ink-700)" }}>
                   {ins.content}
                 </div>
               )}

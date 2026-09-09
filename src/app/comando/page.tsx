@@ -205,15 +205,17 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "💰 Objeção de preço: escopo menor (D+4 travado)",
     text: "[NOME], pensei no que você falou sobre o investimento. Dá pra começar menor: a página principal primeiro, que é o que o comprador vê quando valida vocês, e o resto a gente faz por etapa conforme trazer retorno. Quer que eu te mande esse escopo reduzido?",
   },
-  // MSG 2 — a que vai depois do "quer ver?". Ate 02/08 era escrita na mao toda
-  // vez, e era o unico momento do funil sem texto definido, justamente quando o
-  // lead ja disse sim e esta prestando atencao. Aqui o mecanismo ("Ficha de
-  // Escopo") entra: e ele que separa a oferta de "mais uma landing page".
-  // O link muda por segmento (Metalthec pra usinagem/caldeiraria, Jotta pro resto);
-  // a versao dinamica vive em mensagemExemplo() de src/lib/followup.ts.
+  // MSG 2 — a UNICA mensagem entre a resposta do lead e a decisao. Reescrita em
+  // 02/09/2026: preco entra escrito (ticket de entrada nao paga entrevista, e em fria
+  // o preco e filtro), o fecho oferece a vaga de producao em vez de pedir
+  // aprovacao, e o mensal e descrito por ESTADO ("no ar e atualizada") porque
+  // "manutencao" no ramo do lead significa OS e apontamento de hora.
+  // Doutrina completa e lista do que e proibido: content/sales-playbook.json ->
+  // postResponse. Versao dinamica (link por segmento): mensagemExemplo() em
+  // src/lib/followup.ts.
   {
-    title: "🎬 Msg 2: mandar o exemplo (depois do \"quer ver?\")",
-    text: "Show! Esse é de uma manutenção industrial aqui de Monlevade:\nhttps://sitejotta.vercel.app/\n\nO que faz diferença ali não é o visual, é a Ficha de Escopo. Antes de chegar em você, o cliente informa o serviço, o equipamento, a medida e a urgência, e anexa a foto ou o desenho.\n\nAí o pedido cai no seu WhatsApp já com isso preenchido, em vez de você descobrir por mensagem.\n\nPra [EMPRESA] seria a mesma ideia. Te mostro em 15 min como ficaria com os serviços de vocês e já te passo o valor fechado. Consegue amanhã de manhã, ou prefere à tarde?",
+    title: "🎬 Msg 2: case + preço + vaga (depois que o lead responde)",
+    text: `Isso mesmo. Na Jotta o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: ${SALES_PLAYBOOK.cases.jottaUrl}\n\nPra [EMPRESA] eu faço igual, com os serviços de vocês. ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)} a página, mais ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é [DIA]. Coloco a [EMPRESA] nela?`,
   },
   // Objecoes que apareceram na conversa REAL e nao tinham resposta pronta.
   // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?
@@ -226,7 +228,7 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // primeira cobranca extra. Preco de entrada, para subir depois.
   {
     title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
-    text: `Boa pergunta. A página é um valor único de ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)}, e depois disso ela é sua. O mensal são ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)} e cobrem a hospedagem e as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer. Quer que eu te mande isso escrito?`,
+    text: `Boa pergunta. A página é um valor único de ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)}, e depois disso ela é sua. O mensal são ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)} e mantêm ela no ar e atualizada: as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer.`,
   },
   {
     title: "🤝 \"Já tenho quem faça isso pra mim\"",
@@ -713,7 +715,7 @@ export default function ComandoPage() {
                       </tr>
                       {actions[item.id]?.answer || actions[item.id]?.error ? (
                         <tr>
-                          <td colSpan={6} style={{ background: "var(--panel-2, #f0eef7)", fontSize: "13px" }}>
+                          <td colSpan={6} style={{ background: "var(--panel-2, #f3efe7)", fontSize: "13px" }}>
                             {actions[item.id]?.answer ? (
                               <CopilotAnswerBody answer={actions[item.id]!.answer!} allowSave />
                             ) : (

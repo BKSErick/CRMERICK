@@ -147,7 +147,7 @@ function QualificationFieldEditor({
   const statusLabel = field.status === "confirmed" ? "Confirmado" : field.status === "suggested" ? "Sugerido pela IA" : "Nao informado";
 
   return (
-    <div style={{ border: "1px solid var(--color-cloud)", borderRadius: "8px", padding: "10px", display: "flex", flexDirection: "column", gap: "7px" }}>
+    <div style={{ border: "1px solid var(--color-line)", borderRadius: "8px", padding: "10px", display: "flex", flexDirection: "column", gap: "7px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center" }}>
         <strong style={{ fontSize: "12px" }}>{label}</strong>
         <span className="status-pill">{statusLabel}</span>
@@ -771,7 +771,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
                 <p className="muted-copy" style={{ fontSize: "11px" }}>Deal perdido antes do catalogo. Nenhum motivo foi inferido; reabra e registre uma nova perda para classifica-lo.</p>
               ) : null}
               {correctingLoss ? (
-                <div style={{ borderTop: "1px solid var(--color-cloud)", paddingTop: "12px", marginTop: "12px" }}>
+                <div style={{ borderTop: "1px solid var(--color-line)", paddingTop: "12px", marginTop: "12px" }}>
                   <LossReasonForm
                     busy={lossCorrectionBusy}
                     error={lossCorrectionError}
@@ -893,7 +893,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
 
           <div
             className="deal-value-editor"
-            style={{ display: "flex", gap: "14px", alignItems: "flex-end", flexWrap: "wrap", margin: "14px 0", padding: "12px", border: "1px solid var(--color-linen, #e9ebf0)", borderRadius: "8px" }}
+            style={{ display: "flex", gap: "14px", alignItems: "flex-end", flexWrap: "wrap", margin: "14px 0", padding: "12px", border: "1px solid var(--color-surface-soft, #e9ebf0)", borderRadius: "8px" }}
           >
             <label style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px" }}>
               <span className="meta-label">Valor do deal (R$)</span>
@@ -915,7 +915,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
           </div>
 
           <div className="description-area" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Descrição / Detalhes do Deal</strong>
+            <strong style={{ fontSize: "13px", color: "var(--color-ink-950)" }}>Descrição / Detalhes do Deal</strong>
             <textarea
               value={descriptionInput}
               onChange={(e) => setDescriptionInput(e.target.value)}
@@ -928,8 +928,8 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
             />
           </div>
 
-          <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Dores &amp; mensagens do lead (p/ o Webson)</strong>
+          <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-surface-soft)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <strong style={{ fontSize: "13px", color: "var(--color-ink-950)" }}>Dores &amp; mensagens do lead (p/ o Webson)</strong>
             <textarea
               value={painsInput}
               onChange={(e) => setPainsInput(e.target.value)}
@@ -957,7 +957,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
                 onClick={handleGenerateInsight}
                 disabled={insightLoading}
                 type="button"
-                style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
+                style={{ background: "var(--color-brand-accent)", color: "#fff", border: "none", cursor: "pointer" }}
               >
                 {insightLoading ? "Analisando..." : "Webson gera insight"}
               </button>
@@ -968,7 +968,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
             {insights.map((ins) => (
               <div
                 key={ins.id}
-                style={{ fontSize: "12px", lineHeight: "1.5", color: "var(--color-charcoal)", background: "var(--color-paper)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-cloud)", whiteSpace: "pre-wrap" }}
+                style={{ fontSize: "12px", lineHeight: "1.5", color: "var(--color-ink-700)", background: "var(--color-surface-muted)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-line)", whiteSpace: "pre-wrap" }}
               >
                 {ins.content}
               </div>
@@ -977,7 +977,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
 
           {/* Story 032: explicacao contextual do deal no overlay que ja existe. A leitura
               sai da saude, do forecast e da qualificacao ja calculados; a IA so narra. */}
-          <div style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>
+          <div style={{ marginTop: "18px", borderTop: "1px solid var(--color-surface-soft)", paddingTop: "12px" }}>
             <CopilotPanel
               title="Copiloto: por que este deal esta quente ou frio"
               question="deal_temperature"
@@ -997,15 +997,15 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
             />
           </div>
 
-          <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-linen)", paddingTop: "12px" }}>
+          <div className="description-area" style={{ marginTop: "18px", borderTop: "1px solid var(--color-surface-soft)", paddingTop: "12px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-              <strong style={{ fontSize: "13px", color: "var(--color-midnight-ink)" }}>Resumo Analitico da IA</strong>
+              <strong style={{ fontSize: "13px", color: "var(--color-ink-950)" }}>Resumo Analitico da IA</strong>
               <button
                 className="badge-action-btn"
                 onClick={handleGenerateSummary}
                 disabled={summaryLoading}
                 type="button"
-                style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
+                style={{ background: "var(--color-brand-accent)", color: "#fff", border: "none", cursor: "pointer" }}
               >
                 {summaryLoading ? "Analisando..." : summaryText ? "Recalcular" : "Gerar com IA"}
               </button>
@@ -1016,7 +1016,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
               </div>
             )}
             {summaryText ? (
-              <div className="markdown-summary" style={{ fontSize: "13px", lineHeight: "1.5", color: "var(--color-charcoal)", background: "var(--color-paper)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-cloud)" }}>
+              <div className="markdown-summary" style={{ fontSize: "13px", lineHeight: "1.5", color: "var(--color-ink-700)", background: "var(--color-surface-muted)", padding: "10px", borderRadius: "8px", border: "1px solid var(--color-line)" }}>
                 {summaryText.split("\n").map((line, idx) => {
                   let content = line;
                   const isBullet = content.trim().startsWith("-") || content.trim().startsWith("*");
@@ -1115,7 +1115,7 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
                     onClick={handleGenerateCopy}
                     disabled={aiLoading}
                     type="button"
-                    style={{ background: "var(--color-brand-violet)", color: "#fff", border: "none", cursor: "pointer" }}
+                    style={{ background: "var(--color-brand-accent)", color: "#fff", border: "none", cursor: "pointer" }}
                   >
                     {aiLoading ? "Gerando..." : deal.copyText ? "Regenerar IA" : "Gerar com IA"}
                   </button>

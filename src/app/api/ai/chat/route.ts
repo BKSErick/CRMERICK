@@ -7,6 +7,7 @@ import { getAgentChatAvailability } from "@/lib/aiChatAvailability";
 import { loadAiContext } from "@/lib/aiContextBroker";
 import { assertReadOnlyChatPayload, composeChatPrompts, normalizeContextScope, parseAgentMention, requireAgentId, truncateContextEnvelopes } from "@/lib/aiConversation";
 import { AI_AGENT_PERSONAS } from "@/server/aiAgentPersonas.generated.mjs";
+import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -42,7 +43,16 @@ export async function POST(request: NextRequest) {
     const context = await loadAiContext(supabase, scope);
     const maximum = Math.max(1000, Math.min(Number(process.env.AI_CHAT_MAX_CONTEXT_CHARS) || 18000, 50000));
     const minimized = truncateContextEnvelopes(context, maximum);
-    const prompts = composeChatPrompts({ persona, scope, sources: minimized.sources, question: mention.message });
+    // O playbook vai por fora das `sources` de proposito: fonte e dado nao
+    // confiavel e o system prompt manda ignorar instrucao vinda de la. Doutrina
+    // do operador precisa ser seguida, entao sobe pelo system prompt.
+    const prompts = composeChatPrompts({
+      persona,
+      scope,
+      sources: minimized.sources,
+      question: mention.message,
+      playbook: salesPlaybookModule.SALES_PLAYBOOK,
+    });
     const citations = minimized.sources.map((source) => ({ sourceId: source.sourceId, label: source.label, asOf: source.asOf, links: source.links }));
     const contextManifest = minimized.sources.map((source) => ({ sourceId: source.sourceId, asOf: source.asOf, limitations: source.limitations, factCount: source.facts.length }));
 

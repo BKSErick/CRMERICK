@@ -272,14 +272,30 @@ function naUltimaHora(lista) {
   return lista.filter((a) => Date.parse(a.created_at) >= limite).length;
 }
 
-async function enviar(fone, texto) {
-  const r = await fetch(`${BASE}/send/text`, {
-    method: "POST",
-    headers: { token: TOKEN, "Content-Type": "application/json" },
-    body: JSON.stringify({ number: fone, text: texto, linkPreview: false }),
-  });
-  const corpo = await r.json().catch(() => ({}));
-  return { ok: r.ok, status: r.status, corpo };
+// Queda de rede NAO e sinal de bloqueio, e o `fetch` do node rejeita em vez de
+// devolver resposta. Em 02/09/2026 dois `ConnectTimeoutError` no mydrion.uazapi.com
+// derrubaram o processo inteiro (excecao nao tratada, exit 1) as 09:00 e as 09:44: o
+// lote da manha so terminou porque o tick de 5 minutos retomou, queimando 3 das 4
+// tentativas do dia. Aqui a rede ganha nova chance antes de virar falha; se nao
+// voltar, quem decide parar continua sendo o contador de duas falhas seguidas.
+async function enviar(fone, texto, tentativas = 3) {
+  for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
+    try {
+      const r = await fetch(`${BASE}/send/text`, {
+        method: "POST",
+        headers: { token: TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ number: fone, text: texto, linkPreview: false }),
+      });
+      const corpo = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, corpo };
+    } catch (erro) {
+      const causa = erro?.cause?.code ?? erro?.message ?? String(erro);
+      const ultima = tentativa === tentativas;
+      console.log(`     rede falhou (${causa}) ${tentativa}/${tentativas}${ultima ? "" : ", nova tentativa em 15s"}`);
+      if (ultima) return { ok: false, status: 0, corpo: { erro: causa } };
+      await dormir(15000);
+    }
+  }
 }
 
 // Grava direto no banco, NAO via /api/activities: aquela rota normaliza qualquer tipo
@@ -322,7 +338,11 @@ async function registrar(deal) {
     console.error("--json-out e exclusivo da preparacao em dry-run; remova --go.");
     process.exit(1);
   }
-  const status = await (await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })).json().catch(() => ({}));
+  // .catch() no fetch inteiro, nao so no .json(): sem rede o proprio fetch rejeita e
+  // o processo morria com stack trace antes de imprimir qualquer coisa (02/09/2026).
+  const status = await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })
+    .then((r) => r.json())
+    .catch(() => ({}));
   const conectada = status?.instance?.status === "connected";
   console.log(`Instancia: ${status?.instance?.status ?? "desconhecida"} (${status?.instance?.owner ?? "-"})`);
   if (GO && !conectada) {

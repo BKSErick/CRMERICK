@@ -105,6 +105,53 @@ Mede quem responde de verdade por segmento, DDD, cidade, reputação e variante 
 
 **Rodar de novo a cada ~50 disparos novos**, senão o lookalike decide com dado velho.
 
+## E-mail institucional pelo Brevo
+
+O Brevo continua sendo o motor de envio. O ImprovMX Free recebe mensagens destinadas
+a `contato@mydrion.com.br` e as encaminha para o Gmail operacional; ele nao e uma
+caixa de e-mail e seu plano gratuito nao oferece SMTP. Nao migre a fila de
+prospeccao para o ImprovMX.
+
+Rodar de `D:\001Gravity\CRM ERICK\scripts\email`:
+
+```bash
+node build-queue-institucional.mjs --setor=industria --limit=40
+node brevo_send.mjs --check
+node brevo_send.mjs --test=SEU_EMAIL_PESSOAL
+node brevo_send.mjs --limit=10
+```
+
+`--check` envia zero mensagens e precisa mostrar o remetente, o destino das respostas,
+o limite do dia e pelo menos um MX para o dominio de resposta. Enquanto o MX ainda nao
+existir, use `--reply-to=UMA_CAIXA_QUE_EXISTE` nos testes e lotes estritamente necessarios.
+
+Se o Brevo aceitar um e-mail e o Supabase falhar depois, o motor grava primeiro no
+`sent_log.json` o horario, o `messageId` e os IDs do CRM, mostra
+`EMAIL ENVIADO, mas o CRM nao registrou`, interrompe o lote e retorna exit code 2.
+Nao apague o destinatario do log e nao rode o envio novamente; reconcilie a atividade
+no CRM pelo `messageId` antes de continuar.
+
+### Recebimento gratuito com ImprovMX
+
+1. Criar uma conta **Free** no ImprovMX e adicionar `mydrion.com.br`.
+2. Criar o alias `contato` apontando para o Gmail operacional. O destino real fica
+   privado e pode ser trocado depois sem mudar o endereco divulgado aos leads.
+3. No painel da Vercel, abrir o dominio e usar `Add DNS Preset > ImprovMX [MX]`.
+   O preset adiciona os MX e o SPF exigidos pelo encaminhamento sem trocar os
+   nameservers nem a hospedagem do site.
+4. Nao criar um segundo SPF no host raiz. Se ja existir um, consolidar os includes em
+   um unico TXT e conferir no Brevo que a autenticacao do dominio segue valida.
+5. No ImprovMX, executar `Check Again` ate aparecer `Email forwarding active`.
+6. Enviar de uma conta externa para `contato@mydrion.com.br`, confirmar a chegada no
+   Gmail e repetir `node brevo_send.mjs --check` ate os MX aparecerem.
+
+O plano Free do ImprovMX encaminha ate 500 mensagens por dia em 1 dominio e permite
+25 aliases, mas oferece zero envios por SMTP. Para responder manualmente mantendo
+`contato@mydrion.com.br` no campo `From`, configurar uma identidade no Thunderbird
+ligada ao Gmail de destino e usar o SMTP do Brevo (`smtp-relay.brevo.com`) com uma
+chave SMTP propria. Nunca colocar a chave no repositorio. O envio automatizado do CRM
+continua usando a API do Brevo e compartilha o limite diario da conta.
+
 ---
 
 ## Regras que não mudam

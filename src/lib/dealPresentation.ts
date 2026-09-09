@@ -7,8 +7,8 @@ import type { DealStage } from "@/store/useCRMStore";
 export const stages: Array<{ id: DealStage; label: string; hint: string; color: string }> = [
   { id: "prospect", label: "Prospect", hint: "Entrada", color: "#0091ff" },
   { id: "abordado", label: "Abordado", hint: "Mandei msg", color: "#f59e0b" },
-  { id: "followup", label: "Follow-up", hint: "2a+ msg enviada", color: "#8b5cf6" },
-  { id: "qualified", label: "Qualified", hint: "Respondeu", color: "#7b68ee" },
+  { id: "followup", label: "Follow-up", hint: "2a+ msg enviada", color: "#b07838" },
+  { id: "qualified", label: "Qualified", hint: "Respondeu", color: "#8d5c25" },
   { id: "proposal", label: "Proposal", hint: "Oferta enviada", color: "#ed6c02" },
   { id: "negotiation", label: "Negotiation", hint: "Negociacao", color: "#d32f2f" },
   { id: "won", label: "Won", hint: "Cliente ativo", color: "#2e7d32" },

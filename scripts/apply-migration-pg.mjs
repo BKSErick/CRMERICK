@@ -14,6 +14,8 @@ import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
 
+import { unwrapOuterTransaction } from "./lib/sqlTransaction.mjs";
+
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
 const sqlPath = args.find((a) => !a.startsWith("--"));
@@ -61,7 +63,7 @@ if (!connectionString) {
   process.exit(1);
 }
 
-const sql = fs.readFileSync(sqlPath, "utf8");
+const sql = unwrapOuterTransaction(fs.readFileSync(sqlPath, "utf8"));
 const client = new pg.Client({
   connectionString,
   ssl: { rejectUnauthorized: false },

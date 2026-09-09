@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { getCurrentTitle } from "@/lib/navigation";
 
@@ -19,8 +20,12 @@ export function Topbar() {
       >
         <span className="menu-lines" aria-hidden="true" />
       </button>
+      <span className="topbar-mobile-brand" aria-label="Mydrion CRM">
+        <Image src="/icon.svg" alt="" width={290} height={251} />
+        <strong>Mydrion CRM</strong>
+      </span>
       <span className="topbar-breadcrumb">
-        Hub Operacional / <span>{currentTitle}</span>
+        Mydrion CRM / <span>{currentTitle}</span>
       </span>
       <div className="topbar-spacer" />
       <button className="topbar-search-btn" type="button" aria-label="Abrir busca global">

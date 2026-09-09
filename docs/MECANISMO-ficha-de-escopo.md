@@ -1,11 +1,16 @@
-# Mecanismo único: Ficha de Escopo
+# Mecanismo único: Pedido Pronto
+
+> [!WARNING] RENOMEADO EM 02/09/2026: o mecanismo agora se chama **Pedido Pronto**.
+> O nome anterior, "Ficha de Escopo", esta MORTO e nao pode voltar em copy, post, bio, roteiro ou proposta.
+> O nome do arquivo foi mantido so para nao quebrar links existentes no vault.
+> O teste `apps/mydrion-site/src/data/siteContent.test.ts` trava o termo antigo automaticamente no site.
 
 Decidido em 02/08/2026. É o que separa a oferta de "mais uma landing page" e o
 que sustenta cobrar mais.
 
 ## O que é
 
-**A Ficha de Escopo é a triagem técnica que acontece antes do contato chegar no
+**O Pedido Pronto é a triagem técnica que acontece antes do contato chegar no
 dono.** Antes de falar com você, o cliente informa:
 
 - o serviço que precisa
@@ -26,11 +31,15 @@ Saiu dos dados, não de brainstorm. É o ângulo que mais funcionou na prospecç
 real e resolve a dor concreta do industrial: hora técnica virando atendimento e
 cotação lenta. O comprador some enquanto você tenta descobrir a medida.
 
-## Por que "Ficha"
+## Por que "Pedido Pronto"
 
-O industrial já usa a palavra todo dia (ficha técnica, ficha de serviço), então
-não soa a marketing. Nomeia o **artefato**, a coisa que aparece na tela, e não um
-benefício abstrato. Dá pra apontar pra ela. E dá pra pedir: "me manda a ficha".
+O nome nomeia o **resultado que o dono quer** (o pedido chegando pronto), nao a
+burocracia de preencher um formulario. "Ficha" nomeava o artefato e pedia
+trabalho do cliente; "Pedido Pronto" nomeia o estado final e pede alivio.
+
+Da pra dizer a frase inteira sem explicar nada: "o pedido chega pronto". Isso e
+densidade: o simbolo diz o que ele e sem legenda.
+
 
 ## Onde entra, e onde NÃO entra
 
@@ -55,13 +64,13 @@ encaminhado pro setor de compras. É o próprio funil dizendo como a abordagem e
 sendo lida.
 
 Existe um terceiro caminho que a versão anterior não considerou: nem categoria
-("página de vendas"), nem mecanismo abstrato ("Ficha de Escopo"), mas o **resultado
+("página de vendas"), nem mecanismo abstrato ("Pedido Pronto"), mas o **resultado
 operacional dele**, dito em 3 segundos e em palavra que ele usa todo dia:
 
 > "Eu faço o pedido do cliente chegar no seu WhatsApp já com serviço, medida e prazo definidos."
 
 Mantém a velocidade de reconhecimento, mantém a linguagem industrial e tira a palavra
-de fornecedor. A Ficha de Escopo continua **fora** da msg 1: ela entra na msg 2, onde
+de fornecedor. A Pedido Pronto continua **fora** da msg 1: ela entra na msg 2, onde
 já há permissão pra explicar.
 
 ⚠️ Isso invalida a comparação com os 124 disparos anteriores. O experimento foi para
@@ -100,7 +109,7 @@ nova, função nova) é combinada e cobrada à parte, sempre antes de executar.
 depois.
 
 Consequência que a copy precisa respeitar: o mensal **não** pode ser vendido como
-"a Ficha de Escopo evoluindo". Isso prometeria trabalho contínuo que não está no
+"o Pedido Pronto evoluindo". Isso prometeria trabalho contínuo que não está no
 escopo de R$150, e o atrito apareceria na primeira cobrança extra. A mensagem de
 objeção descreve o escopo real, palavra por palavra.
 

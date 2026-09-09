@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * cnpjEnrich.js - Enriquecimento por CNPJ e consulta à MinhaReceita API.
- * 
+ * cnpjEnrich.js - Enriquecimento por CNPJ e consulta às APIs públicas da Receita.
+ *
  * Funcionalidades:
  * 1. Extrai CNPJ do HTML raspado do site (rodapé/contato) com verificação de dígito verificador.
  * 2. Realiza busca de fallback via Serper Search quando o site não divulga o CNPJ.
@@ -11,7 +11,20 @@
  *    - Situação Cadastral (ATIVA, INAPTA, BAIXADA, SUSPENSA)
  *    - CNAE Principal
  *    - Telefones Oficiais da Receita Federal (para suprir números ausentes do Maps)
+ *    - QSA (quadro de sócios) -> nome do DECISOR e sua qualificação
  * 4. Cache em disco em .cache/cnpj-json/ com TTL de 30 dias.
+ *
+ * CAMADA DE DECISOR (08/09/2026):
+ * O QSA já vinha na resposta da MinhaReceita e era descartado. Agora ele é lido e o sócio
+ * com poder de decisão é eleito por qualificação (49 Sócio-Administrador na frente de 22 Sócio).
+ * É o que permite falar com o dono em vez de com a recepção.
+ *
+ * E-MAIL: a MinhaReceita devolve `email` VAZIO (medido em 6/6 CNPJs da base em 08/09/2026).
+ * Quem devolve o e-mail cadastrado na Receita é a ReceitaWS, que por isso virou o fallback
+ * e a fonte de e-mail. O fallback anterior (BrasilAPI) responde HTTP 403 e estava morto:
+ * quando a MinhaReceita oscilava, o enriquecimento devolvia null em silêncio.
+ * ReceitaWS gratuita permite 3 consultas/minuto, então toda chamada passa por uma fila
+ * com intervalo mínimo. Por isso o e-mail é OPT-IN (`comEmail`), e não parte do caminho padrão.
  */
 
 const fs = require("node:fs");
@@ -19,6 +32,13 @@ const path = require("node:path");
 
 const CACHE_DIR = path.join(process.cwd(), ".cache", "cnpj-json");
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias
+
+// Sobe quando o FORMATO do objeto cacheado muda. Cache da versao antiga e ignorado e
+// refeito, senao os 924 CNPJs ja cacheados nunca ganhariam socios/decisor.
+const CACHE_VERSION = 2;
+
+// ReceitaWS gratuita: 3 consultas por minuto. 21s de folga para nao tomar 429.
+const RECEITAWS_INTERVALO_MS = Number(process.env.RECEITAWS_INTERVALO_MS || 21000);
 
 function digitos(v) {
   return String(v || "").replace(/\D/g, "");
@@ -77,7 +97,11 @@ function readCache(cnpj) {
     const file = path.join(CACHE_DIR, `${digitos(cnpj)}.json`);
     const stat = fs.statSync(file);
     if (Date.now() - stat.mtimeMs > CACHE_TTL_MS) return undefined;
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    const dados = JSON.parse(fs.readFileSync(file, "utf8"));
+    // null cacheado (consulta que falhou) continua valido em qualquer versao.
+    if (dados === null) return null;
+    if (!dados || dados.cache_version !== CACHE_VERSION) return undefined;
+    return dados;
   } catch {
     return undefined;
   }
@@ -86,89 +110,264 @@ function readCache(cnpj) {
 function writeCache(cnpj, data) {
   try {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
-    fs.writeFileSync(path.join(CACHE_DIR, `${digitos(cnpj)}.json`), JSON.stringify(data), "utf8");
+    const payload = data === null ? null : { ...data, cache_version: CACHE_VERSION };
+    fs.writeFileSync(path.join(CACHE_DIR, `${digitos(cnpj)}.json`), JSON.stringify(payload), "utf8");
   } catch {
     /* cache opcional */
   }
 }
 
-// Normaliza o texto de porte da Receita Federal
+// Normaliza o texto de porte da Receita Federal.
+// O fallback por capital social so vale quando a Receita NAO disse o porte (vem "00" ou vazio).
+// Antes ele rodava sempre que a string nao casava, e "DEMAIS" (porte MAIOR que EPP) era
+// rebaixado para "EPP" por capital entre 360k e 4,8M - erro justo nas empresas maiores,
+// que sao o alvo do ICP institucional. Caso real: FORMPARTS, capital 1M, porte DEMAIS -> EPP.
 function normalizarPorte(porteRaw, capitalSocial) {
-  const p = String(porteRaw || "").toUpperCase();
+  const p = String(porteRaw || "").toUpperCase().trim();
   if (p.includes("MEI") || p === "01") return "MEI";
-  if (p.includes("MICRO") || p.includes("ME") || p === "03") return "ME";
+  if (p.includes("MICRO") || p === "03") return "ME";
   if (p.includes("PEQUENO") || p.includes("EPP") || p === "05") return "EPP";
-  
-  // Fallback baseado no Capital Social se o porte vier genérico "00" (Demais)
+  if (p.includes("DEMAIS") || p.includes("GRANDE") || p.includes("MEDIO") || p.includes("MÉDIO")) return "DEMAIS";
+
+  // Sem porte declarado: deduz pelo Capital Social.
   const cap = Number(capitalSocial || 0);
   if (cap > 0 && cap <= 81000) return "MEI";
   if (cap > 81000 && cap <= 360000) return "ME";
   if (cap > 360000 && cap <= 4800000) return "EPP";
   if (cap > 4800000) return "DEMAIS";
-  
+
   return "DEMAIS";
 }
 
-async function fetchCnpjMinhaReceita(cnpjLimpo, timeoutMs = 5000) {
+// ---------------------------------------------------------------------------
+// QSA / decisor
+// ---------------------------------------------------------------------------
+
+// Codigos oficiais de qualificacao de socio da Receita. Quanto menor o peso, mais decisor.
+// 22 (Socio) entra por ultimo porque socio sem "Administrador" pode ser so cotista.
+const PESO_QUALIFICACAO = {
+  49: 1, // Sócio-Administrador
+  65: 1, // Titular Pessoa Física (empresário individual)
+  50: 2, // Empresário
+  5: 2, // Administrador
+  16: 3, // Presidente
+  10: 4, // Diretor
+  8: 5, // Conselheiro de Administração
+  54: 6, // Fundador
+  22: 7, // Sócio
+};
+const PESO_PADRAO = 9;
+
+// Aceita os dois formatos: MinhaReceita ({nome_socio, codigo_qualificacao_socio}) e
+// ReceitaWS ({nome, qual: "49-Sócio-Administrador"}).
+function normalizarSocios(qsaBruto) {
+  if (!Array.isArray(qsaBruto)) return [];
+  const socios = [];
+  for (const s of qsaBruto) {
+    if (!s) continue;
+    const nome = String(s.nome_socio || s.nome || "").trim();
+    if (!nome) continue;
+
+    let codigo = s.codigo_qualificacao_socio;
+    let texto = s.qualificacao_socio || s.qual || "";
+    if (codigo === undefined || codigo === null) {
+      const m = String(texto).match(/^(\d+)/);
+      codigo = m ? Number(m[1]) : null;
+    }
+    texto = String(texto).replace(/^\d+\s*-\s*/, "").trim();
+
+    // identificador_de_socio: 1 = pessoa juridica, 2 = pessoa fisica.
+    // Holding nao atende telefone; para decisor queremos pessoa fisica.
+    const identificador = s.identificador_de_socio ?? s.identificador_socio ?? null;
+    const pessoaJuridica = identificador === 1 || /\bLTDA\b|\bS\/?A\b|\bEIRELI\b|\bME\b$/i.test(nome);
+
+    socios.push({
+      nome,
+      qualificacao_codigo: codigo === null || Number.isNaN(codigo) ? null : Number(codigo),
+      qualificacao: texto || null,
+      data_entrada: s.data_entrada_sociedade || s.data_entrada || null,
+      pessoa_juridica: Boolean(pessoaJuridica),
+    });
+  }
+  return socios;
+}
+
+// Elege UM decisor: pessoa fisica, menor peso de qualificacao e, em empate, o mais antigo
+// na sociedade (quem esta la ha mais tempo e quem manda).
+function escolherDecisor(socios) {
+  const candidatos = socios.filter((s) => !s.pessoa_juridica);
+  const lista = candidatos.length > 0 ? candidatos : socios;
+  if (lista.length === 0) return null;
+
+  const ordenados = [...lista].sort((a, b) => {
+    const pa = PESO_QUALIFICACAO[a.qualificacao_codigo] ?? PESO_PADRAO;
+    const pb = PESO_QUALIFICACAO[b.qualificacao_codigo] ?? PESO_PADRAO;
+    if (pa !== pb) return pa - pb;
+    return String(a.data_entrada || "9999").localeCompare(String(b.data_entrada || "9999"));
+  });
+  return ordenados[0];
+}
+
+// Empresário individual costuma vir com QSA vazio: o dono é a própria razão social,
+// que na Receita é o nome da pessoa física. Sem isso, MEI/EI ficariam sem decisor.
+function decisorDeEmpresarioIndividual(payload) {
+  const natureza = String(payload.codigo_natureza_juridica || payload.natureza_juridica || "");
+  const ehEI = /^2135/.test(natureza) || /empres[áa]rio\s*\(?\s*individual/i.test(natureza);
+  if (!ehEI) return null;
+  // Razão social de EI vem com o CPF colado na frente ("32.962.717 VRADIMIR ALEXANDRE").
+  // Sem tirar, o "nome do decisor" chega na mensagem com número junto.
+  const nome = String(payload.razao_social || "")
+    .replace(/^[\d.\-/\s]+/, "")
+    .trim();
+  if (!nome) return null;
+  return { nome, qualificacao_codigo: 65, qualificacao: "Titular Pessoa Física", data_entrada: null, pessoa_juridica: false };
+}
+
+// ---------------------------------------------------------------------------
+// Consultas
+// ---------------------------------------------------------------------------
+
+function coletarTelefones(payload) {
+  const phones = [];
+  const pushPhone = (ddd, num) => {
+    const d = digitos(`${ddd || ""}${num || ""}`);
+    if (d.length >= 10 && d.length <= 11 && !phones.includes(`55${d}`)) {
+      phones.push(`55${d}`);
+    }
+  };
+  if (payload.ddd_telefone_1) pushPhone(payload.ddd_1, payload.ddd_telefone_1);
+  if (payload.ddd_telefone_2) pushPhone(payload.ddd_2, payload.ddd_telefone_2);
+  if (payload.ddd_fax) pushPhone(payload.ddd_fax_1, payload.ddd_fax);
+  if (payload.telefone_1) pushPhone("", payload.telefone_1);
+  // ReceitaWS entrega "(31) 9988-4574" ou "(31) 9988-4574 / (31) 3821-0000" em telefone.
+  if (payload.telefone) {
+    for (const parte of String(payload.telefone).split("/")) pushPhone("", parte);
+  }
+  return phones;
+}
+
+function montarDados(cnpj, payload, origem) {
+  let socios = normalizarSocios(payload.qsa);
+  if (socios.length === 0) {
+    const ei = decisorDeEmpresarioIndividual(payload);
+    if (ei) socios = [ei];
+  }
+  const decisor = escolherDecisor(socios);
+  const email = payload.email ? String(payload.email).toLowerCase().trim() : null;
+
+  return {
+    cnpj: formatarCnpj(cnpj),
+    cnpj_limpo: cnpj,
+    razao_social: payload.razao_social || payload.nome || payload.social_reason || null,
+    nome_fantasia: payload.nome_fantasia || payload.fantasia || payload.commercial_name || null,
+    situacao_cadastral: String(
+      payload.descricao_situacao_cadastral || payload.situacao_cadastral || payload.situacao || "ATIVA",
+    ).toUpperCase(),
+    capital_social: Number(payload.capital_social || 0),
+    porte: normalizarPorte(payload.porte || payload.descricao_porte, payload.capital_social),
+    cnae_principal: payload.cnae_fiscal
+      ? String(payload.cnae_fiscal)
+      : payload.cnae_principal_codigo
+        ? String(payload.cnae_principal_codigo)
+        : payload.atividade_principal?.[0]?.code
+          ? digitos(payload.atividade_principal[0].code)
+          : null,
+    cnae_descricao:
+      payload.cnae_fiscal_descricao ||
+      payload.cnae_principal_descricao ||
+      payload.atividade_principal?.[0]?.text ||
+      null,
+    data_inicio_atividade: payload.data_inicio_atividade || payload.abertura || null,
+    municipio: payload.municipio || null,
+    uf: payload.uf || null,
+    receita_phones: coletarTelefones(payload),
+    email_receita: email && email.includes("@") ? email : null,
+    socios,
+    decisor_nome: decisor?.nome || null,
+    decisor_qualificacao: decisor?.qualificacao || null,
+    fonte_cnpj: origem,
+  };
+}
+
+let ultimaChamadaReceitaWs = 0;
+async function aguardarVezReceitaWs() {
+  const espera = ultimaChamadaReceitaWs + RECEITAWS_INTERVALO_MS - Date.now();
+  if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+  ultimaChamadaReceitaWs = Date.now();
+}
+
+async function fetchReceitaWs(cnpj, timeoutMs) {
+  await aguardarVezReceitaWs();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`, { signal: controller.signal }).catch(() => null);
+    clearTimeout(timer);
+    if (!res || !res.ok) return null;
+    const payload = await res.json().catch(() => null);
+    if (!payload || String(payload.status).toUpperCase() === "ERROR") return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Consulta o CNPJ. Mantém o nome antigo por compatibilidade com os chamadores.
+ *
+ * @param {string} cnpjLimpo
+ * @param {number|object} opcoes  número = timeoutMs (assinatura antiga) ou { timeoutMs, comEmail }
+ *   comEmail: true faz uma consulta extra na ReceitaWS quando a MinhaReceita não trouxe e-mail.
+ *   Custa ~21s por CNPJ (limite de 3/min da conta gratuita), por isso é opt-in.
+ */
+async function fetchCnpjMinhaReceita(cnpjLimpo, opcoes = {}) {
+  const cfg = typeof opcoes === "number" ? { timeoutMs: opcoes } : opcoes || {};
+  const timeoutMs = cfg.timeoutMs || 5000;
+  const comEmail = Boolean(cfg.comEmail);
+
   const cnpj = digitos(cnpjLimpo);
   if (!validarCnpj(cnpj)) return null;
 
   const cached = readCache(cnpj);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined && !(comEmail && cached && !cached.email_receita)) return cached;
 
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-    // Tenta MinhaReceita API
-    let res = await fetch(`https://minhareceita.org/${cnpj}`, { signal: controller.signal }).catch(() => null);
-    
-    // Fallback para BrasilAPI se a MinhaReceita estiver instável
-    if (!res || !res.ok) {
-      res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, { signal: controller.signal }).catch(() => null);
-    }
+    const res = await fetch(`https://minhareceita.org/${cnpj}`, { signal: controller.signal }).catch(() => null);
     clearTimeout(timer);
 
-    if (!res || !res.ok) {
-      writeCache(cnpj, null);
-      return null;
+    let dados = null;
+    if (res && res.ok) {
+      const payload = await res.json().catch(() => null);
+      if (payload && !payload.message) dados = montarDados(cnpj, payload, "minhareceita");
     }
 
-    const payload = await res.json();
-    if (!payload || payload.message) {
-      writeCache(cnpj, null);
-      return null;
-    }
-
-    // Processa os números de telefone da Receita
-    const phones = [];
-    const pushPhone = (ddd, num) => {
-      const d = digitos(`${ddd || ""}${num || ""}`);
-      if (d.length >= 10 && d.length <= 11 && !phones.includes(`55${d}`)) {
-        phones.push(`55${d}`);
+    // Fallback (e fonte de e-mail): ReceitaWS. A BrasilAPI, que ocupava este lugar,
+    // responde 403 e nunca funcionou como fallback de verdade.
+    if (!dados || (comEmail && !dados.email_receita)) {
+      const payloadWs = await fetchReceitaWs(cnpj, Math.max(timeoutMs, 10000));
+      if (payloadWs) {
+        const dadosWs = montarDados(cnpj, payloadWs, "receitaws");
+        if (!dados) {
+          dados = dadosWs;
+        } else {
+          // MinhaReceita é mais completa; da ReceitaWS aproveitamos o que faltou.
+          dados.email_receita = dados.email_receita || dadosWs.email_receita;
+          if (dados.socios.length === 0 && dadosWs.socios.length > 0) {
+            dados.socios = dadosWs.socios;
+            dados.decisor_nome = dadosWs.decisor_nome;
+            dados.decisor_qualificacao = dadosWs.decisor_qualificacao;
+          }
+          for (const p of dadosWs.receita_phones) {
+            if (!dados.receita_phones.includes(p)) dados.receita_phones.push(p);
+          }
+        }
       }
-    };
-    if (payload.ddd_telefone_1) pushPhone(payload.ddd_1, payload.ddd_telefone_1);
-    if (payload.ddd_telefone_2) pushPhone(payload.ddd_2, payload.ddd_telefone_2);
-    if (payload.ddd_fax) pushPhone(payload.ddd_fax_1, payload.ddd_fax);
-    if (payload.telefone_1) pushPhone("", payload.telefone_1);
+    }
 
-    const data = {
-      cnpj: formatarCnpj(cnpj),
-      cnpj_limpo: cnpj,
-      razao_social: payload.razao_social || payload.social_reason || null,
-      nome_fantasia: payload.nome_fantasia || payload.commercial_name || null,
-      situacao_cadastral: String(payload.descricao_situacao_cadastral || payload.situacao_cadastral || "ATIVA").toUpperCase(),
-      capital_social: Number(payload.capital_social || 0),
-      porte: normalizarPorte(payload.porte || payload.descricao_porte, payload.capital_social),
-      cnae_principal: payload.cnae_fiscal ? String(payload.cnae_fiscal) : (payload.cnae_principal_codigo ? String(payload.cnae_principal_codigo) : null),
-      cnae_descricao: payload.cnae_fiscal_descricao || payload.cnae_principal_descricao || null,
-      receita_phones: phones,
-      email_receita: payload.email ? String(payload.email).toLowerCase() : null,
-    };
-
-    writeCache(cnpj, data);
-    return data;
+    writeCache(cnpj, dados);
+    return dados;
   } catch {
     writeCache(cnpj, null);
     return null;
@@ -203,4 +402,7 @@ module.exports = {
   fetchCnpjMinhaReceita,
   searchCnpjViaSerper,
   normalizarPorte,
+  normalizarSocios,
+  escolherDecisor,
+  CACHE_VERSION,
 };

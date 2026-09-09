@@ -14,8 +14,27 @@ import {
   saveCopilotLearning,
 } from "@/lib/salesCopilotService.mjs";
 import { getCompanySignals, signalAliases, type CompanySignal } from "@/lib/sinais";
+import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
 
 export const runtime = "nodejs";
+
+/**
+ * Doutrina de mensagem, anexada ao system prompt de toda action que redige o
+ * proximo toque. Sem isso cada action improvisa a redacao e reintroduz o que ja
+ * custou conversao na base real: pergunta de permissao no lugar da oferta, CTA
+ * de call em lead frio e pedido de material antes do sim.
+ * Fonte unica: content/sales-playbook.json -> postResponse.
+ */
+function doutrinaDeMensagem() {
+  const { postResponse, offer, mechanism } = salesPlaybookModule.SALES_PLAYBOOK;
+  return `\n\nDOUTRINA DE MENSAGEM (obrigatoria, definida pelo operador — vence sua preferencia de redacao):
+${postResponse.doutrina}
+Mecanismo unico: ${mechanism}. Oferta padrao de entrada: ${offer.setupPrice} de setup + ${offer.monthlyPrice}/mes (o mensal e descrito por ESTADO, "manter no ar e atualizada", nunca como "manutencao").
+REGRAS:
+${postResponse.regras.map((item: string) => `- ${item}`).join("\n")}
+PROIBIDO:
+${postResponse.proibido.map((item: string) => `- ${item}`).join("\n")}`;
+}
 
 const COPILOT_ACTIONS = new Set([
   "copilot-brief",
@@ -299,7 +318,7 @@ Responda em português (PT-BR), em Markdown curto e direto, com estas seções:
 2. **Provável objeção**: a objeção mais provável a ser tratada.
 3. **O que responder agora**: 1 sugestão concreta de próxima mensagem (curta, consultiva, sem parecer script).
 4. **Aprendizado p/ copy**: 1 frase do que isso ensina para melhorar as abordagens futuras.
-NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.`;
+NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.${doutrinaDeMensagem()}`;
 
       userPrompt = `Analise este lead:
 - Empresa: ${deal.company}
@@ -313,7 +332,7 @@ NÃO invente dados. Se faltar informação, diga o que perguntar ao lead.`;
 Dado um lead, o sinal de interesse (aberturas/cliques nas páginas) e a atividade recente, responda em NO MÁXIMO 2 frases curtas:
 1. Por que agir com esse lead agora (use o sinal se houver: "abriu 3x", "clicou no WhatsApp ontem").
 2. O que fazer no próximo toque (ação concreta e canal).
-Direto, sem enrolação, PT-BR, sem markdown. Se não houver sinal nenhum, diga que é abordagem fria e sugira o primeiro toque.`;
+Direto, sem enrolação, PT-BR, sem markdown. Se não houver sinal nenhum, diga que é abordagem fria e sugira o primeiro toque.${doutrinaDeMensagem()}`;
       userPrompt = `Lead: ${deal.company}
 Estágio: ${deal.stage}
 Score: ${deal.points || 0}/10

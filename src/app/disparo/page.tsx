@@ -290,7 +290,7 @@ export default function DisparoPage() {
           type="button"
           className="topbar-btn"
           onClick={() => setView("disparo")}
-          style={view === "disparo" ? { background: "var(--color-brand-violet)", color: "#fff", borderColor: "var(--color-brand-violet)" } : undefined}
+          style={view === "disparo" ? { background: "var(--color-brand-accent)", color: "#fff", borderColor: "var(--color-brand-accent)" } : undefined}
         >
           Fila de disparo
         </button>
@@ -298,7 +298,7 @@ export default function DisparoPage() {
           type="button"
           className="topbar-btn"
           onClick={() => setView("followup")}
-          style={view === "followup" ? { background: "var(--color-brand-violet)", color: "#fff", borderColor: "var(--color-brand-violet)" } : undefined}
+          style={view === "followup" ? { background: "var(--color-brand-accent)", color: "#fff", borderColor: "var(--color-brand-accent)" } : undefined}
         >
           Follow-up ({dueCount})
         </button>

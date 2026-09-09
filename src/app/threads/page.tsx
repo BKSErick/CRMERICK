@@ -139,7 +139,7 @@ function ThreadsConteudo() {
                     display: "inline-block",
                     padding: "10px 18px",
                     borderRadius: 8,
-                    background: "var(--color-brand-violet, #7b68ee)",
+                    background: "var(--color-brand-accent, #8d5c25)",
                     color: "#fff",
                     fontWeight: 600,
                     textDecoration: "none",

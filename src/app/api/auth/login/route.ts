@@ -13,6 +13,24 @@ const unauthorized = () => NextResponse.json(
   { status: 401 },
 );
 
+const unavailable = () => NextResponse.json(
+  { ok: false, error: "Login administrativo temporariamente indisponivel." },
+  { status: 503 },
+);
+
+function isAuthInfrastructureError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { name?: unknown; status?: unknown; message?: unknown };
+  const status = typeof candidate.status === "number" ? candidate.status : undefined;
+  const message = typeof candidate.message === "string" ? candidate.message : "";
+  return (
+    candidate.name === "AuthRetryableFetchError" ||
+    status === 0 ||
+    (status !== undefined && status >= 500) ||
+    /fetch failed|network request failed/i.test(message)
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json() as { email?: unknown; password?: unknown; next?: unknown };
@@ -23,7 +41,10 @@ export async function POST(request: Request) {
     const auth = getCrmSupabaseAuthClient();
     const { data, error } = await auth.auth.signInWithPassword({ email, password });
     const authenticatedEmail = data.user?.email?.trim().toLowerCase() ?? "";
-    if (error || !isAdminEmail(authenticatedEmail, process.env.CRM_ADMIN_EMAIL)) {
+    if (error) {
+      return isAuthInfrastructureError(error) ? unavailable() : unauthorized();
+    }
+    if (!isAdminEmail(authenticatedEmail, process.env.CRM_ADMIN_EMAIL)) {
       return unauthorized();
     }
 
@@ -42,9 +63,6 @@ export async function POST(request: Request) {
     });
     return response;
   } catch {
-    return NextResponse.json(
-      { ok: false, error: "Login administrativo indisponivel." },
-      { status: 503 },
-    );
+    return unavailable();
   }
 }

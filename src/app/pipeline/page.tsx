@@ -272,7 +272,7 @@ export default function PipelinePage() {
                   key={r.id}
                   type="button"
                   onClick={() => setSelectedDealId(r.id)}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", background: "var(--panel-2, #f0eef7)", border: 0, borderRadius: "8px", padding: "8px 12px", cursor: "pointer", textAlign: "left" }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", background: "var(--panel-2, #f3efe7)", border: 0, borderRadius: "8px", padding: "8px 12px", cursor: "pointer", textAlign: "left" }}
                 >
                   <span style={{ fontSize: "13px" }}>
                     <strong>{r.company}</strong>

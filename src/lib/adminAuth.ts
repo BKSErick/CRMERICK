@@ -90,6 +90,8 @@ export function isPublicCrmPath(pathname: string) {
     pathname === "/login" ||
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/webhooks/uazapi") ||
+    pathname.startsWith("/api/webhooks/brevo/conversations") ||
+    pathname.startsWith("/api/webhooks/gmail/apps-script") ||
     pathname.startsWith("/api/threads/callback") ||
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico" ||

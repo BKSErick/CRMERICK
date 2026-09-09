@@ -1,5 +1,14 @@
 # Funil de WhatsApp — Sequência por Momento (CRM ERICK)
 
+> ⚠️ **DOCUMENTO HISTÓRICO — NÃO É A FONTE DA VERDADE.**
+> A oferta citada aqui (LP R$3.000 / DFY R$10.000 / retainer R$500-800) e a regra
+> "toda mensagem mira a reunião" estão **superadas**. A doutrina viva é
+> `content/sales-playbook.json` (chave `postResponse`), consumida por
+> `mensagemExemplo()` em `src/lib/followup.ts`, pelos cards do Comando e pelo
+> system prompt das IAs do CRM. Em prospecção fria de ticket R$997 **não se pede
+> reunião** e o preço entra escrito na segunda mensagem.
+> Mantido só pelo mapa de momentos (§ "Mapa de momentos"), que continua válido.
+
 > Gerado pela skill `whatsapp-vendas` (método Alan Nicolas) a partir dos dados reais do CRM.
 > Tipo de negócio: **B2B serviço ticket alto** (LP R$3.000 / DFY R$10.000 / retainer R$500-800).
 > Regra mestra: **toda mensagem mira a reunião, nunca o checkout.** Nada de link de pagamento no fio.

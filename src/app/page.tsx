@@ -372,7 +372,7 @@ export default function Home() {
             </div>
           </div>
           {briefing.today.length > 0 ? (
-            <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--line, #e0dcec)" }}>
+            <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--line, #dedbd3)" }}>
               <p className="focus-title" style={{ marginBottom: "6px" }}>📅 Hoje na agenda</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                 {briefing.today.map((e) => (

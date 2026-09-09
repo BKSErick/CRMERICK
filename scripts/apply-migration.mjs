@@ -5,6 +5,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { unwrapOuterTransaction } from "./lib/sqlTransaction.mjs";
+
 const PROJECT_REF = "rezgkabwxxltpprpvdua";
 
 const envPath = path.resolve(process.cwd(), ".env");
@@ -26,7 +28,8 @@ for (const file of files) {
 const sourceSql = files
   .map((file) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8"))
   .join("\n\n");
-const sql = dryRun ? `begin;\n${sourceSql}\nrollback;` : sourceSql;
+const migrationSql = unwrapOuterTransaction(sourceSql);
+const sql = dryRun ? `begin;\n${migrationSql}\nrollback;` : `begin;\n${migrationSql}\ncommit;`;
 const label = files.map((file) => path.basename(file)).join(", ");
 
 const response = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {

@@ -96,7 +96,7 @@ function Escala({ valor, rotulo }: { valor: number | null; rotulo: string }) {
             key={n}
             style={{
               flex: 1, height: 6, borderRadius: 3,
-              background: valor !== null && valor >= n - 0.5 ? "var(--accent, #7c5cff)" : "rgba(127,127,127,.22)",
+              background: valor !== null && valor >= n - 0.5 ? "var(--accent, #8d5c25)" : "rgba(127,127,127,.22)",
             }}
           />
         ))}
