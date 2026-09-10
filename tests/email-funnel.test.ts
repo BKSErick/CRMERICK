@@ -42,7 +42,7 @@ test("nomes de evento do Brevo normalizam entre plural e camelCase", () => {
 });
 
 test("clique identifica qual botao foi tocado", () => {
-  assert.equal(classifyButton("https://wa.me/553191072407?text=oi"), "whatsapp");
+  assert.equal(classifyButton("https://wa.me/5531991072407?text=oi"), "whatsapp");
   assert.equal(classifyButton("https://mydrion.com.br?utm_source=email"), "site");
   assert.equal(classifyButton("https://x.com/unsubscribe/abc"), "descadastro");
   assert.equal(classifyButton(null), "outro");
@@ -67,7 +67,7 @@ test("funil conta entrega, abertura, clique e resposta sem duplicar destinatario
     // duas aberturas do mesmo endereco nao viram duas pessoas
     evento("a@x.com.br", "opened"),
     evento("a@x.com.br", "opened"),
-    evento("a@x.com.br", "click", "https://wa.me/553191072407"),
+    evento("a@x.com.br", "click", "https://wa.me/5531991072407"),
     evento("b@x.com.br", "delivered"),
     evento("c@x.com.br", "delivered"),
     evento("c@x.com.br", "loadedByProxy"),
@@ -159,7 +159,7 @@ test("busca da tabela procura em empresa, e-mail, status e botao", () => {
   const { recipients } = buildEmailFunnel(sends, [
     evento("compras@indametal.com.br", "delivered"),
     evento("sergio@proelt.com.br", "delivered"),
-    evento("sergio@proelt.com.br", "click", "https://wa.me/553191072407"),
+    evento("sergio@proelt.com.br", "click", "https://wa.me/5531991072407"),
     evento("morto@yahoo.com.br", "hardBounces"),
   ]);
 

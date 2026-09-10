@@ -67,8 +67,7 @@ const VOCABULARIO = {
   },
 };
 
-const WHATSAPP = "553191072407";
-const SITE = "https://mydrion.com.br";
+const SITE = "https://www.mydrion.com.br/";
 
 /** Só faz sentido dizer "aqui de João Monlevade" para quem é de João Monlevade. */
 function trechoCidade(cidade) {
@@ -76,20 +75,17 @@ function trechoCidade(cidade) {
   return c.includes("monlevade") ? ", aqui de João Monlevade" : "";
 }
 
-function botoes(empresa) {
-  const texto = encodeURIComponent(`Oi Erick, vi seu e-mail sobre as indicações da ${empresa}.`);
+function botaoSite() {
   const site = `${SITE}?utm_source=email&utm_medium=cold&utm_campaign=institucional`;
-  const zap = `https://wa.me/${WHATSAPP}?text=${texto}`;
+  const siteHtml = site.replace(/&/g, "&amp;");
   // Botao em e-mail e <a> com estilo inline: nada de flex, grid ou classe, que cliente
   // de e-mail descarta. display:inline-block com padding e o que funciona em todos.
   const base = "display:inline-block;padding:12px 22px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px";
   return {
     html: `<p style="margin:30px 0 26px">
-<a href="${site}" style="${base};background:#111111;color:#ffffff">Conheça a Mydrion</a>
-<span style="display:inline-block;width:10px"></span>
-<a href="${zap}" style="${base};background:#25D366;color:#ffffff">Falar no WhatsApp</a>
+<a href="${siteHtml}" style="${base};background:#111111;color:#ffffff">Conhecer a Mydrion</a>
 </p>`,
-    text: `Conheça a Mydrion: ${site}\nFalar no WhatsApp: ${zap}`,
+    text: `Conhecer a Mydrion: ${site}`,
   };
 }
 
@@ -116,7 +112,7 @@ export function montarEmail({ empresa, decisorNome, setor, cidade }) {
     `Faz sentido pra vocês?`,
   ];
 
-  const b = botoes(nome);
+  const b = botaoSite();
   const text = `${paragrafos.join("\n\n")}\n\n${b.text}\n\nErick Sena\nMydrion`;
   const html = `${paragrafos.map((p) => `<p>${p}</p>`).join("\n")}
 ${b.html}

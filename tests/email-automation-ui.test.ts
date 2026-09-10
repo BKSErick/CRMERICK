@@ -32,10 +32,13 @@ test("editor usa canvas conectado, controles, minimapa e inspetor", () => {
   assert.match(editor, /Testar/);
 });
 
-test("envio aparece bloqueado e interface nao oferece ativacao", () => {
+test("envio automatico permanece bloqueado e editor oferece somente lote manual validado", () => {
   assert.match(`${palette}\n${graph}`, /action\.email_send/);
   assert.match(palette, /locked|Bloqueado/);
-  assert.doesNotMatch(`${page}\n${editor}\n${palette}`, /Ativar automacao|Enviar agora/);
+  assert.match(editor, /Enviar lote de hoje/);
+  assert.match(editor, /status !== "validated" \|\| dirty/);
+  assert.match(editor, /window\.confirm/);
+  assert.doesNotMatch(`${page}\n${editor}\n${palette}`, /Ativar automacao/);
 });
 
 test("layout do editor responde em telas menores", () => {

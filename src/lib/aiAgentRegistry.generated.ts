@@ -72,7 +72,7 @@ export const AI_AGENT_PUBLIC_SNAPSHOTS = Object.freeze([
     "version": "3.1.0",
     "specialty": "Oferta, pricing, aquisicao, leads, LTV e escala",
     "sourcePath": "experts/alex_hormozi/clone_alex_hormozi.yaml",
-    "sourceHash": "619c7e35dc2e5da188e09a0ce37113aa41529d469bb40f64c86206e1a28c4350",
+    "sourceHash": "02bc2aadbe5aa950990f9290c3aceac89bd2bb5cb696245623bc8f0eaf1374f5",
     "disclosure": "Clone de IA baseada na metodologia de Alex Hormozi.",
     "suggestions": [
       "Fortaleca esta oferta",

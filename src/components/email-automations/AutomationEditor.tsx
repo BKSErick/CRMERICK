@@ -41,6 +41,15 @@ type ApiBody = {
   issues?: Array<{ message: string }>;
   automation?: EmailAutomationRow;
   result?: EmailAutomationSimulationResult;
+  dispatch?: {
+    dailyCap: number;
+    usedBefore: number;
+    sent: number;
+    stopped: number;
+    skipped: number;
+    remaining: number;
+    errors: string[];
+  };
 };
 
 const nodeTypes = { automationNode: AutomationNode };
@@ -67,7 +76,7 @@ function AutomationEditorCanvas({ initialAutomation, onChanged, onExit }: Props)
   const [version, setVersion] = useState(initialAutomation.version);
   const [status, setStatus] = useState<EmailAutomationStatus>(initialAutomation.status);
   const [dirty, setDirty] = useState(false);
-  const [busy, setBusy] = useState<"saving" | "testing" | "archiving" | null>(null);
+  const [busy, setBusy] = useState<"saving" | "testing" | "archiving" | "dispatching" | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [issues, setIssues] = useState<string[]>([]);
   const [showTest, setShowTest] = useState(false);
@@ -249,7 +258,7 @@ function AutomationEditorCanvas({ initialAutomation, onChanged, onExit }: Props)
     setFeedback(null);
     try {
       const saved = await persist("validated");
-      if (saved) setFeedback("Fluxo marcado como validado. Ele continua sem execucao automatica.");
+      if (saved) setFeedback("Fluxo validado para disparo manual. Nenhuma rotina automatica foi ligada.");
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Nao foi possivel validar.");
     } finally {
@@ -266,6 +275,33 @@ function AutomationEditorCanvas({ initialAutomation, onChanged, onExit }: Props)
       if (saved) onExit();
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Nao foi possivel arquivar.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function dispatchToday() {
+    if (status !== "validated" || dirty) return;
+    const confirmed = window.confirm(
+      "Enviar o lote de hoje agora? O CRM prioriza follow-ups vencidos, completa com novos contatos e respeita o limite diario.",
+    );
+    if (!confirmed) return;
+    setBusy("dispatching");
+    setFeedback(null);
+    setIssues([]);
+    try {
+      const response = await fetch(`/api/email-automations/${initialAutomation.id}/dispatch`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirmed: true, expectedVersion: version }),
+      });
+      const body = await response.json() as ApiBody;
+      if (!body.dispatch) throw new Error(body.error || "Nao foi possivel executar o lote.");
+      const summary = `${body.dispatch.sent} enviados · ${body.dispatch.stopped} interrompidos · ${body.dispatch.remaining} disponiveis hoje`;
+      setFeedback(body.dispatch.errors.length ? `Lote interrompido com seguranca: ${summary}.` : `Lote concluido: ${summary}.`);
+      setIssues(body.dispatch.errors);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Nao foi possivel executar o lote.");
     } finally {
       setBusy(null);
     }
@@ -303,6 +339,15 @@ function AutomationEditorCanvas({ initialAutomation, onChanged, onExit }: Props)
           <button className="automation-button" disabled={Boolean(busy)} onClick={() => setShowTest(true)} type="button">Testar</button>
           <button className="automation-button primary" disabled={Boolean(busy)} onClick={save} type="button">
             {busy === "saving" ? "Salvando..." : "Salvar"}
+          </button>
+          <button
+            className="automation-button safe"
+            disabled={Boolean(busy) || status !== "validated" || dirty}
+            onClick={dispatchToday}
+            title={status !== "validated" || dirty ? "Salve, teste e valide esta versao antes de enviar." : "Executar manualmente o lote diario"}
+            type="button"
+          >
+            {busy === "dispatching" ? "Enviando lote..." : "Enviar lote de hoje"}
           </button>
           <button className="automation-button" disabled={Boolean(busy)} onClick={onExit} type="button">Sair do editor</button>
         </div>

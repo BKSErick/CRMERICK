@@ -5,6 +5,89 @@
 
 const MAILBOX_PATTERN = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 
+export function resolveDailyCap(value, { defaultCap = 20, hardMax = 250 } = {}) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) return defaultCap;
+  return Math.min(parsed, hardMax);
+}
+
+export function resolveBatchLimit(value, { hardMax = 250 } = {}) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) return 0;
+  return Math.min(parsed, hardMax);
+}
+
+export function resolveEffectiveSentToday(centralCount, unloggedLocalCount = 0) {
+  const safeCount = (value) => {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+  };
+  return safeCount(centralCount) + safeCount(unloggedLocalCount);
+}
+
+function dayKeyInTimeZone(value, timeZone = "America/Sao_Paulo") {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+export function countEmailSendsForDay(rows, now = new Date(), timeZone = "America/Sao_Paulo") {
+  const targetDay = dayKeyInTimeZone(now, timeZone);
+  if (!targetDay) return 0;
+  return (Array.isArray(rows) ? rows : []).filter(
+    (row) => dayKeyInTimeZone(row?.created_at, timeZone) === targetDay,
+  ).length;
+}
+
+export async function fetchCrmEmailSentToday({
+  fetchFn = fetch,
+  supabaseUrl,
+  headers,
+  now = new Date(),
+  timeZone = "America/Sao_Paulo",
+}) {
+  const baseUrl = String(supabaseUrl || "").replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(baseUrl)) {
+    throw new Error("SUPABASE_URL ausente ou invalida para consultar o total diario.");
+  }
+
+  // A janela de 36h cobre integralmente o dia local mesmo perto da virada UTC.
+  // Ordenar do mais novo e limitar em 1000 falha de forma conservadora: se houver
+  // mais de 1000 envios recentes, o total contado ja excede qualquer teto permitido.
+  const since = new Date(now.getTime() - 36 * 60 * 60 * 1000).toISOString();
+  const params = new URLSearchParams({
+    select: "created_at",
+    type: "eq.email_sent",
+    created_at: `gte.${since}`,
+    order: "created_at.desc",
+    limit: "1000",
+  });
+  const response = await fetchFn(`${baseUrl}/rest/v1/activities?${params}`, {
+    headers: { ...headers, accept: "application/json" },
+  });
+  if (!response.ok) {
+    await response.text().catch(() => "");
+    throw new Error(`Falha ao consultar total diario no CRM (HTTP ${response.status}).`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) throw new Error("Resposta invalida ao consultar total diario no CRM.");
+  return countEmailSendsForDay(rows, now, timeZone);
+}
+
+export function recipientFromActivityDescription(description) {
+  const match = /e-mail enviado para\s+([^\s:]+@[^\s:]+):/i.exec(String(description || ""));
+  if (!match) return null;
+  const mailbox = match[1].trim().toLowerCase();
+  return MAILBOX_PATTERN.test(mailbox) ? mailbox : null;
+}
+
 export function validateMailbox(value) {
   const mailbox = String(value || "").trim();
   if (!MAILBOX_PATTERN.test(mailbox)) {

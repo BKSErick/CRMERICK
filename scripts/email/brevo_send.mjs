@@ -4,15 +4,21 @@
 // USO:
 //   node brevo_send.mjs --check                 # so valida conta/sender/limite, envia 0
 //   node brevo_send.mjs --test=voce@email.com   # manda 1 email de teste pra voce
-//   node brevo_send.mjs --limit=40              # dispara os 40 primeiros da fila (dedup)
-//   node brevo_send.mjs --limit=40 --from="Erick Sena <erick@dominio.com>"
+//   node brevo_send.mjs --limit=20              # dispara ate 20 da fila (dedup)
+//   node brevo_send.mjs --limit=30 --cap=30     # sobe a rampa conscientemente
+//   node brevo_send.mjs --limit=20 --from="Erick Sena <erick@dominio.com>"
 //
 // Defaults conservadores de propósito (proteger reputação de domínio + ToS Brevo).
 import fs from 'node:fs';
 import {
   buildActivityPayload,
   buildBrevoEmailPayload,
+  countEmailSendsForDay,
+  fetchCrmEmailSentToday,
   postActivity,
+  resolveBatchLimit,
+  resolveDailyCap,
+  resolveEffectiveSentToday,
   sentAtFromLogEntry,
   validateMailbox,
 } from './brevo-support.mjs';
@@ -21,7 +27,7 @@ const args = process.argv.slice(2);
 const arg = (k, def) => { const a = args.find(x => x.startsWith(`--${k}=`)); return a ? a.split('=').slice(1).join('=') : def; };
 const has = k => args.includes(`--${k}`);
 
-const LIMIT = parseInt(arg('limit', '0')) || 0;
+const LIMIT = resolveBatchLimit(arg('limit', ''));
 const TEST = arg('test', '');
 const CHECK = has('check');
 const FROM_OVERRIDE = arg('from', '');
@@ -30,7 +36,12 @@ const THROTTLE_MS = parseInt(arg('throttle', '8000'));   // 8s entre envios
 // do lead volta com erro e some. --reply-to manda a resposta para uma caixa que existe.
 const REPLY_TO = arg('reply-to', '');
 const REPLY_TO_EMAIL = REPLY_TO ? validateMailbox(REPLY_TO) : '';
-const DAILY_CAP = parseInt(arg('cap', '250'));           // teto duro de seguranca
+const DAILY_CAP = resolveDailyCap(arg('cap', ''));       // padrao 20; teto duro absoluto 250
+
+if (!LIMIT && !TEST && !CHECK) {
+  console.log('Sem --limit, --test ou --check: nada a fazer.');
+  process.exit(0);
+}
 
 const envCRM = Object.fromEntries(
   fs.readFileSync('D:/001Gravity/CRM ERICK/.env', 'utf8')
@@ -49,9 +60,14 @@ const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'content-type':
 const sentLogPath = 'sent_log.json';
 const sentLog = fs.existsSync(sentLogPath) ? JSON.parse(fs.readFileSync(sentLogPath, 'utf8')) : {};
 const saveLog = () => fs.writeFileSync(sentLogPath, JSON.stringify(sentLog, null, 1), 'utf8');
-const sentToday = Object.values(sentLog)
-  .map(sentAtFromLogEntry)
-  .filter(t => t.slice(0, 10) === new Date().toISOString().slice(0, 10)).length;
+const sentTodayLocal = countEmailSendsForDay(
+  Object.values(sentLog).map((entry) => ({ created_at: sentAtFromLogEntry(entry) })),
+);
+const sentTodayLocalUnlogged = countEmailSendsForDay(
+  Object.values(sentLog)
+    .filter((entry) => entry && typeof entry === 'object' && entry.crmActivityLogged === false)
+    .map((entry) => ({ created_at: sentAtFromLogEntry(entry) })),
+);
 
 async function pickSender() {
   if (FROM_OVERRIDE) {
@@ -100,9 +116,16 @@ async function validate() {
   if (!acc.ok) throw new Error(`account ${acc.status}: ${(await acc.text()).slice(0, 200)}`);
   const a = await acc.json();
   const sender = await pickSender();
+  const sentTodayCentral = await fetchCrmEmailSentToday({
+    supabaseUrl: SB_URL,
+    headers: SBH,
+  });
+  const sentToday = resolveEffectiveSentToday(sentTodayCentral, sentTodayLocalUnlogged);
   console.log('CONTA:', a.email, '| plano:', JSON.stringify(a.plan?.[0] || a.plan));
   console.log('SENDER:', `${sender.name} <${sender.email}>`);
-  console.log('ENVIADOS HOJE (log local):', sentToday, '/ cap', DAILY_CAP);
+  console.log('ENVIADOS HOJE (CRM central):', sentTodayCentral);
+  console.log('ENVIADOS HOJE (log local complementar):', sentTodayLocal);
+  console.log('ORCAMENTO EFETIVO DO DIA:', sentToday, '/ cap', DAILY_CAP);
 
   // Sem MX no dominio do Reply-To, a resposta do lead volta com erro e some.
   const alvoResposta = validateMailbox(REPLY_TO_EMAIL || sender.email);
@@ -119,7 +142,7 @@ async function validate() {
       console.log('MX do dominio de resposta:', mx.map(m => m.exchange).join(', '));
     }
   } catch { /* checagem de DNS e best-effort */ }
-  return { a, sender };
+  return { a, sender, sentToday };
 }
 
 async function sendOne(sender, item) {
@@ -136,7 +159,7 @@ async function logActivity(item, messageId) {
 }
 
 // ---- MAIN ----
-const { sender } = await validate();
+const { sender, sentToday } = await validate();
 if (CHECK) { console.log('CHECK ok — nada enviado.'); process.exit(0); }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -148,8 +171,6 @@ if (TEST) {
   console.log(`TESTE enviado pra ${TEST} (messageId ${id}). Confira inbox E spam.`);
   process.exit(0);
 }
-
-if (!LIMIT) { console.log('Sem --limit, --test ou --check: nada a fazer.'); process.exit(0); }
 
 const queue = JSON.parse(fs.readFileSync('email_queue.json', 'utf8'));
 const pending = queue.filter(q => !sentLog[q.email]);

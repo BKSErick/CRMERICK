@@ -142,7 +142,7 @@ function AutomationsPageContent() {
         <div>
           <span className="card-badge">Fluxos comerciais</span>
           <h1>Automacoes</h1>
-          <p>Monte e teste jornadas visuais. Nenhuma automacao envia e-mails nesta versao.</p>
+          <p>Monte e teste jornadas visuais. Versoes validadas podem executar o lote diário somente por comando manual.</p>
         </div>
         <button className="automation-create-button" disabled={creating} onClick={createAutomation} type="button">
           <span aria-hidden="true">+</span>{creating ? "Criando..." : "Criar automacao"}

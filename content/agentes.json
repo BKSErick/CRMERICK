@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-20T15:35:44.726Z",
+  "generatedAt": "2026-09-10T18:14:28.360Z",
   "source": "content/ai-agents/manifest.json",
   "note": "Catalogo versionado dos especialistas disponiveis no chat contextual.",
   "count": 7,
@@ -76,7 +76,7 @@
       "version": "3.1.0",
       "specialty": "Oferta, pricing, aquisicao, leads, LTV e escala",
       "sourcePath": "experts/alex_hormozi/clone_alex_hormozi.yaml",
-      "sourceHash": "619c7e35dc2e5da188e09a0ce37113aa41529d469bb40f64c86206e1a28c4350",
+      "sourceHash": "02bc2aadbe5aa950990f9290c3aceac89bd2bb5cb696245623bc8f0eaf1374f5",
       "disclosure": "Clone de IA baseada na metodologia de Alex Hormozi.",
       "suggestions": [
         "Fortaleca esta oferta",

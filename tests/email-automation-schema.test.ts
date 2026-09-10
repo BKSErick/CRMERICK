@@ -11,6 +11,14 @@ const rollback = readFileSync(
   new URL("../scripts/migrations/20260909_email_automation_builder.rollback.sql", import.meta.url),
   "utf8",
 );
+const dispatchMigration = readFileSync(
+  new URL("../scripts/migrations/20260910_email_automation_manual_dispatch.sql", import.meta.url),
+  "utf8",
+);
+const dispatchRollback = readFileSync(
+  new URL("../scripts/migrations/20260910_email_automation_manual_dispatch.rollback.sql", import.meta.url),
+  "utf8",
+);
 
 for (const [label, sql] of [["migration", migration], ["schema", schema]] as const) {
   test(`${label} cria automacoes, revisoes e testes com contratos seguros`, () => {
@@ -46,4 +54,34 @@ test("rollback remove apenas os objetos da Story 047", () => {
   assert.match(rollback, /drop table if exists public\.email_automation_test_runs/i);
   assert.match(rollback, /drop table if exists public\.email_automation_revisions/i);
   assert.match(rollback, /drop table if exists public\.email_automations/i);
+});
+
+for (const [label, sql] of [["migration", dispatchMigration], ["schema", schema]] as const) {
+  test(`${label} persiste inscricoes e dispatches do lote manual com RLS`, () => {
+    for (const table of ["email_automation_enrollments", "email_automation_dispatches"]) {
+      assert.match(sql, new RegExp(`create table if not exists public\\.${table}`, "i"));
+      assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`, "i"));
+      assert.match(sql, new RegExp(`revoke all on public\\.${table} from anon, authenticated`, "i"));
+    }
+    assert.match(sql, /unique\s*\(automation_id,\s*recipient_email\)/i);
+    assert.match(sql, /unique\s*\(enrollment_id,\s*step_index\)/i);
+  });
+
+  test(`${label} reserva limite e conclui envio em funcoes atomicas`, () => {
+    assert.match(sql, /create or replace function public\.claim_email_automation_dispatch/i);
+    assert.match(sql, /pg_advisory_xact_lock/i);
+    assert.match(sql, /p_daily_cap[\s\S]*between 1 and 250/i);
+    assert.match(sql, /metadata->>'dispatch_id'/i);
+    assert.match(sql, /create or replace function public\.complete_email_automation_dispatch/i);
+    assert.match(sql, /insert into public\.activities/i);
+    assert.match(sql, /grant execute[\s\S]*to service_role/i);
+  });
+}
+
+test("rollback do disparo manual remove somente objetos da Story 054", () => {
+  assert.match(dispatchRollback, /drop function if exists public\.complete_email_automation_dispatch/i);
+  assert.match(dispatchRollback, /drop function if exists public\.claim_email_automation_dispatch/i);
+  assert.match(dispatchRollback, /drop table if exists public\.email_automation_dispatches/i);
+  assert.match(dispatchRollback, /drop table if exists public\.email_automation_enrollments/i);
+  assert.doesNotMatch(dispatchRollback, /drop table if exists public\.email_automations\s*;/i);
 });

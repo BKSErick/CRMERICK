@@ -14,7 +14,7 @@
  */
 import fs from "node:fs";
 import { estaBloqueado, lerBlocklist } from "./blocklist.mjs";
-import { contactForDeal } from "./brevo-support.mjs";
+import { contactForDeal, recipientFromActivityDescription } from "./brevo-support.mjs";
 import { montarEmail, violacoes } from "./copy-institucional.mjs";
 import { qualificar } from "./qualificar-destinatario.mjs";
 
@@ -44,7 +44,7 @@ async function todas(tabela, select, extra = "") {
 const [deals, contacts, activities, messages] = await Promise.all([
   todas("deals", "id,contact_id,company,stage,setor,porte,points,decisor_nome,email_receita,site_url", `&setor=in.(${SETORES.join(",")})`),
   todas("contacts", "id,email,city"),
-  todas("activities", "deal_id,type"),
+  todas("activities", "deal_id,type,description"),
   todas("messages", "deal_id,direction"),
 ]);
 const contatoPorId = new Map(contacts.map((c) => [c.id, c]));
@@ -144,8 +144,16 @@ const dominioDe = (e) => String(e || '').split('@')[1]?.toLowerCase() || '';
 const jaEnviados = (() => {
   try { return Object.keys(JSON.parse(fs.readFileSync('sent_log.json', 'utf8'))).map((e) => e.toLowerCase()); } catch { return []; }
 })();
-const enderecosUsados = new Set(jaEnviados);
+const jaEnviadosNoCrm = activities
+  .filter((activity) => activity.type === "email_sent")
+  .map((activity) => recipientFromActivityDescription(activity.description))
+  .filter(Boolean);
+const enderecosUsados = new Set([...jaEnviados, ...jaEnviadosNoCrm]);
 const dominiosUsados = new Set(jaEnviados.map(dominioDe).filter((d) => d && !FREEMAIL.has(d)));
+for (const email of jaEnviadosNoCrm) {
+  const dominio = dominioDe(email);
+  if (dominio && !FREEMAIL.has(dominio)) dominiosUsados.add(dominio);
+}
 
 const novos = [];
 const casasRepetidas = [];
