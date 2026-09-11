@@ -13,7 +13,11 @@
 // modulo de rede junto.
 import type { GaDayRow, GaDeviceRow, GaEventRow, GaPageRow, GaSourceRow } from "./googleAnalytics.ts";
 import type { GscRow, GscTotals } from "./searchConsole.ts";
-import { isMydrionCtaEvent, isMydrionLeadEvent } from "./googleEventTaxonomy.ts";
+import {
+  isMydrionCtaEvent,
+  isMydrionLeadEvent,
+  isMydrionMeasurementEvent,
+} from "./googleEventTaxonomy.ts";
 
 export type RankedRow = { label: string; value: number; share: number; extra?: string };
 
@@ -142,9 +146,9 @@ export function buildGoogleInsights(input: {
     sales,
     engagementRate: pct(ctaClicks, views),
     funnel: [
-      { label: "Visualizacoes", value: views, helper: "page_view + diagnostico_view" },
-      { label: "Cliques em CTA", value: ctaClicks, helper: "link, relatorio e OStrack" },
-      { label: "Leads", value: leads, helper: "WhatsApp + generate_lead" },
+      { label: "Visualizacoes", value: views, helper: "page_view" },
+      { label: "Cliques em CTA", value: ctaClicks, helper: "mydrion_cta_click + CTAs legados aceitos" },
+      { label: "Leads", value: leads, helper: "generate_lead" },
       { label: "Vendas", value: sales, helper: "purchase" },
     ],
     pages: rank(input.pages.map((p) => ({ label: p.pagePath, value: p.sessions, extra: `${p.activeUsers} pessoas` })), 10),
@@ -256,19 +260,21 @@ export function buildGoogleInsights(input: {
     }
   }
 
-  // Nao afirmar comportamento quando pode ser buraco de tracking. Zero clique com
-  // NENHUM evento de clique registrado quase sempre e pagina que nao instrumentou
-  // o botao; ja zero clique havendo evento de clique no periodo e comportamento.
+  // O GA4 nao devolve linha para evento com contagem zero. Por isso, a ausencia
+  // de CTA no relatorio nao prova falha de instrumentacao nem ausencia de clique.
+  // O evento tecnico confirma que a versao atual do contrato esteve ativa.
   if (input.gaConfigured && views > 0 && ctaClicks === 0) {
-    // "Existe evento de clique" aqui e sobre a taxonomia da Mydrion: clique de
-    // outra propriedade nao prova que ESTE site instrumentou os botoes dele.
-    const temAlgumClique = eventos.some((row) => isMydrionCtaEvent(row.eventName));
+    const medicaoConfirmada = eventos.some((row) =>
+      isMydrionMeasurementEvent(row.eventName)
+    );
     diagnosis.push({
       level: "atencao",
-      title: "Nenhum clique em CTA medido",
-      message: temAlgumClique
-        ? `${views} visualizacoes e nenhum clique em botao no periodo. Aqui o dado existe: e comportamento, nao falta de medicao.`
-        : `${views} visualizacoes e nenhum evento de clique chegou ao GA4. Antes de concluir que ninguem clica, confira se os botoes da pagina disparam evento — sem instrumentacao este numero seria zero de qualquer jeito.`,
+      title: medicaoConfirmada
+        ? "Nenhum clique de CTA no período"
+        : "Medição de CTA ainda não confirmada",
+      message: medicaoConfirmada
+        ? `${views} visualizações e nenhum clique nos CTAs da Mydrion neste período. A medição está ativa; agora o zero representa comportamento observado.`
+        : `${views} visualizações chegaram ao GA4, mas o evento que confirma a medição dos botões não apareceu neste período. Este zero ainda não permite concluir se houve ou não clique.`,
     });
   }
 

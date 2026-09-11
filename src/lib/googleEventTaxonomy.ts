@@ -20,12 +20,16 @@ export const MYDRION_CTA_EVENT_NAMES = [
 /** Eventos que marcam lead entregue. */
 export const MYDRION_LEAD_EVENT_NAMES = ["generate_lead"] as const;
 
+/** Evento tecnico que confirma a versao atual do contrato de medicao. */
+export const MYDRION_MEASUREMENT_EVENT_NAMES = ["mydrion_measurement_active"] as const;
+
 // A propriedade recebe o MESMO evento em PascalCase e snake_case, entao a
 // comparacao ignora separador e caixa.
 const chave = (name: string) => String(name || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
 
 const CTA = new Set(MYDRION_CTA_EVENT_NAMES.map(chave));
 const LEAD = new Set(MYDRION_LEAD_EVENT_NAMES.map(chave));
+const MEASUREMENT = new Set(MYDRION_MEASUREMENT_EVENT_NAMES.map(chave));
 
 export function isMydrionCtaEvent(eventName: string): boolean {
   return CTA.has(chave(eventName));
@@ -33,4 +37,8 @@ export function isMydrionCtaEvent(eventName: string): boolean {
 
 export function isMydrionLeadEvent(eventName: string): boolean {
   return LEAD.has(chave(eventName));
+}
+
+export function isMydrionMeasurementEvent(eventName: string): boolean {
+  return MEASUREMENT.has(chave(eventName));
 }

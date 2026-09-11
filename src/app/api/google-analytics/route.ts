@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchGaEvents, fetchGaPages, isGaConfigured } from "@/lib/googleAnalytics";
+import { isMydrionCtaEvent, isMydrionLeadEvent } from "@/lib/googleEventTaxonomy";
 
 // Espelha o contrato de /api/facebook-pixel para o funil poder tratar as duas
 // fontes do mesmo jeito: { status, configured, source, metrics, message }.
@@ -22,16 +23,6 @@ const EMPTY_METRICS: Metrics = {
   leads: 0,
   sales: 0,
   users: 0,
-};
-
-// Nomes snake_case gravados pelo Measurement Protocol em /api/facebook-pixel.
-const EVENT_MAP: Record<keyof Omit<Metrics, "users">, string[]> = {
-  views: ["diagnostico_view", "page_view"],
-  ctaClicks: ["diagnostico_link_click"],
-  reportClicks: ["diagnostico_report_click"],
-  ostrackClicks: ["diagnostico_ostrack_click"],
-  leads: ["diagnostico_whatsapp_click", "generate_lead"],
-  sales: ["purchase"],
 };
 
 export async function GET() {
@@ -62,19 +53,21 @@ export async function GET() {
     });
   }
 
-  const byName = new Map(events.map((row) => [row.eventName, row]));
-  const sum = (names: string[], field: "eventCount" | "activeUsers" = "eventCount") =>
-    names.reduce((total, name) => total + (byName.get(name)?.[field] ?? 0), 0);
+  const pageView = events.find((row) => row.eventName === "page_view");
+  const sumWhere = (predicate: (eventName: string) => boolean) =>
+    events.reduce((total, row) => predicate(row.eventName) ? total + row.eventCount : total, 0);
 
   const metrics: Metrics = {
-    views: sum(EVENT_MAP.views),
-    ctaClicks: sum(EVENT_MAP.ctaClicks),
-    reportClicks: sum(EVENT_MAP.reportClicks),
-    ostrackClicks: sum(EVENT_MAP.ostrackClicks),
-    leads: sum(EVENT_MAP.leads),
-    sales: sum(EVENT_MAP.sales),
+    views: pageView?.eventCount ?? 0,
+    ctaClicks: sumWhere(isMydrionCtaEvent),
+    // Campos legados mantidos no contrato da resposta. O recorte atual mede o
+    // site Mydrion, portanto diagnosticos e OStrack nao entram nesses totais.
+    reportClicks: 0,
+    ostrackClicks: 0,
+    leads: sumWhere(isMydrionLeadEvent),
+    sales: sumWhere((eventName) => eventName.toLowerCase() === "purchase"),
     // activeUsers do page_view aproxima "quem chegou", nao a soma dos eventos.
-    users: byName.get("page_view")?.activeUsers ?? 0,
+    users: pageView?.activeUsers ?? 0,
   };
 
   const total = events.reduce((acc, row) => acc + row.eventCount, 0);
@@ -87,7 +80,7 @@ export async function GET() {
     pages: pages ?? [],
     message:
       total > 0
-        ? `${total} eventos no GA4 nos ultimos 30 dias.`
+        ? `${total} eventos do site Mydrion no GA4 nos ultimos 30 dias.`
         : "GA4 conectado; aguardando os primeiros eventos das paginas.",
   });
 }

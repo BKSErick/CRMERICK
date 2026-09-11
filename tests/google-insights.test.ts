@@ -176,34 +176,51 @@ test("fonte desligada vira aviso, nao numero falso", () => {
   assert.deepEqual(report.search.pareto, []);
 });
 
-test("zero clique nao vira acusacao de comportamento quando pode ser tracking", () => {
-  // Nenhum evento de clique no periodo: o numero seria zero mesmo que todo mundo
-  // clicasse, porque nada instrumentou o botao. Afirmar "a pagina nao pede acao"
-  // ai e conclusao errada com cara de dado.
+test("zero clique separa medicao nao confirmada de comportamento observado", () => {
+  // O GA4 omite linhas de evento com contagem zero. Ausencia do CTA no relatorio
+  // nao prova falta de instrumentacao nem ausencia de clique; o evento de saude
+  // da versao atual e quem confirma que o contrato esteve ativo no periodo.
   const semInstrumentacao = buildGoogleInsights({
     ...base,
     gscConfigured: false,
     events: [{ eventName: "page_view", eventCount: 258, activeUsers: 120 }],
   });
-  const aviso = semInstrumentacao.diagnosis.find((d) => /Nenhum clique em CTA/.test(d.title));
+  const aviso = semInstrumentacao.diagnosis.find((d) => /Medição de CTA ainda não confirmada/.test(d.title));
   assert.ok(aviso, "o alerta existe");
-  assert.match(aviso.message, /confira se os botoes/);
-  assert.doesNotMatch(aviso.message, /nao esta pedindo acao/);
+  assert.match(aviso.message, /não permite concluir/);
 
-  // Havendo evento de clique DA MYDRION registrado, zero passa a ser comportamento
-  // de verdade. Clique de outra propriedade nao serve de prova: `click` generico
-  // do OStrack nao diz nada sobre o site institucional ter instrumentado botao.
+  // O evento de prontidao e separado da taxonomia de conversao: confirma a
+  // medicao sem criar clique e torna o zero um comportamento observavel.
   const comInstrumentacao = buildGoogleInsights({
     ...base,
     gscConfigured: false,
     events: [
       { eventName: "page_view", eventCount: 258, activeUsers: 120 },
-      { eventName: "mydrion_cta_click", eventCount: 0, activeUsers: 0 },
+      { eventName: "mydrion_measurement_active", eventCount: 258, activeUsers: 120 },
     ],
   });
-  const aviso2 = comInstrumentacao.diagnosis.find((d) => /Nenhum clique em CTA/.test(d.title));
+  const aviso2 = comInstrumentacao.diagnosis.find((d) => /Nenhum clique de CTA no período/.test(d.title));
   assert.ok(aviso2, "o alerta existe");
-  assert.match(aviso2.message, /comportamento, nao falta de medicao/);
+  assert.match(aviso2.message, /medição está ativa/);
+  assert.equal(comInstrumentacao.analytics.ctaClicks, 0);
+});
+
+test("funil descreve exatamente a taxonomia contabilizada", () => {
+  const { analytics } = buildGoogleInsights({
+    ...base,
+    events: [
+      { eventName: "page_view", eventCount: 20, activeUsers: 12 },
+      { eventName: "mydrion_cta_click", eventCount: 4, activeUsers: 3 },
+      { eventName: "generate_lead", eventCount: 1, activeUsers: 1 },
+    ],
+  });
+
+  assert.deepEqual(analytics.funnel.map((item) => item.helper), [
+    "page_view",
+    "mydrion_cta_click + CTAs legados aceitos",
+    "generate_lead",
+    "purchase",
+  ]);
 });
 
 test("clique que nao vira lead e apontado separado", () => {

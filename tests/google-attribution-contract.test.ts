@@ -4,8 +4,10 @@ import test from "node:test";
 
 import {
   MYDRION_CTA_EVENT_NAMES,
+  MYDRION_MEASUREMENT_EVENT_NAMES,
   isMydrionCtaEvent,
   isMydrionLeadEvent,
+  isMydrionMeasurementEvent,
 } from "../src/lib/googleEventTaxonomy.ts";
 import {
   DEFAULT_GA_HOSTNAMES,
@@ -25,6 +27,9 @@ test("taxonomia aceita somente CTAs comerciais da Mydrion", () => {
   }
   assert.equal(isMydrionLeadEvent("generate_lead"), true);
   assert.equal(isMydrionLeadEvent("diagnostico_whatsapp_click"), false);
+  assert.deepEqual(MYDRION_MEASUREMENT_EVENT_NAMES, ["mydrion_measurement_active"]);
+  assert.equal(isMydrionMeasurementEvent("mydrion_measurement_active"), true);
+  assert.equal(isMydrionCtaEvent("mydrion_measurement_active"), false);
 });
 
 test("consultas GA4 ficam restritas aos hosts institucionais da Mydrion", () => {
