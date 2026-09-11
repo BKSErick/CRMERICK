@@ -83,8 +83,18 @@ export function EmailFunnelPanel() {
   }
 
   const { report } = state;
-  const { counts, rates, pareto, buttons, daily, recipients, health } = report;
+  const { counts, rates, pareto, buttons, daily, recipients } = report;
   const maxFunil = Math.max(...funil.map((f) => f.value), 1);
+
+  // Sem BREVO_API_KEY o relatorio nasce sem evento nenhum: entrega, bounce, spam e
+  // clique vem zerados. "Entrega limpa" ai seria falso positivo de dado vazio, nao de
+  // dominio saudavel — e zero de fonte desligada nao pode parecer zero real.
+  const health = state.configured
+    ? report.health
+    : {
+        level: "atencao" as const,
+        message: "Sem dados do Brevo: entrega, bounce, spam e clique desconhecidos ate configurar BREVO_API_KEY no servidor.",
+      };
 
   return (
     <div className="editorial-funnel-panel">
@@ -92,7 +102,12 @@ export function EmailFunnelPanel() {
         <div>
           <div className="funnel-section-eyebrow">Funil de aquisicao</div>
           <h2>E-mail frio</h2>
-          <p>{state.message} Resposta e clique sao exatos; abertura e estimativa de pixel.</p>
+          <p>
+            {state.message}{" "}
+            {state.configured
+              ? "Resposta e clique sao exatos; abertura e estimativa de pixel."
+              : "So envio e resposta sao reais nesta tela; o resto e ausencia de dado, nao zero."}
+          </p>
         </div>
         <div className="funnel-meta-rate">
           <strong>{pct(rates.delivery)}</strong>
