@@ -4302,6 +4302,81 @@ button.demand-beyond-window:focus-visible {
   white-space: pre-wrap;
 }
 
+/* Quem falou: chip de direcao em todo card + card citado (o e-mail que veio
+   colado dentro da resposta do lead) mais apagado e recolhido por padrao. */
+.email-direction-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.email-message > header .email-direction-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font: 700 9.5px/1 var(--font-interface);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.email-message > header .email-direction-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.email-message > header .email-direction-chip.received {
+  background: #e8f0fb;
+  color: #2a5aa8;
+}
+
+.email-message > header .email-direction-chip.sent {
+  background: #f4eadf;
+  color: var(--color-brand-accent);
+}
+
+.email-message > header .email-quoted-note {
+  color: var(--color-smoke-500);
+  font: 500 10.5px/1.3 var(--font-interface);
+  font-style: italic;
+}
+
+.email-message.quoted {
+  border-style: dashed;
+  background: #faf8f4;
+  box-shadow: none;
+  opacity: .92;
+}
+
+.email-message.quoted.inbound {
+  background: #f6f8fc;
+}
+
+.email-message-preview {
+  color: var(--color-smoke-500);
+  white-space: normal;
+}
+
+.email-quoted-toggle {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand-accent);
+  font: 650 11px/1 var(--font-interface);
+  cursor: pointer;
+}
+
+.email-quoted-toggle:hover {
+  text-decoration: underline;
+}
+
 .email-attachments {
   display: flex;
   flex-wrap: wrap;

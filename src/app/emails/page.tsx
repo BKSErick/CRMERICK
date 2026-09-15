@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { emailPreview, normalizeSubject, splitQuotedEmail, type QuotedEmail } from "@/lib/emailThread";
 
 type ThreadContext = {
   id: number;
@@ -53,6 +55,88 @@ function participantLabel(thread: ThreadContext): string {
   return thread.contact?.name || thread.participant_name || thread.participant_email || "Remetente desconhecido";
 }
 
+type Direction = "sent" | "received";
+
+// Um card por "fala": a mensagem gravada no banco vira um item, e o e-mail citado
+// dentro dela (o que o lead respondeu por cima) vira um item proprio, antes dela.
+type StreamItem = {
+  key: string;
+  kind: "message" | "quoted";
+  direction: Direction;
+  senderName: string;
+  senderEmail: string | null;
+  occurredAt: string | null;
+  occurredAtRaw: string | null;
+  subject: string | null;
+  to: string | null;
+  body: string;
+  attachments: EmailMessage["attachments"];
+  quotedFromName: string | null;
+};
+
+function quotedDirection(quoted: QuotedEmail, message: EmailMessage, thread: ThreadContext): Direction {
+  const participant = thread.participant_email.toLowerCase();
+  if (quoted.fromEmail) return quoted.fromEmail === participant ? "received" : "sent";
+  return message.direction === "sent" ? "received" : "sent";
+}
+
+function alreadyInThread(quoted: QuotedEmail, direction: Direction, messages: EmailMessage[], current: EmailMessage): boolean {
+  const subject = normalizeSubject(quoted.subject);
+  const bodyStart = quoted.body.replace(/\s+/g, " ").slice(0, 60);
+  return messages.some((other) => {
+    if (other.id === current.id || (other.direction ?? "received") !== direction) return false;
+    if (subject && normalizeSubject(other.subject) === subject) return true;
+    return bodyStart.length >= 20 && (other.content ?? "").replace(/\s+/g, " ").includes(bodyStart);
+  });
+}
+
+function buildStream(thread: ThreadContext, messages: EmailMessage[]): StreamItem[] {
+  const items: StreamItem[] = [];
+  for (const message of messages) {
+    const direction: Direction = message.direction === "sent" ? "sent" : "received";
+    const { reply, quoted } = splitQuotedEmail(message.content);
+    const senderName = direction === "sent"
+      ? message.sender_name || "Mydrion"
+      : message.sender_name || message.from_email || participantLabel(thread);
+
+    if (quoted && quoted.body) {
+      const quotedDir = quotedDirection(quoted, message, thread);
+      if (!alreadyInThread(quoted, quotedDir, messages, message)) {
+        items.push({
+          key: `quoted-${message.id}`,
+          kind: "quoted",
+          direction: quotedDir,
+          senderName: quoted.fromName || (quotedDir === "sent" ? "Mydrion" : participantLabel(thread)),
+          senderEmail: quoted.fromEmail || (quotedDir === "sent" ? null : thread.participant_email),
+          occurredAt: quoted.sentAt,
+          occurredAtRaw: quoted.sentAtRaw,
+          subject: quoted.subject,
+          to: quoted.to,
+          body: quoted.body,
+          attachments: null,
+          quotedFromName: senderName,
+        });
+      }
+    }
+
+    items.push({
+      key: `message-${message.id}`,
+      kind: "message",
+      direction,
+      senderName,
+      senderEmail: message.from_email || (direction === "received" ? thread.participant_email : null),
+      occurredAt: message.occurred_at,
+      occurredAtRaw: null,
+      subject: message.subject,
+      to: message.recipient_emails?.join(", ") || null,
+      body: reply,
+      attachments: message.attachments,
+      quotedFromName: null,
+    });
+  }
+  return items;
+}
+
 function validAttachmentUrl(value: unknown): string | null {
   try {
     const url = new URL(String(value ?? ""));
@@ -90,6 +174,7 @@ export default function EmailInboxPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -132,6 +217,12 @@ export default function EmailInboxPage() {
   }
 
   const selected = data?.selected ?? null;
+  const stream = useMemo(
+    () => selected ? buildStream(selected.thread, selected.messages) : [],
+    [selected],
+  );
+  const sentCount = stream.filter((item) => item.direction === "sent").length;
+  const receivedCount = stream.length - sentCount;
 
   return (
     <section className="email-inbox-page">
@@ -232,7 +323,10 @@ export default function EmailInboxPage() {
                 <div>
                   <span>{selected.thread.participant_email}</span>
                   <h2>{selected.thread.subject || "Sem assunto"}</h2>
-                  <p>{participantLabel(selected.thread)}</p>
+                  <p>
+                    Conversa com {participantLabel(selected.thread)}
+                    {" · "}{sentCount} {sentCount === 1 ? "enviado" : "enviados"}, {receivedCount} {receivedCount === 1 ? "recebido" : "recebidos"}
+                  </p>
                 </div>
                 {selected.thread.deal ? (
                   <Link className="email-deal-link" href={`/lista?dealId=${selected.thread.deal.id}`}>
@@ -244,26 +338,59 @@ export default function EmailInboxPage() {
               </header>
 
               <div className="email-message-stream">
-                {selected.messages.map((message) => (
-                  <article className={`email-message ${message.direction === "sent" ? "outbound" : "inbound"}`} key={message.id}>
-                    <header>
-                      <div>
-                        <strong>{message.direction === "sent" ? "Mydrion" : message.sender_name || message.from_email || participantLabel(selected.thread)}</strong>
-                        <span>{message.from_email || selected.thread.participant_email}</span>
-                      </div>
-                      <time>{formatMoment(message.occurred_at)}</time>
-                    </header>
-                    <div className="email-message-body">{message.content || "Mensagem sem conteudo de texto."}</div>
-                    {(message.attachments ?? []).some((attachment) => validAttachmentUrl(attachment.link)) ? (
-                      <div className="email-attachments">
-                        {(message.attachments ?? []).map((attachment, index) => {
-                          const href = validAttachmentUrl(attachment.link);
-                          return href ? <a href={href} key={`${message.id}-${index}`} rel="noreferrer" target="_blank">{attachment.name || "Abrir anexo"}</a> : null;
-                        })}
-                      </div>
-                    ) : null}
-                  </article>
-                ))}
+                {stream.map((item) => {
+                  const isQuoted = item.kind === "quoted";
+                  const isOpen = !isQuoted || expanded[item.key] === true;
+                  const attachments = (item.attachments ?? []).filter((attachment) => validAttachmentUrl(attachment.link));
+                  return (
+                    <article
+                      className={`email-message ${item.direction === "sent" ? "outbound" : "inbound"} ${isQuoted ? "quoted" : ""}`}
+                      key={item.key}
+                    >
+                      <header>
+                        <div>
+                          <span className="email-direction-row">
+                            <span className={`email-direction-chip ${item.direction}`}>
+                              {item.direction === "sent" ? "Enviado por você" : "Recebido"}
+                            </span>
+                            {isQuoted ? <span className="email-quoted-note">citado na resposta de {item.quotedFromName}</span> : null}
+                          </span>
+                          <strong>{item.senderName}</strong>
+                          {item.senderEmail ? <span>{item.senderEmail}</span> : null}
+                          {isQuoted && item.to ? <span>Para: {item.to}</span> : null}
+                          {isQuoted && item.subject ? <span>Assunto: {item.subject}</span> : null}
+                        </div>
+                        <time>{item.occurredAt ? formatMoment(item.occurredAt) : item.occurredAtRaw || "Sem data"}</time>
+                      </header>
+
+                      {isOpen ? (
+                        <div className="email-message-body">{item.body || "Mensagem sem conteudo de texto."}</div>
+                      ) : (
+                        <div className="email-message-body email-message-preview">{emailPreview(item.body)}</div>
+                      )}
+
+                      {isQuoted ? (
+                        <button
+                          className="email-quoted-toggle"
+                          onClick={() => setExpanded((current) => ({ ...current, [item.key]: !isOpen }))}
+                          type="button"
+                        >
+                          {isOpen ? "Ocultar e-mail completo" : "Ver e-mail completo"}
+                        </button>
+                      ) : null}
+
+                      {attachments.length ? (
+                        <div className="email-attachments">
+                          {attachments.map((attachment, index) => (
+                            <a href={validAttachmentUrl(attachment.link) ?? "#"} key={`${item.key}-${index}`} rel="noreferrer" target="_blank">
+                              {attachment.name || "Abrir anexo"}
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
             </>
           ) : (
