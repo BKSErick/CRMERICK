@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { buildGoogleInsights, dedupeEvents, normalizeEventKey } from "../src/lib/googleInsights.ts";
+import {
+  buildGoogleInsights,
+  dedupeEvents,
+  fillDailyGaps,
+  normalizeEventKey,
+  shortPageLabel,
+} from "../src/lib/googleInsights.ts";
 
 const base = {
   gaConfigured: true,
@@ -140,6 +146,79 @@ test("Pareto das consultas desce e fecha o acumulado em 100%", () => {
   assert.equal(Math.round(search.pareto[0].share), 60);
   assert.equal(Math.round(search.pareto[1].cumulative), 90);
   assert.equal(Math.round(search.pareto[search.pareto.length - 1].cumulative), 100);
+});
+
+test("pagina do Search Console vira caminho curto, e host fora do canonico continua visivel", () => {
+  // Caso real de 16/09/2026: oito linhas "https://www.mydrion.com.br/..." cortadas
+  // por ellipsis ficavam identicas na tela.
+  assert.equal(shortPageLabel("https://www.mydrion.com.br/sites-para-industrias/"), "/sites-para-industrias/");
+  assert.equal(shortPageLabel("https://www.mydrion.com.br/"), "/");
+  // Subdominio e o non-www nao sao o site institucional: o host fica.
+  assert.equal(shortPageLabel("https://linkbio.mydrion.com.br/"), "linkbio.mydrion.com.br/");
+  assert.equal(shortPageLabel("https://mydrion.com.br/blog/"), "mydrion.com.br/blog/");
+  // URL sem TLS indexada e sinal de canonica errada: o esquema precisa aparecer.
+  assert.equal(shortPageLabel("http://mydrion.com.br/"), "http://mydrion.com.br/");
+  // Lixo nao quebra: devolve como veio.
+  assert.equal(shortPageLabel("nao-e-url"), "nao-e-url");
+
+  const { search } = buildGoogleInsights({
+    ...base,
+    gscPages: [
+      { key: "https://www.mydrion.com.br/cases/gt-house/", impressions: 9, clicks: 0, ctr: 0, position: 8 },
+      { key: "http://mydrion.com.br/", impressions: 1, clicks: 0, ctr: 0, position: 141 },
+    ],
+  });
+  assert.equal(search.pages[0].label, "/cases/gt-house/");
+  assert.equal(search.pages[0].title, "https://www.mydrion.com.br/cases/gt-house/", "a URL inteira sobrevive para o hover");
+  assert.equal(search.pages[1].label, "http://mydrion.com.br/");
+});
+
+test("dia sem sessao entra como zero na serie, senao o eixo fica torto", () => {
+  // O GA4 omite dia com zero sessao. Em 16/09/2026 a serie de 30 dias veio com 21
+  // linhas e 01/09 aparecia colado em 06/09, como se fossem dias seguidos.
+  const cheia = fillDailyGaps(
+    [
+      { day: "2026-09-01", sessions: 4, users: 3 },
+      { day: "2026-09-06", sessions: 2, users: 2 },
+      { day: "2026-09-04", sessions: 1, users: 1 },
+    ],
+    (day) => ({ day, sessions: 0, users: 0 }),
+  );
+  assert.deepEqual(
+    cheia.map((d) => d.day),
+    ["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-06"],
+    "ordena e preenche o meio; nao inventa dia antes do primeiro nem depois do ultimo",
+  );
+  assert.deepEqual(cheia.map((d) => d.sessions), [4, 0, 0, 1, 0, 2]);
+  assert.deepEqual(fillDailyGaps([], () => ({ day: "" })), []);
+
+  const { analytics, search } = buildGoogleInsights({
+    ...base,
+    daily: [
+      { date: "2026-09-01", sessions: 4, activeUsers: 3 },
+      { date: "2026-09-03", sessions: 2, activeUsers: 2 },
+    ],
+    gscDaily: [
+      { key: "2026-09-01", clicks: 0, impressions: 5, ctr: 0, position: 40 },
+      { key: "2026-09-03", clicks: 1, impressions: 2, ctr: 50, position: 8 },
+    ],
+  });
+  assert.deepEqual(analytics.daily.map((d) => d.day), ["2026-09-01", "2026-09-02", "2026-09-03"]);
+  assert.equal(analytics.sessions, 6, "o total continua vindo so do que a API devolveu");
+  assert.deepEqual(search.daily.map((d) => d.impressions), [5, 0, 2]);
+});
+
+test("a serie diaria mostra todos os dias e nao esconde os recentes atras de scroll", () => {
+  // Em 16/09/2026 a API devolveu 22 dias e a tela mostrava 14: coluna de largura
+  // fixa estourava o cartao e o pico (08/09, 11 impressoes) ficava invisivel.
+  const painel = readFileSync("src/components/GooglePanel.tsx", "utf8");
+  assert.doesNotMatch(painel, /daily\.slice\(-\d+\)/, "sem recorte de dias no componente");
+  assert.match(painel, /painel-serie densa/, "coluna elastica para ate 30 dias");
+  assert.match(painel, /valor === 0 \? " zero"/, "barra zerada nao desenha");
+
+  const css = readFileSync("src/app/globals.css", "utf8");
+  assert.match(css, /\.painel-serie\.densa \.painel-serie-col \{[^}]*flex: 1 1 0/);
+  assert.match(css, /\.painel-serie-bar\.zero \{ min-height: 0; \}/);
 });
 
 test("diagnostico acusa impressao sem clique e CTR baixo", () => {

@@ -252,9 +252,12 @@ function ParetoConsultas({ slices }: { slices: GoogleInsightsReport["search"]["p
     );
   }
 
-  const W = 720;
-  const H = 300;
-  const M = { top: 24, right: 46, bottom: 92, left: 46 };
+  // Embaixo de cada barra vai so o numero da consulta; o texto fica na legenda
+  // abaixo do grafico. Rotulo girado a 9px num SVG escalado nao se le, e sete
+  // consultas de vinte caracteres nao cabem em 640 de largura de nenhum jeito.
+  const W = 640;
+  const H = 250;
+  const M = { top: 22, right: 44, bottom: 26, left: 12 };
   const plotW = W - M.left - M.right;
   const plotH = H - M.top - M.bottom;
   const maxValor = Math.max(...slices.map((s) => s.value), 1);
@@ -265,6 +268,7 @@ function ParetoConsultas({ slices }: { slices: GoogleInsightsReport["search"]["p
   const yBarra = (v: number) => M.top + plotH - (v / maxValor) * plotH;
   const yAcum = (p: number) => M.top + plotH - (p / 100) * plotH;
   const corte = slices.findIndex((s) => s.cumulative >= 80);
+  const vital = (i: number) => i <= corte || corte === -1;
 
   return (
     <section className="painel-bloco">
@@ -274,16 +278,18 @@ function ParetoConsultas({ slices }: { slices: GoogleInsightsReport["search"]["p
         {[0, 25, 50, 75, 100].map((tick) => (
           <g key={tick}>
             <line className="painel-grid" x1={M.left} x2={W - M.right} y1={yAcum(tick)} y2={yAcum(tick)} />
-            <text className="painel-axis" x={W - M.right + 6} y={yAcum(tick) + 3}>{tick}%</text>
+            <text className="painel-axis" style={{ textAnchor: "start" }} x={W - M.right + 8} y={yAcum(tick) + 3}>{tick}%</text>
           </g>
         ))}
         <line className="painel-corte" x1={M.left} x2={W - M.right} y1={yAcum(80)} y2={yAcum(80)} />
-        <text className="painel-corte-label" x={M.left + 4} y={yAcum(80) - 6}>corte 80%</text>
+        {/* Encostado na direita: a barra mais alta e sempre a primeira, e o
+            rotulo em cima dela ficava ilegivel. */}
+        <text className="painel-corte-label" textAnchor="end" x={W - M.right - 4} y={yAcum(80) - 5}>corte 80%</text>
 
         {slices.map((slice, i) => (
           <g key={slice.label}>
             <rect
-              className={i <= corte || corte === -1 ? "painel-bar vital" : "painel-bar"}
+              className={vital(i) ? "painel-bar vital" : "painel-bar"}
               height={Math.max(M.top + plotH - yBarra(slice.value), 1)}
               rx={3}
               width={larguraBarra}
@@ -293,9 +299,7 @@ function ParetoConsultas({ slices }: { slices: GoogleInsightsReport["search"]["p
               <title>{`${slice.label}: ${slice.value} impressoes (${pct(slice.share)})`}</title>
             </rect>
             <text className="painel-bar-value" x={xCentro(i)} y={yBarra(slice.value) - 7}>{slice.value}</text>
-            <text className="painel-axis painel-axis-girado" transform={`rotate(-35 ${xCentro(i)} ${M.top + plotH + 14})`} x={xCentro(i)} y={M.top + plotH + 14}>
-              {slice.label.length > 22 ? `${slice.label.slice(0, 21)}…` : slice.label}
-            </text>
+            <text className="painel-axis" x={xCentro(i)} y={M.top + plotH + 16}>{i + 1}</text>
           </g>
         ))}
 
@@ -306,6 +310,16 @@ function ParetoConsultas({ slices }: { slices: GoogleInsightsReport["search"]["p
           </circle>
         ))}
       </svg>
+      <ol className="painel-pareto-legenda">
+        {slices.map((slice, i) => (
+          <li className={vital(i) ? "vital" : undefined} key={slice.label}>
+            <strong>{i + 1} · {slice.label}</strong>
+            <span>
+              {inteiro.format(slice.value)} impressoes · {pct(slice.share)} · acumulado {pct(slice.cumulative)}
+            </span>
+          </li>
+        ))}
+      </ol>
       <p className="muted-copy">
         {corte >= 0
           ? `${corte + 1} de ${slices.length} consultas concentram ${pct(slices[corte].cumulative)} das impressoes. E nelas que vale posicionar a pagina.`
@@ -316,8 +330,38 @@ function ParetoConsultas({ slices }: { slices: GoogleInsightsReport["search"]["p
 }
 
 // ---------- Series ----------
+type DiaSerie = { day: string; valores: [number, number]; titulo: string };
+
+// Serie de ate 30 dias em coluna elastica. A base `.painel-serie` tem largura
+// fixa por coluna (serve a rampa do e-mail, com 3 barras e poucos dias); aqui
+// 21 dias estouravam a coluna estreita e os mais recentes, justamente os que
+// interessam, ficavam atras de um scroll que ninguem ve. Data so a cada N
+// colunas para nao virar borrao, e o ultimo dia sempre leva rotulo. Barra
+// zerada nao desenha: os 2px de min-height pareciam dado onde nao tinha.
+function SerieDensa({ dias, classes }: { dias: DiaSerie[]; classes: [string, string] }) {
+  const max = Math.max(...dias.flatMap((d) => d.valores), 1);
+  const passo = Math.ceil(dias.length / 7);
+  return (
+    <div className="painel-serie densa">
+      {dias.map((dia, i) => (
+        <div className="painel-serie-col" key={dia.day}>
+          <div className="painel-serie-bars" title={`${diaCurto(dia.day)}: ${dia.titulo}`}>
+            {dia.valores.map((valor, j) => (
+              <div
+                className={`painel-serie-bar ${classes[j]}${valor === 0 ? " zero" : ""}`}
+                key={classes[j]}
+                style={{ height: `${(valor / max) * 100}%` }}
+              />
+            ))}
+          </div>
+          <span>{(dias.length - 1 - i) % passo === 0 ? diaCurto(dia.day) : ""}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SerieBusca({ daily }: { daily: GoogleInsightsReport["search"]["daily"] }) {
-  const max = Math.max(...daily.map((d) => d.impressions), 1);
   return (
     <section className="painel-bloco">
       <div className="funnel-section-eyebrow">Dia a dia na busca</div>
@@ -326,17 +370,14 @@ function SerieBusca({ daily }: { daily: GoogleInsightsReport["search"]["daily"] 
         <p className="muted-copy">Sem dado no periodo.</p>
       ) : (
         <>
-          <div className="painel-serie">
-            {daily.slice(-21).map((dia) => (
-              <div className="painel-serie-col" key={dia.day}>
-                <div className="painel-serie-bars" title={`${dia.impressions} impressoes, ${dia.clicks} cliques`}>
-                  <div className="painel-serie-bar entregues" style={{ height: `${(dia.impressions / max) * 100}%` }} />
-                  <div className="painel-serie-bar abertos" style={{ height: `${(dia.clicks / max) * 100}%` }} />
-                </div>
-                <span>{diaCurto(dia.day)}</span>
-              </div>
-            ))}
-          </div>
+          <SerieDensa
+            classes={["entregues", "abertos"]}
+            dias={daily.map((d) => ({
+              day: d.day,
+              valores: [d.impressions, d.clicks],
+              titulo: `${d.impressions} impressoes, ${d.clicks} cliques`,
+            }))}
+          />
           <div className="painel-legenda-inline">
             <span><i className="entregues" />Impressoes</span>
             <span><i className="abertos" />Cliques</span>
@@ -348,7 +389,6 @@ function SerieBusca({ daily }: { daily: GoogleInsightsReport["search"]["daily"] 
 }
 
 function SerieSite({ daily }: { daily: GoogleInsightsReport["analytics"]["daily"] }) {
-  const max = Math.max(...daily.map((d) => d.sessions), 1);
   return (
     <section className="painel-bloco">
       <div className="funnel-section-eyebrow">Dia a dia no site</div>
@@ -357,17 +397,14 @@ function SerieSite({ daily }: { daily: GoogleInsightsReport["analytics"]["daily"
         <p className="muted-copy">Sem sessao no periodo.</p>
       ) : (
         <>
-          <div className="painel-serie">
-            {daily.slice(-30).map((dia) => (
-              <div className="painel-serie-col" key={dia.day}>
-                <div className="painel-serie-bars" title={`${dia.sessions} sessoes, ${dia.users} pessoas`}>
-                  <div className="painel-serie-bar enviados" style={{ height: `${(dia.sessions / max) * 100}%` }} />
-                  <div className="painel-serie-bar abertos" style={{ height: `${(dia.users / max) * 100}%` }} />
-                </div>
-                <span>{diaCurto(dia.day)}</span>
-              </div>
-            ))}
-          </div>
+          <SerieDensa
+            classes={["enviados", "abertos"]}
+            dias={daily.map((d) => ({
+              day: d.day,
+              valores: [d.sessions, d.users],
+              titulo: `${d.sessions} sessoes, ${d.users} pessoas`,
+            }))}
+          />
           <div className="painel-legenda-inline">
             <span><i className="enviados" />Sessoes</span>
             <span><i className="abertos" />Pessoas</span>
@@ -400,8 +437,8 @@ function ListaRanqueada({
       ) : (
         <div className="painel-bar-list">
           {linhas.map((linha) => (
-            <div className="painel-bar-row" key={linha.label}>
-              <span title={linha.label}>{linha.label}</span>
+            <div className="painel-bar-row" key={linha.title ?? linha.label}>
+              <span title={linha.title ?? linha.label}>{linha.label}</span>
               <div className="painel-bar-track">
                 <div className="painel-bar-fill kind-site" style={{ width: `${(linha.value / max) * 100}%` }} />
               </div>

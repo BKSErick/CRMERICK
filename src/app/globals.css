@@ -5815,8 +5815,6 @@ body.automation-editor-mode .automation-editor-shell {
   height: 1px;
 }
 
-.painel-axis-girado { text-anchor: end; }
-
 /* Fonte ainda nao conectada: passo a passo em vez de cartoes zerados. */
 .painel-desligado {
   border-color: rgba(197, 155, 79, 0.4);
@@ -5996,6 +5994,9 @@ body.automation-editor-mode .automation-editor-shell {
   font: 500 11px/1.4 var(--font-interface);
 }
 
+/* Mesma cor da barra: as consultas ate o corte de 80% sao as que importam. */
+.painel-pareto-legenda li.vital strong { color: #bf4d4d; }
+
 /* --- Cliques por botao --- */
 .painel-bar-list { display: grid; gap: 12px; }
 
@@ -6003,7 +6004,9 @@ body.automation-editor-mode .automation-editor-shell {
   align-items: center;
   display: grid;
   gap: 10px;
-  grid-template-columns: 108px minmax(0, 1fr) 32px;
+  /* 148px cabe "/sites-para-industrias/" inteiro; com 108px todo caminho de
+     pagina virava o mesmo prefixo cortado. */
+  grid-template-columns: 148px minmax(0, 1fr) 32px;
 }
 
 .painel-bar-row > span {
@@ -6067,6 +6070,38 @@ body.automation-editor-mode .automation-editor-shell {
 .painel-serie-bar.enviados { background: #cdc5b6; }
 .painel-serie-bar.entregues { background: #a8bccb; }
 .painel-serie-bar.abertos { background: #7a9474; }
+/* Zero nao desenha: 2px de min-height parece dado onde nao tem. */
+.painel-serie-bar.zero { min-height: 0; }
+
+/* Serie de ate 30 dias (aba Google): coluna elastica em vez de largura fixa.
+   A base acima fica como esta porque a rampa do e-mail tem 3 barras e um
+   contador por coluna, e precisa dos 46px. */
+.painel-serie.densa {
+  gap: 0;
+  overflow: visible;
+}
+
+.painel-serie.densa .painel-serie-col {
+  flex: 1 1 0;
+  gap: 4px;
+  min-width: 0;
+}
+
+.painel-serie.densa .painel-serie-bars {
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.painel-serie.densa .painel-serie-bar {
+  flex: 1 1 0;
+  max-width: 11px;
+  width: auto;
+}
+
+.painel-serie.densa .painel-serie-col > span {
+  font-size: 9.5px;
+  min-height: 10px;
+}
 
 .painel-serie-col > span {
   color: #8d8578;

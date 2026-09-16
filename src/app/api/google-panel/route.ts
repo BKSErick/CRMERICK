@@ -7,6 +7,7 @@ import {
   fetchGaSources,
   isGaConfigured,
 } from "@/lib/googleAnalytics";
+import { parseGaHostnames } from "@/lib/googleAnalyticsScope";
 import { buildGoogleInsights } from "@/lib/googleInsights";
 import {
   fetchGscDaily,
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
       gscQueries: gscQueries ?? [],
       gscPages: gscPages ?? [],
       gscDaily: gscDaily ?? [],
+      hostnames: parseGaHostnames(process.env.GA_HOSTNAMES),
     });
 
     const avisos: string[] = [];
