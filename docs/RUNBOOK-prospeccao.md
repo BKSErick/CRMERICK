@@ -36,6 +36,18 @@ Lê `data/acimon-industrias.json` (quadro de associados da ACIMON, João Monleva
 
 Para outra associação, aponte o arquivo: `--arquivo=data/outra-lista.json`.
 
+Quarta fonte, base curada de ICP (pesquisa de João Monlevade de 15/09/2026, 142 empresas em tiers):
+
+```bash
+node scripts/import-icp-monlevade.mjs                                                    # dry-run
+node scripts/import-icp-monlevade.mjs --arquivo=data/icp-jotta-monlevade-2026-09-15.lote-amanha.csv   # só o lote de 40
+node scripts/import-icp-monlevade.mjs --tier=A --go                                      # grava só concorrentes diretos
+```
+
+Lê `data/icp-jotta-monlevade-2026-09-15.csv` (`;`, BOM). Só entra `status_operacional=novo_canal_publico`; quem já está no CRM segue o histórico do card. Além do que o `leadIngest` grava, preenche `contacts.email` (fila do Brevo), `deals.setor` (`industria`/`construcao`, filtro do `build-queue-institucional`) e `deals.is_icp`/`icp_source`/`description` com o tier, para medir por tier. Entra com `source = "icp_jotta_monlevade"`. Tier A sem segmento detectável cai em `manutencao` (é o perfil da Jotta por definição). As 24 empresas `novo_pesquisar_contato` (sem telefone nem e-mail) ficam de fora até enriquecer pela Receita: `--status=novo_pesquisar_contato`.
+
+⚠️ **Concorrente direto da Jotta não lê o nome da Jotta** (decisão do Erick, 15/09/2026: o Thales é a ponte pra ACIMON). O tier A entra com `deals.origin_detail = concorrente_jotta`, e isso troca o case: o M2 automático (`uazapi-followup-batch.mjs` → `renderFollowupMessage({ caseOnly: "metalthec" })`, templates `M2*SoMetalthec` no `sales-playbook.json`) e a carta pronta "Msg 2 (concorrente da Jotta)" do Comando citam só a Metalthec. A msg 1 atual não cita case nenhum. O card mostra o tier na descrição, então na conversa manual é só escolher a carta certa.
+
 ## 2. Confirmar quem atende no WhatsApp
 
 ```bash
@@ -82,6 +94,7 @@ Volume não é o principal fator de bloqueio: **denúncia de usuário é**. Por 
 - **Responder rápido quem responde.** Conversa de mão dupla é o sinal mais forte de que o número é legítimo. A taxa de resposta atual (12,4%) protege o número.
 - **Perfil completo** (foto, nome comercial, descrição). Número sem identidade é o perfil clássico de spam.
 - **Nunca link na primeira mensagem.** O link vai só depois do "quer ver?".
+- **O número tem que ser da empresa do card.** Desde 14/09/2026 os dois scripts de disparo consultam a Uazapi (`/chat/check` + `/chat/details`) antes de reservar vaga no lote: número que não existe no WhatsApp fica de fora, e número cujo perfil tem nome de OUTRA empresa fica retido pra revisão (`Retidos pela conferencia do numero na Uazapi`). Origem: a Steel Usinagem (#795) tinha no `whatsapp_site` o WhatsApp da G6 Embalagens, sobra de template de agência no site antigo dela, e a copy inteira da Steel chegou na G6. O scraper de site grava o primeiro `wa.me/` que encontra, e o `/chat/check` só dizia "existe": era o número certo da empresa errada. Regra em `scripts/lib/canalWhatsapp.mjs`; auditoria da base em `node --env-file-if-exists=.env scripts/audit-canal-nome.mjs --so-problemas` (só leitura, rodar depois de cada `scrape-site-whatsapp.mjs`). Perfil sem nome não bloqueia: 7 em 25 leads não têm nome, e sem nome não dá pra afirmar nada.
 
 Desde 04/08/2026 o disparo roda no **servidor pago dedicado** (`https://mydrion.uazapi.com`, instância `rae3132aeb9759a`, número 553191072407). O token da instância é fixo e não expira a cada poucas horas como no `free.uazapi.com`, então o modo dia inteiro passa a fazer sentido. A instância paga **não protege contra bloqueio**: o risco é do número, não do plano. Se precisar recriar a instância, quem cria/lista no servidor é o `UAZAPI_ADMIN_TOKEN` do `.env`, e depois de recriar é obrigatório rodar `npm run whatsapp:webhook:configure` de novo, senão as respostas param de entrar no CRM.
 
@@ -115,11 +128,15 @@ prospeccao para o ImprovMX.
 Rodar de `D:\001Gravity\CRM ERICK\scripts\email`:
 
 ```bash
-node build-queue-institucional.mjs --setor=industria --limit=40
+node build-queue-institucional.mjs --setor=industria,construcao --primeiro-toque
+node checar-mx-fila.mjs --go            # domínio sem MX vira sem_mx na blocklist (bounce garantido)
+node build-queue-institucional.mjs --setor=industria,construcao --primeiro-toque   # de novo, já sem os mortos
 node brevo_send.mjs --check
 node brevo_send.mjs --test=SEU_EMAIL_PESSOAL
 node brevo_send.mjs --limit=10
 ```
+
+Quando a fila zera, o que enche de novo é e-mail da Receita: `node scripts/enrich-decisores.mjs --cidade="Joao Monlevade" --com-email --go` (ou `--setor=industria,construcao --so-sem-decisor --limit=N`), ~21s por CNPJ. O `qualificar-destinatario.mjs` já descarta caixa de contador (`terceiro`) e endereço que não bate com decisor nem empresa (`incerto`); o `checar-mx-fila.mjs` tira o domínio morto. Acima de 20/dia é `--limit=N --cap=N`, de propósito.
 
 `--check` envia zero mensagens e precisa mostrar o remetente, o destino das respostas,
 o limite do dia e pelo menos um MX para o dominio de resposta. Enquanto o MX ainda nao
