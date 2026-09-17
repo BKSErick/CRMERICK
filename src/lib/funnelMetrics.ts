@@ -37,9 +37,19 @@ type FunnelMeeting = {
   meeting_status?: string | null;
   done?: boolean | null;
 };
+type FunnelMessage = {
+  deal_id?: number | null;
+  direction?: string | null;
+  content?: string | null;
+};
 
 const STAGE_ORDER = ["prospect", "abordado", "followup", "qualified", "proposal", "negotiation", "won"];
 const VALID_RESPONSES = new Set(["humana", "encaminhamento", "objecao"]);
+// "Chegou a preco" e medido pela conversa, nao pelo stage: o stage e manual e
+// atrasa (PROAUTMEC recebeu preco e ficou em 'abordado'). Preco escrito numa
+// mensagem enviada e o fato.
+const PRICE_SENT = /R\$\s?\d|\d\s?\/\s?m[eê]s|\bmensal(idade)?\b.*\d/i;
+const PRICE_ASKED = /quanto (custa|fica|sai|e)|valor|investimento|pre[çc]o|or[çc]amento (disso|da p[aá]gina)|custo/i;
 
 function atLeast(stage: string | null | undefined, target: string) {
   const current = STAGE_ORDER.indexOf(stage ?? "");
@@ -54,6 +64,7 @@ export function buildOperationalFunnel(input: {
   deals: FunnelDeal[];
   activities: FunnelActivity[];
   meetings: FunnelMeeting[];
+  messages?: FunnelMessage[];
 }) {
   const deals = input.deals.filter((deal) => deal.is_prospect !== false);
   const outboundDealIds = new Set(
@@ -64,6 +75,14 @@ export function buildOperationalFunnel(input: {
   );
   const meetings = input.meetings.filter((event) => event.kind === "reuniao");
   const scheduledStatuses = new Set(["scheduled", "confirmed", "held", "no_show"]);
+
+  const pricedDealIds = new Set<number>();
+  const askedPriceDealIds = new Set<number>();
+  for (const message of input.messages ?? []) {
+    if (typeof message.deal_id !== "number" || !message.content) continue;
+    if (message.direction === "sent" && PRICE_SENT.test(message.content)) pricedDealIds.add(message.deal_id);
+    if (message.direction === "received" && PRICE_ASKED.test(message.content)) askedPriceDealIds.add(message.deal_id);
+  }
 
   const counts = {
     leads: deals.length,
@@ -76,6 +95,8 @@ export function buildOperationalFunnel(input: {
     proposals: deals.filter((deal) => atLeast(deal.stage, "proposal")).length,
     negotiations: deals.filter((deal) => atLeast(deal.stage, "negotiation")).length,
     won: deals.filter((deal) => deal.stage === "won").length,
+    reachedPrice: deals.filter((deal) => pricedDealIds.has(deal.id)).length,
+    leadAskedPrice: deals.filter((deal) => askedPriceDealIds.has(deal.id)).length,
   };
 
   const wonDeals = deals.filter((deal) => deal.stage === "won");
@@ -92,6 +113,13 @@ export function buildOperationalFunnel(input: {
       meetingHeldPerScheduled: rate(counts.meetingsHeld, counts.meetingsScheduled),
       proposalPerHeldMeeting: rate(counts.proposals, counts.meetingsHeld),
       winPerProposal: rate(counts.won, counts.proposals),
+      pricePerResponse: rate(counts.reachedPrice, counts.validResponses),
+      // So conta venda que passou pelo preco na conversa; venda fechada por outro
+      // canal (visita, proposta em PDF) nao entra aqui.
+      winPerPrice: rate(
+        deals.filter((deal) => deal.stage === "won" && pricedDealIds.has(deal.id)).length,
+        counts.reachedPrice,
+      ),
     },
     revenue,
   };
@@ -101,6 +129,7 @@ export function buildVariantReport(input: {
   deals: FunnelDeal[];
   activities: FunnelActivity[];
   meetings: FunnelMeeting[];
+  messages?: FunnelMessage[];
   experimentId?: string;
 }) {
   return (["A", "B"] as const).map((variant) => {
@@ -112,6 +141,7 @@ export function buildVariantReport(input: {
       deals: variantDeals,
       activities: input.activities.filter((activity) => typeof activity.deal_id === "number" && ids.has(activity.deal_id)),
       meetings: input.meetings.filter((meeting) => typeof meeting.deal_id === "number" && ids.has(meeting.deal_id)),
+      messages: (input.messages ?? []).filter((message) => typeof message.deal_id === "number" && ids.has(message.deal_id)),
     });
     return { variant, ...funnel };
   });

@@ -48,3 +48,4 @@ logs/
 
 # Backups de dados de leads gerados por scripts: contem dado pessoal, nao vao pro repo.
 scratchpad/backup-*.json
+data/analise-respostas.md

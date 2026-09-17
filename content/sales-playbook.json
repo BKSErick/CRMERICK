@@ -58,6 +58,40 @@
     ],
     "proximaEntrada": "quinta",
     "msg2": "Isso mesmo. {{caseIntro}} o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: {{caseUrl}}\n\nPra {{company}} eu faço igual, com os serviços de vocês. {{setupPrice}} a página, mais {{monthlyPrice}}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco a {{company}} nela?",
+    "sinaisDeSim": {
+      "_nota": "17/09/2026. Leitura das 115 conversas mostrou que os 2 unicos 'sim' a pergunta de reconhecimento desde a v3 receberam resposta improvisada, sem preco, com CTA morto ('faz sentido pra voces?', 'posso te mostrar uma ideia?'), e a msg 2 saiu UMA vez desde 02/09. Regra do Erick: preco so entra quando o lead deu espaco; mandar preco sem consciencia vira 'nao' de qualquer jeito. Entao o sim se divide em dois. FORTE = o lead reconheceu a friccao ou pediu algo: msg2 inteira, com preco. FRACO = respondeu por educacao ou so aceitou olhar: msg2Ponte (bloco 1 + pergunta ancorada no case), e o preco (msg2Preco) entra no sim seguinte. Um degrau por mensagem. 'Diferente' sozinho e fraco (Willian Celso: pode ser reacao de educacao). 'Pode mandar' e fraco (deu espaco pro case, nao pro preco). M1-M3 NUNCA vao pra quem respondeu, com sim ou com nao: sao cadencia de silencio.",
+      "forte": ["acontece sim", "acontece aí", "isso mesmo", "isso acontece", "precisamos olhar tudo antes de orçar", "sou eu mesmo que olho", "sou eu que decido", "quanto custa", "qual o investimento", "qual o valor", "vocês fazem esse escopo", "pode nos enviar um exemplo", "precisando de portfólio"],
+      "fraco": ["diferente", "sim", "ok", "pode ser", "entendi", "pode mandar", "quero ver", "manda aí", "claro"]
+    },
+    "msg2Ponte": "Isso mesmo. {{caseIntro}} o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: {{caseUrl}}\n\nÉ assim que o pedido chega aí hoje, ou ainda vem no \"quanto custa\"?",
+    "msg2Preco": "Então pra {{company}} eu faço igual, com os serviços de vocês. {{setupPrice}} a página, mais {{monthlyPrice}}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco a {{company}} nela?",
+    "cartas": {
+      "_nota": "17/09/2026. O 'nao' era o segundo maior grupo de resposta (24 nao explicitos + 4 nao a pergunta de reconhecimento em 115) e nao tinha degrau: o Erick ficava em silencio ou empurrava ('mas o ponto vale igual'), e empurrar nunca converteu. Cartas revisadas pelos clones Alex Hormozi (funil, oferta) e Willian Celso (arquetipo, simbolos) e decididas pelo Erick: 'valeu por responder' saiu (posicao de quem esperava ser ignorado), 'o melhor cliente que existe' saiu (condescende), 'isso soma ao que voces ja tem' saiu (pede licenca), 'falha minha' saiu (Governante corrige o estado, nao pede absolvicao), 'triagem' FICA (palavra-chave do brandbook), 'Sucesso ai!' fica (dispensa soberana, o M3 ja prova). Regra do Celso pra decidir carta ou silencio: 'nao' que revela que o lead nao enxerga a perda invisivel merece UMA frase plantando ela; 'nao' logistico ou fora do ICP merece silencio. Nenhuma carta pergunta permissao, aponta defeito ou pede call. Depois da carta: marcar o motivo no CRM e deixar o re-engajamento de 45d trabalhar; nunca insistir no mesmo canal.",
+      "naoReconhecimento": {
+        "quando": "Respondeu a pergunta de reconhecimento com 'nao': 'cliente procura pessoalmente', 'consegue confirmar sim', 'nao acontece aqui'. Marcar objecao reconhecimento_nao.",
+        "texto": "Entendi. Quem chega até vocês já decidiu, isso funciona. O que não aparece é quem pesquisou antes e não achou onde confirmar: esse não chega, e ninguém fica sabendo. Se um dia quiser fechar essa entrada, é o que eu faço. Sucesso aí!"
+      },
+      "naoSemInteresse": {
+        "quando": "'Nao temos interesse', 'no momento nao', 'nao precisamos'. Marcar lost com motivo sem_interesse.",
+        "texto": "Entendido. Quem chega até vocês já decidiu. Quem pesquisou antes e não achou onde confirmar, ou desistiu de explicar o pedido por mensagem, não chega, e ninguém fica sabendo. Se um dia isso pesar aí, é esse problema que eu resolvo. Sucesso aí!"
+      },
+      "naoJaTem": {
+        "quando": "'Ja temos quem faca', 'ja estamos com outro parceiro', 'ja tenho pagina'. Uma vez, sem cobranca depois. Governante delimita o cercadinho, Mago revela o mecanismo.",
+        "texto": "Ótimo, então o site já está resolvido, e não é isso que eu mexo. A questão é como o pedido chega em vocês hoje: se ainda chega \"quanto custa fazer uma peça?\", o problema não é o site, é a triagem antes. Se um dia isso pesar, é só me chamar."
+      },
+      "naoForaIcp": {
+        "quando": "'Nao faco industrial', 'aqui e expedicao', numero errado. Marcar lost com motivo fora_icp. Nunca 'mas o ponto vale igual'.",
+        "texto": "Foi mal, cheguei no lugar errado. Obrigado por avisar e desculpa o incômodo. Bom trabalho aí!"
+      },
+      "naoEntendi": {
+        "quando": "'Nao entendi sua pergunta', 'explica melhor como funciona'. Reexplica a friccao da v4 (indicacao vaza) em termo concreto, devolve a pergunta de reconhecimento e ja responde o lado do 'zero' (estrutura do Erick, 17/09). Sem link, sem preco.",
+        "texto": "Explico melhor. Quem recebe indicação de vocês costuma pesquisar antes de chamar; sem um lugar próprio que confirme serviço e contato, junta informação em outro canal, e uma parte não chega. Hoje quem chama já vem sabendo o que vocês fazem, ou precisa perguntar do zero? Se for do zero, é essa entrada que eu organizo, e é ela que faz o orçamento sair sem gastar a hora de vocês."
+      },
+      "retomadaSemPreco": {
+        "quando": "Lead sumiu depois de uma mensagem do Erick que nao tinha valor (Mult Tech 02/09, Mega 17/09 se nao responder). Assume em uma frase e entrega o preco com o fecho pela vaga.",
+        "texto": "Oi, Erick de novo. Faltou eu falar o valor: {{setupPrice}} a página, com o Pedido Pronto (o cliente informa serviço, medida e prazo antes de chegar em você), mais {{monthlyPrice}}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco a {{company}} nela?"
+      }
+    },
     "_nota": "Escrito em 02/09/2026 depois de ler as 142 conversas da base. Substitui o fecho anterior da mensagemExemplo() ('Te mostro em 15 min (...) amanha de manha ou a tarde?'), reprovado em 12/08 e nunca reescrito, e o 'faz sentido pra voces?' que estava sendo digitado na mao. Medicao que motivou: dos 54 leads que receberam o case, so 11 chegaram a falar preco (20%) e 32 sumiram sem responder — e nas conversas que chegaram a preco foi quase sempre o LEAD que puxou o assunto. A msg 2 nunca teve um degrau seguinte. O fecho pela vaga de producao e a troca de 'trocas de texto e foto' por 'manter no ar e atualizada' vieram da calibragem do clone Willian Celso: 'topa?' derrubava a autoridade construida por 'comeco quinta', e 'manutencao' pertence a cadeia de simbolos do cliente, nao a do servico."
   },
   "followups": {

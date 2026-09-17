@@ -144,6 +144,20 @@ function whatsappLink(phone: string, message: string) {
 // (anti-ego, encaminhavel, pergunta de baixo custo).
 const { SALES_PLAYBOOK } = salesPlaybookModule;
 const offerPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.offer.currency });
+
+// Cartas vivem em content/sales-playbook.json (postResponse.cartas, msg2Ponte,
+// msg2Preco). Aqui so trocamos os placeholders do playbook pelos marcadores que
+// o Erick preenche na mao ao copiar. Texto novo entra no JSON, nunca aqui.
+const CARTAS = SALES_PLAYBOOK.postResponse.cartas;
+function cartaComando(texto: string) {
+  return texto
+    .replaceAll("{{company}}", "[EMPRESA]")
+    .replaceAll("{{setupPrice}}", offerPrice.format(SALES_PLAYBOOK.offer.setupPrice))
+    .replaceAll("{{monthlyPrice}}", offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice))
+    .replaceAll("{{proximaEntrada}}", "[DIA]")
+    .replaceAll("{{caseIntro}}", "Na Jotta")
+    .replaceAll("{{caseUrl}}", SALES_PLAYBOOK.cases.jottaUrl);
+}
 const forecastCurrency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const READY_MESSAGES: { title: string; text: string }[] = [
@@ -173,12 +187,23 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "🤖 Bot ignorou 2x: encerrar o canal (nao insistir)",
     text: "Sem problema, vou tentar pelo telefone do site. Obrigado!",
   },
+  // SIM FRACO ("Diferente", "sim" seco, "ok", "pode mandar"): o lead deu espaco
+  // pro case, nao pro preco. Ponte = bloco 1 da msg 2 terminando em pergunta
+  // ancorada no case. No sim seguinte, msg2Preco. Regra do Erick (17/09/2026):
+  // preco sem consciencia vira "nao" de qualquer jeito. Lead FRIO nunca vai pra
+  // reuniao: o card antigo de "15 minutos na tela" foi removido deste fluxo.
   {
-    title: "📞 Respondeu → puxar pra reunião",
-    text: "Boa, [NOME]. Em vez de eu te explicar tudo por texto, prefiro te mostrar na tela: 15 minutos, eu abro o diagnóstico da [EMPRESA] e te mostro exatamente o que eu ajustaria e por quê. Tem uma janela [DIA] ou [DIA]?",
+    title: "🌉 Sim FRACO (\"Diferente\", \"ok\", \"pode mandar\") → Msg 2 ponte, sem preço",
+    text: cartaComando(SALES_PLAYBOOK.postResponse.msg2Ponte),
   },
   {
-    title: "✅ Reunião marcada: confirmação (imediata)",
+    title: "💰 Depois da ponte, no sim → preço + vaga",
+    text: cartaComando(SALES_PLAYBOOK.postResponse.msg2Preco),
+  },
+  // Os cards de reuniao abaixo sao para lead QUENTE (inbound, indicado, ou
+  // qualificado que pediu apresentacao, tipo JD Aco Forte). Nunca para lead frio.
+  {
+    title: "✅ Reunião marcada (só lead quente/inbound): confirmação",
     text: "Fechado, [NOME]: [DIA] às [HORA]. Vou te mostrar o diagnóstico da [EMPRESA] na tela, coisa de 15 minutos. Qualquer imprevisto me avisa por aqui que a gente remarca sem drama.",
   },
   {
@@ -214,7 +239,7 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // postResponse. Versao dinamica (link por segmento): mensagemExemplo() em
   // src/lib/followup.ts.
   {
-    title: "🎬 Msg 2: case + preço + vaga (depois que o lead responde)",
+    title: "🎬 Sim FORTE (\"acontece sim\", \"sou eu que olho\", pediu preço) → Msg 2 inteira",
     text: `Isso mesmo. Na Jotta o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: ${SALES_PLAYBOOK.cases.jottaUrl}\n\nPra [EMPRESA] eu faço igual, com os serviços de vocês. ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)} a página, mais ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é [DIA]. Coloco a [EMPRESA] nela?`,
   },
   // Concorrente direto da Jotta (card com "ICP Jotta/Monlevade — tier A_concorrente_direto"
@@ -238,9 +263,33 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
     text: `Boa pergunta. A página é um valor único de ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)}, e depois disso ela é sua. O mensal são ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)} e mantêm ela no ar e atualizada: as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer.`,
   },
+  // RESPOSTAS AO NAO (17/09/2026). O "nao" era o segundo maior grupo de resposta
+  // e nao tinha degrau. Uma carta, uma vez, sem insistir; depois marca o motivo e
+  // deixa o 45d trabalhar. Texto e regra de uso: content/sales-playbook.json ->
+  // postResponse.cartas (revisadas por Hormozi e Willian Celso, decididas pelo Erick).
   {
-    title: "🤝 \"Já tenho quem faça isso pra mim\"",
-    text: "Faz todo sentido manter quem já atende bem vocês, e não é minha intenção mexer nisso. Só te deixo um ponto pra quando for útil: o que eu faço não é trocar o site, é a página que recebe quem está decidindo pra quem ligar. Se um dia quiser comparar, é só me chamar. Sucesso aí!",
+    title: "🤝 \"Já tenho quem faça / já tenho página\"",
+    text: cartaComando(CARTAS.naoJaTem.texto),
+  },
+  {
+    title: "🚫 \"Não, cliente procura pessoalmente\" / \"consegue confirmar sim\" (não ao reconhecimento)",
+    text: cartaComando(CARTAS.naoReconhecimento.texto),
+  },
+  {
+    title: "🚫 \"Não temos interesse\" / \"no momento não\"",
+    text: cartaComando(CARTAS.naoSemInteresse.texto),
+  },
+  {
+    title: "🚫 Fora do ICP / número errado (\"não faço industrial\", \"aqui é expedição\")",
+    text: cartaComando(CARTAS.naoForaIcp.texto),
+  },
+  {
+    title: "❓ \"Não entendi\" / \"explica melhor como funciona\"",
+    text: cartaComando(CARTAS.naoEntendi.texto),
+  },
+  {
+    title: "↩️ Sumiu depois de mensagem SEM preço → retomada com valor",
+    text: cartaComando(CARTAS.retomadaSemPreco.texto),
   },
   // Objecao real da JOHN REFRIGERACAO (04/08). Dono de operacao de uma pessoa
   // so olha o case (que tem equipe atras) e entende que pagina e um projeto que

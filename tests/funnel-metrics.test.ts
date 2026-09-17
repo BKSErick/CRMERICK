@@ -52,6 +52,14 @@ test("funil operacional mede resposta, reuniao e receita sem inflar MRR", () => 
       { deal_id: 3, kind: "reuniao", meeting_status: "held" },
       { deal_id: 4, kind: "reuniao", meeting_status: "cancelled" },
     ],
+    messages: [
+      // deal 1: lead pediu preco, Erick ainda nao mandou -> conta em leadAskedPrice, nao em reachedPrice
+      { deal_id: 1, direction: "received", content: "e qual o investimento?" },
+      // deal 3: preco escrito na msg 2 -> chegou a preco
+      { deal_id: 3, direction: "sent", content: "R$ 1.000 a página, mais R$ 150/mês pra manter ela no ar." },
+      // deal 4: "R$" vindo do LEAD nao conta como preco enviado
+      { deal_id: 4, direction: "received", content: "cobro R$ 80 a hora de torno" },
+    ],
   });
 
   assert.equal(funnel.counts.approached, 4);
@@ -61,6 +69,10 @@ test("funil operacional mede resposta, reuniao e receita sem inflar MRR", () => 
   assert.equal(funnel.counts.meetingsHeld, 1);
   assert.equal(funnel.counts.proposals, 3);
   assert.equal(funnel.counts.won, 2);
+  assert.equal(funnel.counts.reachedPrice, 1);
+  assert.equal(funnel.counts.leadAskedPrice, 1);
+  assert.equal(funnel.rates.pricePerResponse, 25);
+  assert.equal(funnel.rates.winPerPrice, 100);
   assert.equal(funnel.revenue.mrr, 150);
   assert.equal(funnel.revenue.oneOff, 1000);
 });
@@ -113,5 +125,7 @@ test("relatorio CLI compara variantes usando a engine compartilhada", () => {
   const report = readFileSync(new URL("../scripts/report-copy-experiment.mjs", import.meta.url), "utf8");
   assert.match(report, /buildVariantReport/);
   assert.match(report, /Respostas validas/);
+  assert.match(report, /Chegou a preco/);
+  assert.match(report, /--todos/);
   assert.match(report, /Reunioes realizadas/);
 });

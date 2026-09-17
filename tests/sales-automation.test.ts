@@ -86,6 +86,64 @@ test("follow-ups testam prioridade sem pedir reuniao", () => {
   }
 });
 
+// 17/09/2026: a bifurcacao depois da msg 1 virou degrau fixo. Sim forte -> msg 2 com
+// preco; sim fraco -> ponte sem preco, preco no sim seguinte; nao -> carta por tipo,
+// uma vez, sem insistir. Este teste trava os termos mortos e as decisoes do Erick
+// ("falha minha" saiu, "triagem" fica, nenhuma carta pede permissao, aponta defeito
+// ou pede call), para que nenhuma reescrita futura os traga de volta.
+const TERMOS_MORTOS =
+  /faz sentido|pode ser\?|te mostro em 15|posso te mostrar|quer ver\?|falha minha|valeu por responder|melhor cliente que existe|isso soma ao que|ficha de escopo|landing page|p[aá]gina de vendas|reuni[aã]o|\bcall\b|agendar|hor[aá]rio|—/i;
+
+test("bifurcacao depois da msg 1: sim forte, sim fraco e cartas do nao vivem no playbook", () => {
+  const pr = SALES_PLAYBOOK.postResponse;
+  assert.ok(pr.sinaisDeSim.forte.length >= 5 && pr.sinaisDeSim.fraco.length >= 5);
+  assert.ok(pr.sinaisDeSim.fraco.includes("diferente"), "'Diferente' sozinho e sim fraco");
+  assert.ok(pr.sinaisDeSim.fraco.includes("pode mandar"), "'pode mandar' da espaco pro case, nao pro preco");
+
+  // Ponte: bloco 1 da msg 2, termina em pergunta ancorada no case, sem preco.
+  assert.match(pr.msg2Ponte, /\{\{caseUrl\}\}/);
+  assert.ok(pr.msg2Ponte.trim().endsWith("?"));
+  assert.doesNotMatch(pr.msg2Ponte, /\{\{setupPrice\}\}|R\$/);
+  // Preco: blocos 2 e 3, fecho pela vaga de producao.
+  assert.match(pr.msg2Preco, /\{\{setupPrice\}\}[\s\S]*\{\{monthlyPrice\}\}/);
+  assert.match(pr.msg2Preco, /entrada de produção é \{\{proximaEntrada\}\}\. Coloco a \{\{company\}\} nela\?$/);
+  assert.doesNotMatch(pr.msg2Preco, /manuten[cç][aã]o/i);
+
+  type Carta = { quando: string; texto: string };
+  const cartas = Object.entries(pr.cartas).filter(
+    (entrada): entrada is [string, Carta] => !entrada[0].startsWith("_") && typeof entrada[1] === "object",
+  );
+  const cartaDe = (nome: string) => cartas.find(([k]) => k === nome)?.[1] as Carta;
+  assert.deepEqual(
+    cartas.map(([k]) => k),
+    ["naoReconhecimento", "naoSemInteresse", "naoJaTem", "naoForaIcp", "naoEntendi", "retomadaSemPreco"],
+  );
+  for (const [nome, carta] of cartas) {
+    assert.ok(carta.quando && carta.texto, `${nome} sem quando/texto`);
+    assert.ok(carta.texto.length <= 400, `${nome} longa demais: ${carta.texto.length}`);
+    assert.doesNotMatch(carta.texto, TERMOS_MORTOS, `${nome} contem termo morto`);
+    assert.doesNotMatch(carta.texto, /https?:\/\//, `${nome} nao leva link`);
+  }
+  // Cartas do nao nao terminam em pergunta: pergunta convida o segundo nao. (Citacao
+  // da fala do lead, tipo "quanto custa fazer uma peca?", pode aparecer no meio.)
+  for (const nome of ["naoReconhecimento", "naoSemInteresse", "naoJaTem", "naoForaIcp"]) {
+    assert.ok(!cartaDe(nome).texto.trim().endsWith("?"), `${nome} nao pode terminar em pergunta`);
+  }
+  assert.match(pr.cartas.naoJaTem.texto, /triagem/i, "'triagem' fica: palavra-chave do brandbook");
+  // Retomada sem preco entrega o preco e o fecho, sem pedir absolvicao.
+  assert.match(pr.cartas.retomadaSemPreco.texto, /Faltou eu falar o valor: \{\{setupPrice\}\}/);
+  assert.match(pr.cartas.retomadaSemPreco.texto, /Coloco a \{\{company\}\} nela\?$/);
+});
+
+test("Comando le as cartas do playbook e nao tem card de reuniao para lead frio", () => {
+  const comando = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
+  assert.match(comando, /SALES_PLAYBOOK\.postResponse\.msg2Ponte/);
+  assert.match(comando, /CARTAS\.naoReconhecimento\.texto/);
+  assert.match(comando, /CARTAS\.retomadaSemPreco\.texto/);
+  assert.doesNotMatch(comando, /puxar pra reuni[aã]o/i);
+  assert.doesNotMatch(comando, /n[aã]o [eé] minha inten[cç][aã]o mexer nisso/i);
+});
+
 test("runner e dry-run por padrao e so propaga --go com autorizacao explicita", () => {
   const dry = buildRunPlan({ go: false, city: "Ipatinga", uf: "MG", limit: 10 });
   assert.ok(dry.length >= 4);

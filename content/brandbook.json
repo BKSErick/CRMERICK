@@ -3,7 +3,7 @@
   "source": "v4.0 reescrito em 17/08/2026. A v3.0 corrigiu o ICP da PESSOA (Erick Sena) mas deixou a EMPRESA (Mydrion) na v2.0: sem cercadinho, falando com founder e startup, enquanto a operacao real vende para industria. Esta versao resolve a hierarquia (Mydrion e a marca, Erick e a voz, OStrack e o produto proprio), da fronteira a Mydrion, alinha o arquetipo entre marca e rosto, e define posto arquetipico proprio para o OStrack. Decisao de 17/08: territorio geografico sai do posicionamento. Atendimento e Brasil inteiro, de qualquer lugar. Proximidade continua sendo recurso de conversa na abordagem fria, nunca atributo de marca.",
   "version": "5.0",
   "updatedLabel": "Atualizado em Setembro/2026",
-  "avisoParaAgentes": "LEIA ANTES DE GERAR QUALQUER COPY. 1) O mecanismo se chama PEDIDO PRONTO. 'Ficha de Escopo' e termo MORTO e nao pode aparecer em copy, post, bio, roteiro ou proposta. 2) PRECO TEM DUAS FAIXAS VIVAS POR DECISAO, confirmada pelo Erick em 02/09/2026. Isso e regra deliberada, NAO e erro e NAO deve ser 'corrigido' unificando as duas. Prospeccao fria usa R$1.000 + R$150/mes (content/sales-playbook.json). Site publico usa a partir de R$1.800 + R$200/mes (apps/mydrion-site). Use a faixa do canal em que voce esta e NUNCA cite as duas na mesma peca. R$997 e historico. 3) Preco NUNCA e assunto de conteudo de Instagram: publicar oferta e conteudo de nivel 5 de consciencia servido a uma plateia de nivel 1. Ver PLANO-conteudo-instagram.md antes de escrever post. 4) A fonte da verdade da copy publica e apps/mydrion-site/src/data/siteContent.ts no repo aios-core. Se este JSON divergir do site na COPY, o site ganha.",
+  "avisoParaAgentes": "LEIA ANTES DE GERAR QUALQUER COPY. 1) O mecanismo se chama PEDIDO PRONTO. 'Ficha de Escopo' e termo MORTO e nao pode aparecer em copy, post, bio, roteiro ou proposta. 2) PRECO TEM DUAS FAIXAS VIVAS POR DECISAO, confirmada pelo Erick em 02/09/2026. Isso e regra deliberada, NAO e erro e NAO deve ser 'corrigido' unificando as duas. Prospeccao fria usa R$1.000 + R$150/mes (content/sales-playbook.json). Site publico usa a partir de R$1.800 + R$200/mes (apps/mydrion-site). Use a faixa do canal em que voce esta e NUNCA cite as duas na mesma peca. R$997 e historico. 3) Preco NUNCA e assunto de conteudo de Instagram: publicar oferta e conteudo de nivel 5 de consciencia servido a uma plateia de nivel 1. Ver PLANO-conteudo-instagram.md antes de escrever post. 4) A fonte da verdade da copy publica e apps/mydrion-site/src/data/siteContent.ts no repo aios-core. Se este JSON divergir do site na COPY, o site ganha. 5) PRECEDENCIA POR CANAL (17/09/2026): para mensagem de WhatsApp, prospeccao fria, follow-up e objecao de lead frio, a fonte da verdade e content/sales-playbook.json e ele GANHA deste brandbook em qualquer conflito. Este brandbook manda em arquetipo, tom, palavras, ICP e conteudo. Em lead frio o CTA NUNCA e call, reuniao ou agendamento: o fecho e pela vaga de producao (playbook.postResponse.msg2). Os templates de CTA com '15 minutos' e 'amanha de manha ou a tarde' que restam neste documento valem SO para lead inbound quente (site, Instagram, indicacao) e produto de ticket maior. Termos mortos em qualquer canal: 'faz sentido pra voces?', 'pode ser?', 'te mostro em 15 min', 'posso te mostrar uma ideia?', 'quer ver?' como CTA da msg 1.",
   "hero": {
     "name": "Mydrion",
     "role": "Tecnologia sob medida para industria. Erick Sena e a voz e o rosto da marca.",
@@ -289,8 +289,8 @@
         },
         {
           "title": "Fundo de Funil",
-          "badge": "Call de 15 minutos com valor na mesa",
-          "body": "O CTA nao e 'quer que eu monte o Pedido Pronto?', que gera trabalho e nao marca nada. E agendamento em escolha dupla, com sinalizacao de que o valor sai na call. Isso mata a negociacao improvisada por mensagem."
+          "badge": "Inbound: call de 15 minutos. Frio: vaga de producao",
+          "body": "SO PARA LEAD INBOUND QUENTE (site, Instagram, indicacao) e ticket maior (OStrack, sistemas): o CTA nao e 'quer que eu monte o Pedido Pronto?', que gera trabalho e nao marca nada. E agendamento em escolha dupla, com sinalizacao de que o valor sai na call. NA PROSPECCAO FRIA DE WHATSAPP (playbook, 02/09/2026) nao existe call: a msg 2 entrega case + preco escrito + fecho pela vaga de producao ('Minha proxima entrada de producao e {dia}. Coloco a {empresa} nela?'). Lead frio industrial nesse ticket nao vai pra call e a call nao se paga."
         },
         {
           "title": "Linhas Editoriais",
@@ -424,7 +424,7 @@
         },
         {
           "title": "'Vou pensar e te retorno'",
-          "body": "Tranquilo. Sao 15 minutos pra eu te mostrar como ficaria com os servicos de voces e ja te passar o valor fechado, sem compromisso. Se depois disso nao fizer sentido, eu mesmo encerro. Consegue amanha de manha, ou prefere a tarde?"
+          "body": "LEAD FRIO DE WHATSAPP: usar a carta pronta do Comando (CRM), que mantem o preco, encolhe a aposta e oferece a vaga de producao seguinte; nunca propor call. LEAD INBOUND QUENTE ou ticket maior: 'Tranquilo. Sao 15 minutos pra eu te mostrar como ficaria com os servicos de voces e ja te passar o valor fechado, sem compromisso. Se depois disso nao fizer sentido, eu mesmo encerro. Consegue amanha de manha, ou prefere a tarde?'"
         }
       ]
     },
@@ -435,8 +435,8 @@
       "cards": [
         {
           "title": "Msg 1 (abordagem fria)",
-          "badge": "Template",
-          "body": "'Fala! Erick aqui. Eu faco o pedido do cliente chegar no seu WhatsApp ja com servico, medida e prazo definidos.' Assina PESSOA, nunca empresa. Variantes A/B vivem em content/sales-playbook.json. NAO cita o mecanismo aqui: ele entra na msg 2. Proximidade (localOpenings) so entra quando o lead e da regiao, como recurso de conversa."
+          "badge": "Template vive no playbook",
+          "body": "NAO copiar daqui: o texto vigente esta em content/sales-playbook.json (experiment.openings / regionalOpenings / localOpenings, v4 de 08/09/2026: 'Erick aqui, eu trabalho com presença digital {{nicho}}'). A promessa fechada ('faco o pedido chegar com servico, medida e prazo') SAIU da msg 1 na v3: a friccao vira hipotese no terceiro bloco e a mensagem termina em pergunta de reconhecimento, nunca em 'quer ver?'. Assina PESSOA, nunca empresa. NAO cita o mecanismo nem leva link: mecanismo e case entram na msg 2 / M1. Proximidade (localOpenings) so entra quando o lead e da regiao, como recurso de conversa."
         },
         {
           "title": "Hero da Mydrion",
@@ -455,8 +455,8 @@
         },
         {
           "title": "CTA Padrao",
-          "badge": "Template",
-          "body": "'Te mostro em 15 min como ficaria com os servicos de voces e ja te passo o valor fechado. Consegue amanha de manha, ou prefere a tarde?' Sempre escolha dupla, sempre com sinalizacao de que o valor sai na call."
+          "badge": "Um por canal",
+          "body": "WHATSAPP FRIO (playbook, unico CTA valido): 'Minha proxima entrada de producao e {dia}. Coloco a {empresa} nela?'. Quem tem territorio informa a condicao; quem pede licenca negocia de baixo. Nunca 'topa?', nunca 'faz sentido pra voces?', nunca call. INBOUND QUENTE ou ticket maior (OStrack, sistemas): 'Te mostro em 15 min como ficaria com os servicos de voces e ja te passo o valor fechado. Consegue amanha de manha, ou prefere a tarde?', sempre escolha dupla, sempre com sinalizacao de que o valor sai na call. O fecho de 15 minutos foi REPROVADO para lead frio em 12/08/2026 e nao volta pra prospeccao."
         },
         {
           "title": "Estrutura de Post (Topo)",
