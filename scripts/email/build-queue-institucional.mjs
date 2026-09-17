@@ -11,6 +11,8 @@
  *   cd scripts/email
  *   node build-queue-institucional.mjs --setor=industria
  *   node build-queue-institucional.mjs --setor=industria,saude --limit=40
+ *   node build-queue-institucional.mjs --setor=industria --primeiro-toque   # inclui quem nunca recebeu WhatsApp
+ *   node build-queue-institucional.mjs --setor=industria --liberar=273,755  # deals cuja "resposta" era bot
  */
 import fs from "node:fs";
 import { estaBloqueado, lerBlocklist } from "./blocklist.mjs";
@@ -70,6 +72,13 @@ for (const m of messages) {
   if (m.direction === "received") responderam.add(m.deal_id);
 }
 const TODOS = process.argv.includes("--todos");
+// Liberado pelo Erick em 14/09/2026, quando a fila sob a regra de canal zerou: e-mail vira
+// PRIMEIRO toque para quem nunca recebeu WhatsApp. Diferente de --todos, mantem a protecao
+// de quem ja respondeu em qualquer canal.
+const PRIMEIRO_TOQUE = process.argv.includes("--primeiro-toque");
+// Deal que "respondeu" no WhatsApp mas era so saudacao automatica (bot). Erick, 14/09/2026:
+// "se for bot, manda email". Ids passados a mao depois de ler as mensagens recebidas.
+const LIBERAR = new Set((arg("liberar") || "").split(",").map(Number).filter(Boolean));
 
 const lixo = (e) => {
   const v = String(e || "").trim().toLowerCase();
@@ -88,8 +97,8 @@ const descartes = { lost: 0, naoAbordado: 0, jaRespondeu: 0, semEmail: 0, tercei
 for (const d of deals) {
   if (d.stage === "lost") { descartes.lost++; continue; }
   if (!TODOS) {
-    if (!abordados.has(d.id)) { descartes.naoAbordado++; continue; }
-    if (responderam.has(d.id)) { descartes.jaRespondeu++; continue; }
+    if (!PRIMEIRO_TOQUE && !abordados.has(d.id)) { descartes.naoAbordado++; continue; }
+    if (responderam.has(d.id) && !LIBERAR.has(d.id)) { descartes.jaRespondeu++; continue; }
   }
   const c = contactForDeal(d, contatoPorId) || {};
   const destino = [d.email_receita, c.email].find((e) => !lixo(e)) || null;
@@ -187,7 +196,9 @@ if (casasRepetidas.length) {
   for (const c of casasRepetidas) console.log(`  - ${c}`);
   console.log('');
 }
-if (!TODOS) console.log(`Regra de canal: só quem JÁ recebeu WhatsApp e NUNCA respondeu (--todos ignora).`);
+if (TODOS) console.log(`--todos: SEM regra de canal (inclui quem já respondeu no WhatsApp).`);
+else if (PRIMEIRO_TOQUE) console.log(`--primeiro-toque: inclui quem nunca recebeu WhatsApp; quem JÁ respondeu segue protegido.`);
+else console.log(`Regra de canal: só quem JÁ recebeu WhatsApp e NUNCA respondeu (--primeiro-toque libera os nunca abordados).`);
 console.log(`Classes na fila: ${["decisor", "empresa"].map((k) => `${k}=${final.filter((f) => f.classe === k).length}`).join(" | ")}`);
 console.log(`Arquivo: ${process.cwd()}/email_queue.json`);
 console.log(`\nTeste:   node brevo_send.mjs --test=SEU@EMAIL`);
