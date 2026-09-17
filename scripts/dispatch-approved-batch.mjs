@@ -102,12 +102,40 @@ if (!validation.ok) {
   process.exit(0);
 }
 
+// Instancia caida NAO e tentativa. Em 16/09/2026 o servidor da Uazapi caiu e 4 ticks
+// seguidos de "Instancia nao esta conectada" consumiram a tarde inteira como se fosse
+// bloqueio. Com o servidor free (cai a cada poucas horas e o Erick reconecta pelo QR)
+// isso mataria todo dia: aqui o tick espera calado e so pega o lease com ela conectada.
+// Os scripts de envio leem o .env sozinhos; este runner tambem, so para esta checagem.
+for (const linha of fs.readFileSync(path.join(ROOT, ".env"), "utf8").split(/\r?\n/)) {
+  const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
+  if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+}
+const statusInstancia = await fetch(`${process.env.UAZAPI_BASE_URL}/instance/status`, {
+  headers: { token: process.env.UAZAPI_INSTANCE_TOKEN },
+})
+  .then((r) => r.json())
+  .then((j) => j?.instance?.status ?? "desconhecida")
+  .catch(() => "desconhecida");
+if (statusInstancia !== "connected") {
+  // Uma linha por mudanca de estado, nao por tick: 12 ticks por hora sujariam o log.
+  if (approval.waitingInstance?.status !== statusInstancia) {
+    gravarAprovacao({ ...approval, waitingInstance: { status: statusInstancia, since: new Date().toISOString() } });
+    registrar(`Instancia ${statusInstancia}; ${date}/${slot} aguarda reconexao sem gastar tentativa.`);
+  }
+  process.exit(0);
+}
+if (approval.waitingInstance) {
+  registrar(`Instancia voltou (estava ${approval.waitingInstance.status} desde ${approval.waitingInstance.since.slice(11, 19)}Z).`);
+}
+
 const tentativa = (approval.attempts ?? 0) + 1;
 gravarAprovacao({
   ...approval,
   attempts: tentativa,
   lease: { pid: process.pid, startedAt: new Date().toISOString(), attempt: tentativa },
   lastError: undefined,
+  waitingInstance: undefined,
 });
 
 // Dois ticks podem ter passado pela validacao no mesmo segundo. Quem reler e nao se
@@ -150,6 +178,9 @@ function run(script, ids, extra = []) {
     // bloqueio, ou envio que o CRM nao registrou). Insistir de 5 em 5 minutos nesse
     // caso e justamente o que derruba o numero. So retomamos morte inesperada.
     erro.deliberada = result.status === 2;
+    // Exit 3 = a instancia caiu no meio do lote. Nao e bloqueio nem morte inesperada:
+    // a tentativa e devolvida e o proximo tick retoma assim que ela reconectar.
+    erro.instanciaCaida = result.status === 3;
     throw erro;
   }
 }
@@ -162,19 +193,30 @@ try {
   registrar(`Aprovacao ${date}/${slot} concluida. O teto acumulado permaneceu em ${manifest.cumulativeTarget}.`);
 } catch (error) {
   const agora = new Date().toISOString();
-  const encerra = error.deliberada || tentativa >= MAX_ATTEMPTS;
-  gravarAprovacao({
-    ...lerAprovacao(),
-    lease: null,
-    lastError: `${agora} ${error.message}`,
-    ...(encerra ? { abortedAt: agora, consumedAt: agora } : {}),
-  });
-  registrar(
-    encerra
-      ? `FALHOU ${date}/${slot} na tentativa ${tentativa}/${MAX_ATTEMPTS}: ${error.message} Nao havera nova tentativa hoje.`
-      : `FALHOU ${date}/${slot} na tentativa ${tentativa}/${MAX_ATTEMPTS}: ${error.message} O proximo tick retoma.`,
-  );
-  process.exitCode = 1;
+  if (error.instanciaCaida) {
+    gravarAprovacao({
+      ...lerAprovacao(),
+      lease: null,
+      attempts: tentativa - 1,
+      lastError: `${agora} ${error.message}`,
+    });
+    registrar(`PAUSOU ${date}/${slot}: instancia caiu no meio do lote. Tentativa devolvida (${tentativa - 1}/${MAX_ATTEMPTS}); retoma quando reconectar.`);
+    process.exitCode = 3;
+  } else {
+    const encerra = error.deliberada || tentativa >= MAX_ATTEMPTS;
+    gravarAprovacao({
+      ...lerAprovacao(),
+      lease: null,
+      lastError: `${agora} ${error.message}`,
+      ...(encerra ? { abortedAt: agora, consumedAt: agora } : {}),
+    });
+    registrar(
+      encerra
+        ? `FALHOU ${date}/${slot} na tentativa ${tentativa}/${MAX_ATTEMPTS}: ${error.message} Nao havera nova tentativa hoje.`
+        : `FALHOU ${date}/${slot} na tentativa ${tentativa}/${MAX_ATTEMPTS}: ${error.message} O proximo tick retoma.`,
+    );
+    process.exitCode = 1;
+  }
 } finally {
   fs.closeSync(fd);
 }

@@ -30,6 +30,7 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
+import { conferirCanal } from "./lib/canalWhatsapp.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { avaliarLead, carregarAprovados } = createRequire(import.meta.url)("./lib/triagemLead.js");
@@ -278,6 +279,14 @@ function naUltimaHora(lista) {
 // lote da manha so terminou porque o tick de 5 minutos retomou, queimando 3 das 4
 // tentativas do dia. Aqui a rede ganha nova chance antes de virar falha; se nao
 // voltar, quem decide parar continua sendo o contador de duas falhas seguidas.
+// .catch() no fetch inteiro, nao so no .json(): sem rede o proprio fetch rejeita e
+// o processo morria com stack trace antes de imprimir qualquer coisa (02/09/2026).
+async function statusInstancia() {
+  return fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })
+    .then((r) => r.json())
+    .catch(() => ({}));
+}
+
 async function enviar(fone, texto, tentativas = 3) {
   for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
     try {
@@ -340,14 +349,14 @@ async function registrar(deal) {
   }
   // .catch() no fetch inteiro, nao so no .json(): sem rede o proprio fetch rejeita e
   // o processo morria com stack trace antes de imprimir qualquer coisa (02/09/2026).
-  const status = await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })
-    .then((r) => r.json())
-    .catch(() => ({}));
+  const status = await statusInstancia();
   const conectada = status?.instance?.status === "connected";
   console.log(`Instancia: ${status?.instance?.status ?? "desconhecida"} (${status?.instance?.owner ?? "-"})`);
   if (GO && !conectada) {
-    console.error("Instancia nao esta conectada. Abortado.");
-    process.exit(1);
+    // Exit 3 = instancia caida. O dispatcher NAO conta tentativa nesse caso e retoma
+    // quando ela voltar (servidor free cai a cada poucas horas, 17/09/2026).
+    console.error("Instancia nao esta conectada. Aguardando reconexao.");
+    process.exit(3);
   }
 
   const janela = janelaOk();
@@ -383,11 +392,22 @@ async function registrar(deal) {
   const disponivel = JSON_OUT ? LIMITE : Math.min(restaHoje || LIMITE, restaNumero || LIMITE);
   const alvo = DIA_INTEIRO ? disponivel : Math.min(LIMITE, disponivel);
 
+  // Confere o NUMERO na Uazapi antes de reservar a vaga no lote (14/09/2026): o perfil
+  // do WhatsApp tem que ser da empresa do card. A Steel Usinagem (#795) tinha no
+  // whatsapp_site o numero da G6 Embalagens, sobra de template no site antigo dela, e a
+  // copy inteira da Steel chegou na G6. Numero que nao existe tambem fica de fora: e
+  // sinal de spam pra plataforma e gastava vaga do teto. Ver scripts/lib/canalWhatsapp.mjs.
   const lote = [];
+  const retidosCanal = [];
   for (const lead of fila) {
     if (lote.length >= alvo) break;
     if (await jaDisparado(lead.id)) continue;
-    lote.push(lead);
+    const canal = await conferirCanal(lead.fone, lead.company, { base: BASE, token: TOKEN });
+    if (!canal.ok) {
+      retidosCanal.push(`#${lead.id} ${lead.company} -> ${lead.fone} (${canal.motivo}${canal.nome ? `: perfil "${canal.nome}"` : ""})`);
+      continue;
+    }
+    lote.push({ ...lead, perfilWpp: canal.nome || "" });
   }
 
   const confirmados = lote.filter((l) => l.confianca === 3).length;
@@ -397,9 +417,13 @@ async function registrar(deal) {
     retidos.slice(0, 8).forEach((r) => console.log(`   ${r}`));
     if (retidos.length > 8) console.log(`   ... e mais ${retidos.length - 8}`);
   }
+  if (retidosCanal.length) {
+    console.log(`Retidos pela conferencia do numero na Uazapi: ${retidosCanal.length} (corrigir whatsapp_site/whatsapp_jid no cadastro)`);
+    retidosCanal.forEach((r) => console.log(`   ${r}`));
+  }
   console.log(`Numeros confirmados no lote: ${confirmados}/${lote.length} | modo: ${DIA_INTEIRO ? "DIA INTEIRO" : "lote"} ${GO ? "(ENVIO REAL)" : "(dry-run)"}\n`);
   lote.forEach((l, i) => {
-    console.log(`[${i + 1}] #${l.id} ${l.company} -> ${l.fone}`);
+    console.log(`[${i + 1}] #${l.id} ${l.company} -> ${l.fone}${l.perfilWpp ? ` (perfil: ${l.perfilWpp})` : ""}`);
     if (!GO) console.log(l.copy_text.split("\n").map((x) => "    " + x).join("\n") + "\n");
   });
 
@@ -447,8 +471,16 @@ async function registrar(deal) {
       }
       enviados++;
     } else {
-      falhasSeguidas++;
       console.log(`${hhmm()} FALHA #${lead.id} ${lead.company} -> ${r.status} ${JSON.stringify(r.corpo).slice(0, 120)}`);
+      // Instancia que caiu no meio do lote nao e bloqueio: sai com 3 e o dispatcher
+      // retoma quando o Erick reconectar, sem gastar tentativa nem consumir o dia.
+      const agora = await statusInstancia();
+      if (agora?.instance?.status !== "connected") {
+        console.error(`\n${hhmm()} Instancia caiu no meio do lote (${agora?.instance?.status ?? "desconhecida"}). Aguardando reconexao.`);
+        process.exitCode = 3;
+        break;
+      }
+      falhasSeguidas++;
       if (falhasSeguidas >= 2) {
         console.error("\nDuas falhas seguidas. Parando agora: e o primeiro sinal de bloqueio.");
         process.exitCode = 2;

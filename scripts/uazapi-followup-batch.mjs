@@ -26,6 +26,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
+import { conferirCanal } from "./lib/canalWhatsapp.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { renderFollowupMessage } = salesPlaybookModule;
@@ -85,12 +86,17 @@ const supa = async (rota, init = {}) =>
 
 // Espelha tierForDays de src/lib/followup.ts (o script e .mjs e nao importa TS).
 const tierForDays = (dias) => (dias < 2 ? "aguardar" : dias <= 4 ? "M1" : dias <= 9 ? "M2" : "M3");
-function followupMessage(tier, company, ehBot, segment, city) {
+// Concorrente direto da Jotta (origin_detail = "concorrente_jotta", base de ICP de
+// Monlevade de 15/09) nunca le o nome da Jotta: o M2 desses cita so a Metalthec.
+const caseOnlyDe = (originDetail) => (originDetail === "concorrente_jotta" ? "metalthec" : null);
+
+function followupMessage(tier, company, ehBot, segment, city, originDetail) {
   return renderFollowupMessage({
     tier,
     company,
     segment,
     city,
+    caseOnly: caseOnlyDe(originDetail),
     responseType: ehBot ? "bot" : "sem_resposta",
   });
 }
@@ -147,7 +153,7 @@ const AUTORESPONDER = new RegExp(
 
 async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
-    fetchAllPages(supa, "deals?stage=in.(abordado,followup)&select=id,company,segment"),
+    fetchAllPages(supa, "deals?stage=in.(abordado,followup)&select=id,company,segment,origin_detail"),
     fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,city"),
     fetchAllPages(supa,
       "activities?type=in.(whatsapp_sent,whatsapp_sent_sync,whatsapp_received)&select=deal_id,type,description,created_at&order=created_at.asc",
@@ -196,6 +202,13 @@ async function carregarFila() {
     .sort((a, b) => b.dias - a.dias);
 }
 
+// Espelha uazapi-send-batch.mjs: .catch() no fetch inteiro, sem rede o fetch rejeita.
+async function statusInstancia() {
+  return fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })
+    .then((r) => r.json())
+    .catch(() => ({}));
+}
+
 // Espelha uazapi-send-batch.mjs: queda de rede ganha nova tentativa em vez de matar o
 // processo. Ver o comentario de la para o incidente de 02/09/2026.
 async function enviar(fone, texto, tentativas = 3) {
@@ -236,14 +249,12 @@ async function registrar(dealId, empresa, tier) {
     console.error("--json-out e exclusivo da preparacao em dry-run; remova --go.");
     process.exit(1);
   }
-  // .catch() no fetch inteiro, nao so no .json(): sem rede o proprio fetch rejeita.
-  const status = await fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })
-    .then((r) => r.json())
-    .catch(() => ({}));
+  const status = await statusInstancia();
   console.log(`Instancia: ${status?.instance?.status ?? "desconhecida"} (${status?.instance?.owner ?? "-"})`);
   if (GO && status?.instance?.status !== "connected") {
-    console.error("Instancia nao conectada. Abortado.");
-    process.exit(1);
+    // Exit 3 = instancia caida: o dispatcher espera a reconexao sem gastar tentativa.
+    console.error("Instancia nao conectada. Aguardando reconexao.");
+    process.exit(3);
   }
   const janela = janelaOk();
   if (GO && !janela.ok && !FORCE_HORA) {
@@ -295,13 +306,31 @@ async function registrar(dealId, empresa, tier) {
 
   const fila = await carregarFila();
   const porTier = fila.reduce((a, d) => ({ ...a, [d.tier]: (a[d.tier] || 0) + 1 }), {});
-  const lote = fila.slice(0, Math.min(LIMITE, JSON_OUT ? LIMITE : Math.min(restaHoje, restaNumero)));
+  const alvo = Math.min(LIMITE, JSON_OUT ? LIMITE : Math.min(restaHoje, restaNumero));
+  // Mesma conferencia do primeiro disparo (14/09/2026): o perfil do WhatsApp tem que
+  // ser da empresa do card. Follow-up em numero errado repete o erro tres vezes -- a
+  // Consertech (#1146) saiu de manha para um perfil "Omega Tech". Ver canalWhatsapp.mjs.
+  const lote = [];
+  const retidosCanal = [];
+  for (const l of fila) {
+    if (lote.length >= alvo) break;
+    const canal = await conferirCanal(l.fone, l.company, { base: BASE, token: TOKEN });
+    if (!canal.ok) {
+      retidosCanal.push(`#${l.id} ${l.company} -> ${l.fone} (${canal.motivo}${canal.nome ? `: perfil "${canal.nome}"` : ""})`);
+      continue;
+    }
+    lote.push({ ...l, perfilWpp: canal.nome || "" });
+  }
   console.log(`Enviados hoje (disparo + follow-up): ${jaHoje}/${TETO_DIA} | saidas do numero: ${jaNumero}/${TETO_NUMERO}`);
+  if (retidosCanal.length) {
+    console.log(`Retidos pela conferencia do numero na Uazapi: ${retidosCanal.length} (corrigir whatsapp_site/whatsapp_jid no cadastro)`);
+    retidosCanal.forEach((r) => console.log(`   ${r}`));
+  }
 
   console.log(`\nFila de follow-up: ${fila.length} ${JSON.stringify(porTier)} | lote: ${lote.length} | modo: ${GO ? "ENVIO REAL" : "dry-run"}\n`);
   lote.forEach((l, i) => {
-    const texto = followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade);
-    console.log(`[${i + 1}] ${l.tier}${l.ehBot ? "/bot" : ""} D+${l.dias} #${l.id} ${l.company} -> ${l.fone}`);
+    const texto = followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade, l.origin_detail);
+    console.log(`[${i + 1}] ${l.tier}${l.ehBot ? "/bot" : ""} D+${l.dias} #${l.id} ${l.company} -> ${l.fone}${l.perfilWpp ? ` (perfil: ${l.perfilWpp})` : ""}`);
     if (!GO) console.log("    " + texto + "\n");
   });
 
@@ -340,7 +369,7 @@ async function registrar(dealId, empresa, tier) {
         break;
       }
     }
-    const r = await enviar(l.fone, followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade));
+    const r = await enviar(l.fone, followupMessage(l.tier, l.company, l.ehBot, l.segment, l.cidade, l.origin_detail));
     if (r.ok) {
       falhas = 0;
       const logou = await registrar(l.id, l.company, l.tier);
@@ -352,8 +381,15 @@ async function registrar(dealId, empresa, tier) {
       }
       enviados++;
     } else {
-      falhas++;
       console.log(`${hhmm()} FALHA #${l.id} ${l.company} -> ${r.status} ${JSON.stringify(r.corpo).slice(0, 110)}`);
+      // Instancia que caiu no meio do lote nao e bloqueio: exit 3, o dispatcher retoma.
+      const agora = await statusInstancia();
+      if (agora?.instance?.status !== "connected") {
+        console.error(`\n${hhmm()} Instancia caiu no meio do lote (${agora?.instance?.status ?? "desconhecida"}). Aguardando reconexao.`);
+        process.exitCode = 3;
+        break;
+      }
+      falhas++;
       if (falhas >= 2) {
         console.error("\nDuas falhas seguidas. Parando: e o primeiro sinal de bloqueio.");
         process.exitCode = 2;
