@@ -75,9 +75,12 @@ function renderFollowupMessage(input) {
   }
   if (input.tier === "M1") return interpolate(SALES_PLAYBOOK.followups.M1, values);
   if (input.tier === "M2") {
+    // caseOnly === "metalthec": concorrente direto da Jotta nao recebe o nome dela
+    // (deals.origin_detail = "concorrente_jotta"). Ver _nota_soMetalthec no playbook.
+    const soMetalthec = input.caseOnly === "metalthec";
     const template = isLocal(input.city)
-      ? SALES_PLAYBOOK.followups.M2Local
-      : SALES_PLAYBOOK.followups.M2Remote;
+      ? (soMetalthec ? SALES_PLAYBOOK.followups.M2LocalSoMetalthec : SALES_PLAYBOOK.followups.M2Local)
+      : (soMetalthec ? SALES_PLAYBOOK.followups.M2RemoteSoMetalthec : SALES_PLAYBOOK.followups.M2Remote);
     return interpolate(template, values);
   }
   return interpolate(SALES_PLAYBOOK.followups.M3, values);

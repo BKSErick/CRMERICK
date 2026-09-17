@@ -217,6 +217,14 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     title: "🎬 Msg 2: case + preço + vaga (depois que o lead responde)",
     text: `Isso mesmo. Na Jotta o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: ${SALES_PLAYBOOK.cases.jottaUrl}\n\nPra [EMPRESA] eu faço igual, com os serviços de vocês. ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)} a página, mais ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é [DIA]. Coloco a [EMPRESA] nela?`,
   },
+  // Concorrente direto da Jotta (card com "ICP Jotta/Monlevade — tier A_concorrente_direto"
+  // na descricao, origin_detail = concorrente_jotta) nunca recebe o nome nem o link da
+  // Jotta: decisao do Erick em 15/09/2026, o Thales e a ponte pra ACIMON. Mesma msg 2,
+  // com a Metalthec como case.
+  {
+    title: "🎬 Msg 2 (concorrente da Jotta): case Metalthec + preço + vaga",
+    text: `Isso mesmo. Na Metalthec o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: ${SALES_PLAYBOOK.cases.metalthecUrl}\n\nPra [EMPRESA] eu faço igual, com os serviços de vocês. ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)} a página, mais ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é [DIA]. Coloco a [EMPRESA] nela?`,
+  },
   // Objecoes que apareceram na conversa REAL e nao tinham resposta pronta.
   // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?
   // Eu pago uma mensalidade?". Objecao previsivel sem resposta pronta e venda

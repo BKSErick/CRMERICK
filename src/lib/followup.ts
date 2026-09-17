@@ -627,14 +627,18 @@ export function nomeCurto(company: string) {
 
 const { renderFollowupMessage } = salesPlaybookModule;
 
+// caseOnly "metalthec" = concorrente direto da Jotta (deals.origin_detail =
+// "concorrente_jotta"): o M2 cita so a Metalthec. Mesma regra do
+// uazapi-followup-batch.mjs, que e quem envia de verdade.
 export function followupMessage(
   tier: Exclude<FollowupTier, "aguardar">,
   companyRaw: string,
   responseType: ResponseType = "sem_resposta",
   segment?: string | null,
   city?: string | null,
+  caseOnly?: "metalthec" | null,
 ) {
-  return renderFollowupMessage({ tier, company: companyRaw, responseType, segment, city });
+  return renderFollowupMessage({ tier, company: companyRaw, responseType, segment, city, caseOnly });
 }
 
 // FUNDO DE FUNIL (31/08/2026). A fila de cadencia da Sala de Comando so consultava
