@@ -1970,6 +1970,9 @@ select.pref-select:focus {
 .agent-chat-main { display: grid; grid-template-rows: auto auto minmax(310px, 1fr) auto auto; min-width: 0; }
 .agent-chat-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--color-line); }
 .agent-chat-toolbar select, .agent-chat-toolbar input, .agent-picker-trigger { min-height: 38px; padding: 8px 10px; border: 1px solid var(--color-line); border-radius: 8px; background: white; color: var(--color-ink-700); }
+.ai-model-picker { display: grid; gap: 3px; min-width: min(320px, 100%); }
+.ai-model-picker > span, .ai-model-picker > small { color: var(--color-smoke-500); font: 600 10px/1.25 var(--font-interface); }
+.ai-model-picker > small { color: var(--color-danger); font-weight: 500; }
 .agent-picker-trigger { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .agent-picker-trigger strong { color: var(--color-brand-accent); font: 700 10px var(--font-mono); }
 .agent-chat-actions { display: flex; gap: 4px; margin-left: auto; }

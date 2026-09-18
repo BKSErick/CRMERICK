@@ -1,10 +1,17 @@
 // Tipos do modulo ESM aiProviders.mjs.
-export type AiResult = { content: string; provider: string; model: string } | null;
+export type AiUsage = { inputTokens: number | null; outputTokens: number | null; totalTokens: number | null };
+export type AiResult = { content: string; provider: string; model: string; usage: AiUsage | null } | null;
+export type AiModelPreference =
+  | { mode: "auto" }
+  | { mode: "fixed"; provider: "OpenRouter"; modelId: string };
 export type AiCompleteOptions = {
   signal?: AbortSignal;
   timeoutMs?: number;
   /** Parametros extras do payload (ex.: response_format, temperature) mesclados por chamada. */
   requestOptions?: Record<string, unknown>;
+  modelPreference?: AiModelPreference;
+  /** Fail-closed: chama somente endpoints OpenRouter comprovadamente gratuitos. */
+  freeOnly?: boolean;
 };
 
 export type AiFailureReason =
@@ -17,7 +24,8 @@ export type AiFailureReason =
   | "bad_request"
   | "provider_error"
   | "empty_completion"
-  | "network_error";
+  | "network_error"
+  | "model_not_free";
 
 export type AiFailure = {
   provider: string;
@@ -25,6 +33,14 @@ export type AiFailure = {
   status: number | null;
   reason: AiFailureReason;
   detail?: string;
+};
+
+export type AiProviderAttempt = {
+  provider: string;
+  model: string;
+  status: "success" | "failed";
+  reason: AiFailureReason | null;
+  latencyMs: number;
 };
 
 export const AI_PROVIDERS: ReadonlyArray<{ name: string; url: string }>;
@@ -43,7 +59,7 @@ export function aiCompleteDetailed(
   systemPrompt: string,
   userPrompt: string,
   options?: AiCompleteOptions,
-): Promise<{ result: AiResult; failures: AiFailure[] }>;
+): Promise<{ result: AiResult; failures: AiFailure[]; attempts: AiProviderAttempt[] }>;
 
 declare const aiProviders: {
   AI_PROVIDERS: typeof AI_PROVIDERS;

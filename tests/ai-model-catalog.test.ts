@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test, { beforeEach } from "node:test";
 
-import { discoverFreeModels, getProviderModels, markModelDead, rankModels, resetCatalogCache } from "../src/lib/aiModelCatalog.mjs";
+import {
+  discoverFreeModels,
+  getFreeModelCatalog,
+  getProviderModels,
+  markModelDead,
+  rankModels,
+  resetCatalogCache,
+  validateFreeOpenRouterModel,
+} from "../src/lib/aiModelCatalog.mjs";
 
 // O catalogo e a peca que substitui a lista fixa de modelos. O que precisa ser verdade:
 // (1) modelo que nao serve pra chat nunca entra; (2) modelo vivo desconhecido NUNCA e
@@ -78,6 +86,59 @@ test("discoverFreeModels le o catalogo do OpenRouter e exclui saida nao-textual"
         modelos.map((m) => m.id),
         ["marca/free:free"],
       );
+    },
+  );
+});
+
+test("catalogo publico preserva contexto real e nao volume historico", async () => {
+  await comFetch(
+    () =>
+      json({
+        data: [
+          {
+            id: "marca/free:free",
+            name: "Modelo Free",
+            context_length: 1048576,
+            pricing: { prompt: "0", completion: "0" },
+            architecture: { input_modalities: ["text"], output_modalities: ["text"] },
+            created: 123,
+          },
+        ],
+      }),
+    async () => {
+      const catalogo = await getFreeModelCatalog("OpenRouter");
+      assert.equal(catalogo.models[0].contextLength, 1048576);
+      assert.equal(catalogo.models[0].name, "Modelo Free");
+      assert.equal("tokens" in catalogo.models[0], false, "uso historico nao e janela de contexto");
+      assert.ok(catalogo.discoveredAt);
+    },
+  );
+});
+
+test("override OpenRouter pago e descartado em fail-closed", async () => {
+  const original = process.env.AI_OPENROUTER_MODELS;
+  process.env.AI_OPENROUTER_MODELS = "openai/gpt-pago,marca/free:free,openrouter/free";
+  try {
+    const fila = await getProviderModels("OpenRouter");
+    assert.deepEqual(fila, ["marca/free:free", "openrouter/free"]);
+  } finally {
+    if (original === undefined) delete process.env.AI_OPENROUTER_MODELS;
+    else process.env.AI_OPENROUTER_MODELS = original;
+  }
+});
+
+test("modelo fixo precisa estar gratuito no catalogo vivo", async () => {
+  await comFetch(
+    () =>
+      json({
+        data: [
+          { id: "marca/pago", context_length: 131072, pricing: { prompt: "0.1", completion: "0.2" }, architecture: { output_modalities: ["text"] } },
+          { id: "marca/zero", context_length: 131072, pricing: { prompt: "0", completion: "0" }, architecture: { output_modalities: ["text"] } },
+        ],
+      }),
+    async () => {
+      await assert.rejects(() => validateFreeOpenRouterModel("marca/pago"), /gratuito|elegivel/i);
+      assert.equal((await validateFreeOpenRouterModel("marca/zero")).id, "marca/zero");
     },
   );
 });

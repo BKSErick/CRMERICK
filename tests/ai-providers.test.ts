@@ -184,6 +184,70 @@ test("opcoes por chamada chegam no payload", async () => {
   });
 });
 
+test("modelo OpenRouter fixo pago e bloqueado antes do fetch de chat", async () => {
+  await comAmbiente(async () => {
+    const { chamadas, stub } = montarFetch({
+      openRouterModels: ["fornecedor/free:free"],
+      responderChat: () => respostaOk("nao deveria chamar"),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", {
+      modelPreference: { mode: "fixed", provider: "OpenRouter", modelId: "fornecedor/pago" },
+    });
+
+    assert.equal(resultado.result, null);
+    assert.equal(chamadas.length, 0, "a unica chamada permitida e a descoberta GET /models");
+    assert.equal(resultado.failures[0].reason, "model_not_free");
+  });
+});
+
+test("modelo fixo gratuito nao troca silenciosamente e devolve usage", async () => {
+  await comAmbiente(async () => {
+    const { chamadas, stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free", "fornecedor/b:free"],
+      responderChat: (chamada) =>
+        new Response(
+          JSON.stringify({
+            choices: [{ message: { content: `usou ${chamada.body.model}` } }],
+            usage: { prompt_tokens: 12, completion_tokens: 7, total_tokens: 19 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", {
+      modelPreference: { mode: "fixed", provider: "OpenRouter", modelId: "fornecedor/b:free" },
+    });
+
+    assert.equal(resultado.result?.model, "fornecedor/b:free");
+    assert.deepEqual(resultado.result?.usage, { inputTokens: 12, outputTokens: 7, totalTokens: 19 });
+    assert.deepEqual(chamadas.map((item) => item.body.model), ["fornecedor/b:free"]);
+    assert.equal(resultado.attempts.length, 1);
+    assert.equal(resultado.attempts[0].status, "success");
+    assert.equal("detail" in resultado.attempts[0], false);
+  });
+});
+
+test("modo freeOnly nunca cai para provedor sem prova de preco zero", async () => {
+  await comAmbiente(async () => {
+    const { chamadas, stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free"],
+      groqModels: ["groq/modelo"],
+      responderChat: (chamada) => chamada.url.includes("openrouter.ai")
+        ? new Response("rate limit", { status: 429 })
+        : respostaOk("fallback que poderia cobrar"),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", { freeOnly: true });
+
+    assert.equal(resultado.result, null);
+    assert.equal(chamadas.some((item) => item.url.includes("api.groq.com")), false);
+  });
+});
+
 test("sem nenhum modelo respondendo, a falha vem classificada e legivel", async () => {
   await comAmbiente(async () => {
     delete process.env.OPENROUTER_API_KEY;

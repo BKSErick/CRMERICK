@@ -20,5 +20,16 @@ test("rotas exigem sessao e persistem metadados auditaveis", () => {
   assert.match(chat, /source_hash/);
   assert.match(chat, /context_manifest/);
   assert.match(chat, /citations/);
+  assert.match(chat, /AI_CHAT_SMART_RETRIEVAL_ENABLED/);
+  assert.match(chat, /routing_plan/);
+  assert.match(chat, /provider_attempts/);
+  assert.match(chat, /model_preference/);
   assert.doesNotMatch(chat, /tool_calls|\.from\(body|\.rpc\(body/);
+});
+
+test("catalogo de modelos exige sessao e expoe somente modelos gratuitos", () => {
+  const route = source("src/app/api/ai/models/route.ts");
+  assert.match(route, /requireAiChatAdminSession/);
+  assert.match(route, /getFreeModelCatalog/);
+  assert.doesNotMatch(route, /OPENROUTER_API_KEY.*NextResponse|process\.env.*json/i);
 });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAiChatAdminSession } from "@/lib/aiChatAuth";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
-import { normalizeContextScope, requireAgentId } from "@/lib/aiConversation";
+import { normalizeContextScope, normalizeModelPreference, requireAgentId } from "@/lib/aiConversation";
 
 export const runtime = "nodejs";
 
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       title: String(body?.title ?? "Nova conversa").trim().slice(0, 160) || "Nova conversa",
       default_agent_id: requireAgentId(body?.defaultAgentId ?? "crm-copilot"),
       context_scope: normalizeContextScope(body?.contextScope),
+      model_preference: normalizeModelPreference(body?.modelPreference),
     };
     const result = await getCrmSupabaseAdmin().from("ai_conversations").insert(row).select("*").single();
     if (result.error) throw result.error;
@@ -72,6 +73,7 @@ export async function PATCH(request: NextRequest) {
     if (body.title !== undefined) updates.title = String(body.title).trim().slice(0, 160) || "Nova conversa";
     if (body.defaultAgentId !== undefined) updates.default_agent_id = requireAgentId(body.defaultAgentId);
     if (body.contextScope !== undefined) updates.context_scope = normalizeContextScope(body.contextScope);
+    if (body.modelPreference !== undefined) updates.model_preference = normalizeModelPreference(body.modelPreference);
     if (body.archived !== undefined) updates.archived_at = body.archived ? new Date().toISOString() : null;
     if (Object.keys(updates).length === 0) throw new Error("Nenhuma alteracao valida informada.");
     updates.updated_at = new Date().toISOString();

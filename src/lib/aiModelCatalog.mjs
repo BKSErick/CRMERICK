@@ -76,9 +76,15 @@ const CATALOG_SOURCES = {
       if (!saidas.includes("text") || saidas.some((tipo) => tipo !== "text")) return null;
       return {
         id,
-        contextLength: Number(model?.context_length) || 0,
+        name: String(model?.name ?? id),
+        contextLength: Number(model?.top_provider?.context_length ?? model?.context_length) || 0,
         // Preco zerado sem sufixo :free costuma ser modelo furtivo/temporario.
         tierEstavel: id.endsWith(":free"),
+        pricing: { prompt: prompt || 0, completion: completion || 0 },
+        modalities: {
+          input: Array.isArray(model?.architecture?.input_modalities) ? model.architecture.input_modalities : ["text"],
+          output: saidas,
+        },
       };
     },
   },
@@ -100,6 +106,8 @@ const catalogCache = new Map();
 const deadModels = new Map();
 /** @type {Map<string, Set<string>>} */
 const unsupportedParams = new Map();
+/** @type {Map<string, { models: Array<Record<string, unknown>>; discoveredAt: string }>} */
+const publicCatalogCache = new Map();
 
 function conjunto(mapa, chave) {
   let set = mapa.get(chave);
@@ -119,7 +127,13 @@ function overrideFor(providerName) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-  return list.length > 0 ? list : null;
+  const safeList = providerName === "OpenRouter" ? list.filter((id) => isStructurallyFreeOpenRouterId(id)) : list;
+  return safeList.length > 0 ? safeList : null;
+}
+
+export function isStructurallyFreeOpenRouterId(modelId) {
+  const id = String(modelId ?? "").trim().toLowerCase();
+  return id === "openrouter/free" || id.endsWith(":free");
 }
 
 function normalizarEntrada(entrada) {
@@ -170,6 +184,45 @@ export async function discoverFreeModels(providerName, key) {
     modelos.push(model);
   }
   return modelos;
+}
+
+/** Catalogo seguro para o picker: contextLength e janela do modelo, nao uso historico. */
+export async function getFreeModelCatalog(providerName = "OpenRouter", key) {
+  const models = await discoverFreeModels(providerName, key);
+  const order = rankModels(providerName, models);
+  const byId = new Map(models.map((model) => [model.id, model]));
+  const catalog = {
+    provider: providerName,
+    models: order.map((id) => byId.get(id)).filter(Boolean),
+    discoveredAt: new Date().toISOString(),
+  };
+  publicCatalogCache.set(providerName, catalog);
+  return catalog;
+}
+
+/** IDs sem :free precisam de comprovacao zero-cost no catalogo atual. */
+export async function validateFreeOpenRouterModel(modelId, key) {
+  const id = String(modelId ?? "").trim();
+  if (!id) throw new Error("Modelo gratuito elegivel nao informado.");
+  if (isStructurallyFreeOpenRouterId(id)) {
+    return {
+      id,
+      name: id,
+      contextLength: 0,
+      tierEstavel: true,
+      pricing: { prompt: 0, completion: 0 },
+      modalities: { input: ["text"], output: ["text"] },
+    };
+  }
+  let catalog;
+  try {
+    catalog = await getFreeModelCatalog("OpenRouter", key);
+  } catch {
+    throw new Error("Nao foi possivel comprovar que o modelo e gratuito e elegivel.");
+  }
+  const model = catalog.models.find((item) => item.id === id);
+  if (!model) throw new Error("O modelo informado nao esta gratuito ou elegivel no catalogo atual.");
+  return model;
 }
 
 /**
@@ -264,6 +317,7 @@ export function getDeadModels(providerName) {
 
 export function resetCatalogCache() {
   catalogCache.clear();
+  publicCatalogCache.clear();
   deadModels.clear();
   unsupportedParams.clear();
 }
@@ -272,13 +326,16 @@ const aiModelCatalog = {
   MAX_MODELS_PER_PROVIDER,
   MODEL_PREFERENCES,
   discoverFreeModels,
+  getFreeModelCatalog,
   getDeadModels,
   getProviderModels,
   getUnsupportedParams,
+  isStructurallyFreeOpenRouterId,
   markModelDead,
   markParamUnsupported,
   rankModels,
   resetCatalogCache,
+  validateFreeOpenRouterModel,
 };
 
 export default aiModelCatalog;

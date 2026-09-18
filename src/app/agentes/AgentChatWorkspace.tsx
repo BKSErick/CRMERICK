@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiAgentId, AiAgentPublic } from "@/lib/aiAgentRegistry";
 import { collapseRetryMessages } from "@/lib/aiMessageHistory";
 import AgentPicker from "./AgentPicker";
+import AiModelPicker, { type UiModelPreference } from "./AiModelPicker";
 
 type ScopeType = "all" | "deal" | "reports" | "integrations" | "content";
-type Conversation = { id: string; title: string; default_agent_id: AiAgentId; context_scope: { type: ScopeType; dealId?: number }; archived_at?: string | null; updated_at: string };
-type ChatMessage = { id: string; role: "user" | "assistant"; status: "pending" | "complete" | "failed"; agent_id?: AiAgentId; content: string; citations?: Array<{ sourceId: string; label: string; asOf: string; links?: Array<{ label: string; href: string }> }>; error?: string | null };
+type Conversation = { id: string; title: string; default_agent_id: AiAgentId; context_scope: { type: ScopeType; dealId?: number }; model_preference?: UiModelPreference; archived_at?: string | null; updated_at: string };
+type ChatMessage = { id: string; role: "user" | "assistant"; status: "pending" | "complete" | "failed"; agent_id?: AiAgentId; content: string; provider?: string | null; model?: string | null; usage?: { inputTokens?: number | null; outputTokens?: number | null; totalTokens?: number | null } | null; latency_ms?: number | null; context_manifest?: Array<{ sourceId: string; limitations?: string[]; truncated?: boolean }>; citations?: Array<{ sourceId: string; label: string; asOf: string; links?: Array<{ label: string; href: string }> }>; error?: string | null };
 
 const scopes: Array<{ value: ScopeType; label: string }> = [
   { value: "all", label: "CRM inteiro" }, { value: "deal", label: "Deal especifico" },
@@ -28,6 +29,7 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [agentId, setAgentId] = useState<AiAgentId>("crm-copilot");
+  const [modelPreference, setModelPreference] = useState<UiModelPreference>({ mode: "auto" });
   const [scopeType, setScopeType] = useState<ScopeType>("all");
   const [dealId, setDealId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,7 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
     setLoading(true); setError("");
     try {
       const data = await jsonFetch(`/api/ai/conversations?id=${conversation.id}`);
-      setActive(data.conversation); setMessages(data.messages); setAgentId(data.conversation.default_agent_id);
+      setActive(data.conversation); setMessages(data.messages); setAgentId(data.conversation.default_agent_id); setModelPreference(data.conversation.model_preference ?? { mode: "auto" });
       setScopeType(data.conversation.context_scope?.type ?? "all"); setDealId(String(data.conversation.context_scope?.dealId ?? ""));
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Falha ao abrir conversa."); }
     finally { setLoading(false); }
@@ -62,7 +64,7 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
     setLoading(true); setError("");
     try {
       const contextScope = scopeType === "deal" ? { type: scopeType, dealId: Number(dealId) } : { type: scopeType };
-      const data = await jsonFetch("/api/ai/conversations", { method: "POST", body: JSON.stringify({ defaultAgentId: agentId, contextScope }) });
+      const data = await jsonFetch("/api/ai/conversations", { method: "POST", body: JSON.stringify({ defaultAgentId: agentId, contextScope, modelPreference }) });
       await loadList(); await openConversation(data.conversation);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Falha ao criar conversa."); }
     finally { setLoading(false); }
@@ -89,7 +91,7 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
     try {
       if (!conversation) {
         const contextScope = scopeType === "deal" ? { type: scopeType, dealId: Number(dealId) } : { type: scopeType };
-        const created = await jsonFetch("/api/ai/conversations", { method: "POST", body: JSON.stringify({ defaultAgentId: agentId, contextScope }) });
+        const created = await jsonFetch("/api/ai/conversations", { method: "POST", body: JSON.stringify({ defaultAgentId: agentId, contextScope, modelPreference }) });
         conversation = created.conversation; setActive(conversation);
       }
       if (!conversation) throw new Error("Nao foi possivel iniciar a conversa.");
@@ -118,7 +120,7 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
         }
       }
     } finally { setLoading(false); abortRef.current = null; }
-  }, [active, agentId, dealId, draft, loadList, loading, scopeType]);
+  }, [active, agentId, dealId, draft, loadList, loading, modelPreference, scopeType]);
 
   const selectedAgent = agents.find((agent) => agent.id === agentId) ?? agents[0];
   const lastUserText = [...messages].reverse().find((message) => message.role === "user")?.content ?? "";
@@ -137,6 +139,7 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
         <div className="agent-chat-main">
           <header className="agent-chat-toolbar">
             <AgentPicker agents={agents} selectedId={agentId} onSelect={(id) => { setAgentId(id); if (active) void updateConversation({ defaultAgentId: id }); }} />
+            <AiModelPicker value={modelPreference} onSelect={(preference) => { setModelPreference(preference); if (active) void updateConversation({ modelPreference: preference }); }} />
             <select aria-label="Escopo do contexto" value={scopeType} onChange={(event) => setScopeType(event.target.value as ScopeType)}>{scopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select>
             {scopeType === "deal" ? <input aria-label="ID do deal" inputMode="numeric" value={dealId} onChange={(event) => setDealId(event.target.value.replace(/\D/g, ""))} placeholder="ID do deal" /> : null}
             {active ? <div className="agent-chat-actions"><button type="button" onClick={() => { const title = window.prompt("Novo titulo", active.title); if (title) void updateConversation({ title }); }}>Renomear</button><button type="button" onClick={() => void updateConversation({ archived: !active.archived_at })}>{active.archived_at ? "Reabrir" : "Arquivar"}</button><button type="button" onClick={() => void removeConversation()}>Excluir</button></div> : null}
@@ -144,7 +147,7 @@ export default function AgentChatWorkspace({ agents }: { agents: AiAgentPublic[]
           <div className="agent-chat-disclosure"><strong>{selectedAgent?.name}</strong> · {selectedAgent?.disclosure} · Respostas sao consultivas e somente leitura.</div>
           <div className="agent-chat-messages" aria-live="polite">
             {visibleMessages.length === 0 ? <div className="agent-chat-empty"><h3>Converse com todo o seu CRM</h3><p>Use um especialista, escolha o escopo e faca uma pergunta. Atalhos como <code>@copy</code>, <code>@willian</code>, <code>@finch</code> e <code>@hormozi</code> trocam apenas a proxima resposta.</p><div>{selectedAgent?.suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => setDraft(suggestion)}>{suggestion}</button>)}</div></div> : null}
-            {visibleMessages.map((message) => { const messageAgent = agents.find((agent) => agent.id === message.agent_id); return <article key={message.id} className={`agent-chat-message ${message.role} ${message.status}`}><header>{message.role === "user" ? "Voce" : messageAgent?.name ?? "Especialista"}{messageAgent ? ` · DNA v${messageAgent.version}` : ""}{message.status === "pending" ? " · analisando..." : ""}</header><div>{message.content || (message.status === "pending" ? "Consultando fontes seguras do CRM..." : "Resposta indisponivel.")}</div>{message.citations?.length ? <details><summary>Fontes usadas ({message.citations.length})</summary>{message.citations.map((citation) => <p key={`${message.id}-${citation.sourceId}`}><strong>[{citation.sourceId}]</strong> {citation.label} · {new Date(citation.asOf).toLocaleString("pt-BR")}{citation.links?.map((link) => <a key={link.href} href={link.href}> {link.label}</a>)}</p>)}</details> : null}{message.status === "failed" ? <button type="button" onClick={() => void sendMessage(lastUserText)}>Tentar novamente</button> : null}</article>; })}
+            {visibleMessages.map((message) => { const messageAgent = agents.find((agent) => agent.id === message.agent_id); const limitations = message.context_manifest?.flatMap((source) => source.limitations ?? []) ?? []; return <article key={message.id} className={`agent-chat-message ${message.role} ${message.status}`}><header>{message.role === "user" ? "Voce" : messageAgent?.name ?? "Especialista"}{messageAgent ? ` · DNA v${messageAgent.version}` : ""}{message.model ? ` · ${message.model}` : ""}{message.usage?.totalTokens != null ? ` · ${message.usage.totalTokens} tokens` : message.model ? " · tokens não informados" : ""}{message.latency_ms != null ? ` · ${message.latency_ms} ms` : ""}{message.status === "pending" ? " · analisando..." : ""}</header><div>{message.content || (message.status === "pending" ? "Consultando fontes seguras do CRM..." : "Resposta indisponivel.")}</div>{message.citations?.length ? <details><summary>Fontes usadas ({message.citations.length})</summary>{message.citations.map((citation) => <p key={`${message.id}-${citation.sourceId}`}><strong>[{citation.sourceId}]</strong> {citation.label} · {new Date(citation.asOf).toLocaleString("pt-BR")}{citation.links?.map((link) => <a key={link.href} href={link.href}> {link.label}</a>)}</p>)}{limitations.map((limitation) => <p key={limitation}>Limitação: {limitation}</p>)}</details> : null}{message.status === "failed" ? <button type="button" onClick={() => void sendMessage(lastUserText)}>Tentar novamente</button> : null}</article>; })}
           </div>
           {error ? <div className="agent-chat-error" role="alert">{error}</div> : null}
           <form className="agent-chat-composer" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>

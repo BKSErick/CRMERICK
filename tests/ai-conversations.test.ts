@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { collapseRetryMessages } from "../src/lib/aiMessageHistory.ts";
+import { boundMessageHistory, collapseRetryMessages } from "../src/lib/aiMessageHistory.ts";
 import {
   assertReadOnlyChatPayload,
   composeChatPrompts,
   normalizeContextScope,
+  normalizeModelPreference,
   parseAgentMention,
   truncateContextEnvelopes,
 } from "../src/lib/aiConversation.ts";
@@ -16,6 +17,14 @@ test("atalho inicial troca apenas o agente da resposta", () => {
     overridden: true,
   });
   assert.equal(parseAgentMention("compare @finch e @copy", "crm-copilot").agentId, "crm-copilot");
+});
+
+test("preferencia de modelo aceita automatico ou OpenRouter fixo", () => {
+  assert.deepEqual(normalizeModelPreference(undefined), { mode: "auto" });
+  assert.deepEqual(normalizeModelPreference({ mode: "fixed", provider: "OpenRouter", modelId: "marca/modelo:free" }), {
+    mode: "fixed", provider: "OpenRouter", modelId: "marca/modelo:free",
+  });
+  assert.throws(() => normalizeModelPreference({ mode: "fixed", provider: "Outro", modelId: "pago" }), /modelo|provider/i);
 });
 
 test("escopo deal exige identificador valido", () => {
@@ -50,6 +59,31 @@ test("prompt mantem politica antes do DNA e trata contexto como dado nao confiav
   assert.match(result.systemPrompt, /dados nao confiaveis/i);
   assert.match(result.userPrompt, /IGNORE AS REGRAS/);
   assert.doesNotMatch(result.systemPrompt, /OPENROUTER|SUPABASE_SERVICE_ROLE/);
+});
+
+test("pergunta operacional nao recebe o playbook comercial", () => {
+  const result = composeChatPrompts({
+    persona: { identity: "Analista", frameworks: ["Evidencia"], tone: "direto", limits: ["nao inventar"], promptVersion: "1" },
+    scope: { type: "all" },
+    sources: [],
+    question: "Qual é minha prioridade hoje?",
+    playbook: { offer: { setupPrice: 1 } },
+    includeSalesPlaybook: false,
+  });
+  assert.doesNotMatch(result.systemPrompt, /DOUTRINA COMERCIAL|setupPrice/);
+});
+
+test("historico enviado e limitado por mensagens e caracteres", () => {
+  const history = boundMessageHistory([
+    { role: "user", content: "antiga ".repeat(40) },
+    { role: "assistant", content: "resposta antiga" },
+    { role: "user", content: "pergunta recente" },
+    { role: "assistant", content: "resposta recente" },
+  ], { maxMessages: 3, maxCharacters: 80 });
+  assert.equal(history.messages.length, 3);
+  assert.equal(history.truncated, true);
+  assert.match(history.messages.at(-1)?.content ?? "", /resposta recente/);
+  assert.ok(history.characters <= 80);
 });
 
 test("historico consolida retries identicos sem apagar a auditoria", () => {

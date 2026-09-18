@@ -5,6 +5,7 @@ import test from "node:test";
 const page = readFileSync(new URL("../src/app/agentes/page.tsx", import.meta.url), "utf8");
 const workspace = readFileSync(new URL("../src/app/agentes/AgentChatWorkspace.tsx", import.meta.url), "utf8");
 const picker = readFileSync(new URL("../src/app/agentes/AgentPicker.tsx", import.meta.url), "utf8");
+const modelPicker = readFileSync(new URL("../src/app/agentes/AiModelPicker.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
 
 test("agentes preserva catalogo e adiciona chat na mesma rota", () => {
@@ -25,6 +26,9 @@ test("workspace possui historico, escopos, loading, cancelamento e retry", () =>
   assert.match(workspace, /AbortController/);
   assert.match(workspace, /aria-live/);
   assert.match(workspace, /AgentPicker/);
+  assert.match(workspace, /AiModelPicker/);
+  assert.match(modelPicker, /Autom[aá]tico gratuito/i);
+  assert.match(workspace, /model_preference/);
 });
 
 test("picker oferece atalhos e dialogo acessivel", () => {

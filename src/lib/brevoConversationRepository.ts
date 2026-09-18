@@ -166,7 +166,7 @@ export function createEmailConversationRepository(
       const [latest, unread] = await Promise.all([
         supabase
           .from("messages")
-          .select("content, subject, occurred_at")
+          .select("id, content, subject, direction, occurred_at")
           .eq("email_thread_id", threadId)
           .order("occurred_at", { ascending: false })
           .order("id", { ascending: false })
@@ -186,6 +186,8 @@ export function createEmailConversationRepository(
         .update({
           last_message_preview: compactPreview(latest.data?.content),
           last_message_at: latest.data?.occurred_at ?? null,
+          last_message_id: latest.data?.id ?? null,
+          last_message_direction: latest.data?.direction ?? null,
           subject: String(latest.data?.subject || "").trim() || "Sem assunto",
           unread_count: unread.count ?? 0,
         })

@@ -5,7 +5,10 @@ import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import { aiCompleteDetailed, describeFailures } from "@/lib/aiComplete";
 import { getAgentChatAvailability } from "@/lib/aiChatAvailability";
 import { loadAiContext } from "@/lib/aiContextBroker";
-import { assertReadOnlyChatPayload, composeChatPrompts, normalizeContextScope, parseAgentMention, requireAgentId, truncateContextEnvelopes } from "@/lib/aiConversation";
+import { assertReadOnlyChatPayload, composeChatPrompts, normalizeContextScope, normalizeModelPreference, parseAgentMention, requireAgentId, truncateContextEnvelopes } from "@/lib/aiConversation";
+import { boundMessageHistory } from "@/lib/aiMessageHistory";
+import { planAiQuery } from "@/lib/aiQueryRouter";
+import { retrieveAiEvidence } from "@/lib/aiRetrievalBroker";
 import { AI_AGENT_PERSONAS } from "@/server/aiAgentPersonas.generated.mjs";
 import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
 
@@ -24,6 +27,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = getCrmSupabaseAdmin();
   let assistantMessageId: string | null = null;
+  let providerAttempts: Array<Record<string, unknown>> = [];
   const startedAt = Date.now();
   try {
     const body = await request.json();
@@ -40,9 +44,25 @@ export async function POST(request: NextRequest) {
     const persona = AI_AGENT_PERSONAS.find((item) => item.id === mention.agentId);
     if (!persona) throw new Error("DNA do especialista indisponivel.");
 
-    const context = await loadAiContext(supabase, scope);
-    const maximum = Math.max(1000, Math.min(Number(process.env.AI_CHAT_MAX_CONTEXT_CHARS) || 18000, 50000));
+    const smartRetrievalEnabled = String(process.env.AI_CHAT_SMART_RETRIEVAL_ENABLED ?? "false").toLowerCase() === "true";
+    const routingPlan = smartRetrievalEnabled ? planAiQuery(mention.message) : null;
+    const context = routingPlan
+      ? await retrieveAiEvidence(supabase, routingPlan)
+      : await loadAiContext(supabase, scope);
+    const maximum = Math.max(1000, Math.min(Number(process.env.AI_CHAT_MAX_CONTEXT_CHARS) || (routingPlan ? 12000 : 18000), 50000));
     const minimized = truncateContextEnvelopes(context, maximum);
+    const historyResult = await supabase
+      .from("ai_conversation_messages")
+      .select("role, content")
+      .eq("conversation_id", conversationId)
+      .eq("status", "complete")
+      .order("created_at", { ascending: false })
+      .limit(12);
+    if (historyResult.error) throw historyResult.error;
+    const history = boundMessageHistory(
+      [...(historyResult.data ?? [])].reverse().map((item) => ({ role: String(item.role), content: String(item.content ?? "") })),
+      { maxMessages: 12, maxCharacters: 6000 },
+    );
     // O playbook vai por fora das `sources` de proposito: fonte e dado nao
     // confiavel e o system prompt manda ignorar instrucao vinda de la. Doutrina
     // do operador precisa ser seguida, entao sobe pelo system prompt.
@@ -52,17 +72,33 @@ export async function POST(request: NextRequest) {
       sources: minimized.sources,
       question: mention.message,
       playbook: salesPlaybookModule.SALES_PLAYBOOK,
+      includeSalesPlaybook: routingPlan ? routingPlan.requiresSalesPlaybook : true,
+      history: history.messages,
     });
     const citations = minimized.sources.map((source) => ({ sourceId: source.sourceId, label: source.label, asOf: source.asOf, links: source.links }));
-    const contextManifest = minimized.sources.map((source) => ({ sourceId: source.sourceId, asOf: source.asOf, limitations: source.limitations, factCount: source.facts.length }));
+    const contextManifest = minimized.sources.map((source) => ({
+      sourceId: source.sourceId,
+      asOf: source.asOf,
+      limitations: source.limitations,
+      factCount: source.facts.length,
+      total: "total" in source ? source.total : source.facts.length,
+      truncated: "truncated" in source ? source.truncated : minimized.truncated,
+    }));
+    const modelPreference = normalizeModelPreference(conversation.model_preference);
 
     const userInsert = await supabase.from("ai_conversation_messages").insert({ conversation_id: conversationId, role: "user", status: "complete", agent_id: mention.agentId, content: message }).select("*").single();
     if (userInsert.error) throw userInsert.error;
-    const pending = await supabase.from("ai_conversation_messages").insert({ conversation_id: conversationId, role: "assistant", status: "pending", agent_id: mention.agentId, content: "", citations, context_manifest: contextManifest, prompt_version: persona.promptVersion, source_hash: persona.sourceHash }).select("*").single();
+    const pending = await supabase.from("ai_conversation_messages").insert({ conversation_id: conversationId, role: "assistant", status: "pending", agent_id: mention.agentId, content: "", citations, context_manifest: contextManifest, prompt_version: persona.promptVersion, source_hash: persona.sourceHash, usage: null, provider_attempts: [], routing_plan: routingPlan }).select("*").single();
     if (pending.error) throw pending.error;
     assistantMessageId = pending.data.id;
 
-    const { result, failures } = await aiCompleteDetailed(prompts.systemPrompt, prompts.userPrompt, { signal: request.signal, timeoutMs: Math.max(5000, Math.min(Number(process.env.AI_CHAT_TIMEOUT_MS) || 45000, 55000)) });
+    const { result, failures, attempts } = await aiCompleteDetailed(prompts.systemPrompt, prompts.userPrompt, {
+      signal: request.signal,
+      timeoutMs: Math.max(5000, Math.min(Number(process.env.AI_CHAT_TIMEOUT_MS) || 45000, 55000)),
+      modelPreference,
+      freeOnly: true,
+    });
+    providerAttempts = attempts;
     // A causa vem classificada (modelo descontinuado, chave rejeitada, limite de uso...) em vez
     // de virar sempre "configure a GROQ_API_KEY" mesmo quando a chave estava certa.
     if (!result) {
@@ -71,7 +107,7 @@ export async function POST(request: NextRequest) {
       indisponivel.name = "AiUnavailableError";
       throw indisponivel;
     }
-    const completed = await supabase.from("ai_conversation_messages").update({ status: "complete", content: result.content, provider: result.provider, model: result.model, latency_ms: Date.now() - startedAt, error: null }).eq("id", assistantMessageId).select("*").single();
+    const completed = await supabase.from("ai_conversation_messages").update({ status: "complete", content: result.content, provider: result.provider, model: result.model, usage: result.usage, provider_attempts: providerAttempts, latency_ms: Date.now() - startedAt, error: null }).eq("id", assistantMessageId).select("*").single();
     if (completed.error) throw completed.error;
     await supabase.from("ai_conversations").update({ context_scope: scope, updated_at: new Date().toISOString() }).eq("id", conversationId).eq("created_by", auth.session.email);
     return NextResponse.json({ ok: true, userMessage: userInsert.data, message: completed.data, agent: { id: persona.id, name: persona.name, alias: persona.alias, disclosure: persona.type === "clone" ? "Resposta gerada por um clone de IA, nao pela pessoa real." : persona.specialty }, overridden: mention.overridden, contextTruncated: minimized.truncated });
@@ -79,7 +115,7 @@ export async function POST(request: NextRequest) {
     if (assistantMessageId) {
       const raw = error instanceof Error ? error.message : "Falha inesperada.";
       const safeError = raw.slice(0, 500);
-      await supabase.from("ai_conversation_messages").update({ status: "failed", content: "Nao consegui concluir esta resposta.", error: safeError, latency_ms: Date.now() - startedAt }).eq("id", assistantMessageId);
+      await supabase.from("ai_conversation_messages").update({ status: "failed", content: "Nao consegui concluir esta resposta.", error: safeError, provider_attempts: providerAttempts, latency_ms: Date.now() - startedAt }).eq("id", assistantMessageId);
     }
     const fingerprint = createHash("sha256").update(error instanceof Error ? error.message : String(error)).digest("hex").slice(0, 12);
     console.error("[ai-chat] failure", { fingerprint, assistantMessageId, message: error instanceof Error ? error.message : String(error) });

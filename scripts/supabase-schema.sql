@@ -135,12 +135,18 @@ create table if not exists public.email_threads (
   subject text not null default 'Sem assunto',
   last_message_preview text not null default '',
   last_message_at timestamptz,
+  last_message_direction text check (last_message_direction is null or last_message_direction in ('received', 'sent')),
+  last_message_id integer references public.messages(id) on delete set null,
   unread_count integer not null default 0 check (unread_count >= 0),
   status text not null default 'open' check (status in ('open', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (provider, provider_thread_id)
 );
+
+alter table public.email_threads
+  add column if not exists last_message_direction text,
+  add column if not exists last_message_id integer references public.messages(id) on delete set null;
 
 alter table public.messages
   add column if not exists email_thread_id bigint references public.email_threads(id) on delete set null,
@@ -162,6 +168,13 @@ create index if not exists email_threads_deal_idx
   on public.email_threads (deal_id) where deal_id is not null;
 create index if not exists email_threads_contact_idx
   on public.email_threads (contact_id) where contact_id is not null;
+create index if not exists email_threads_awaiting_reply_idx
+  on public.email_threads (last_message_at desc, id desc)
+  where status = 'open' and last_message_direction = 'received';
+create index if not exists activities_whatsapp_timeline_idx
+  on public.activities (created_at desc, id desc, deal_id)
+  where deal_id is not null
+    and type in ('whatsapp_received', 'whatsapp_sent', 'whatsapp_sent_sync');
 create index if not exists messages_email_thread_occurred_idx
   on public.messages (email_thread_id, occurred_at asc, id asc);
 
@@ -962,6 +975,7 @@ create table if not exists public.ai_conversations (
   title text not null default 'Nova conversa',
   default_agent_id text not null default 'crm-copilot',
   context_scope jsonb not null default '{"type":"all"}'::jsonb check (jsonb_typeof(context_scope) = 'object'),
+  model_preference jsonb not null default '{"mode":"auto"}'::jsonb check (jsonb_typeof(model_preference) = 'object'),
   archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -978,6 +992,9 @@ create table if not exists public.ai_conversation_messages (
   context_manifest jsonb not null default '[]'::jsonb check (jsonb_typeof(context_manifest) = 'array'),
   provider text,
   model text,
+  usage jsonb check (usage is null or jsonb_typeof(usage) = 'object'),
+  provider_attempts jsonb not null default '[]'::jsonb check (jsonb_typeof(provider_attempts) = 'array'),
+  routing_plan jsonb check (routing_plan is null or jsonb_typeof(routing_plan) = 'object'),
   prompt_version text,
   source_hash text,
   error text,
@@ -1246,6 +1263,14 @@ create table if not exists public.email_automation_test_runs (
   created_by text not null default '',
   created_at timestamptz not null default now()
 );
+
+alter table public.ai_conversations
+  add column if not exists model_preference jsonb not null default '{"mode":"auto"}'::jsonb;
+
+alter table public.ai_conversation_messages
+  add column if not exists usage jsonb,
+  add column if not exists provider_attempts jsonb not null default '[]'::jsonb,
+  add column if not exists routing_plan jsonb;
 
 create index if not exists email_automations_updated_idx
   on public.email_automations (status, updated_at desc, id);

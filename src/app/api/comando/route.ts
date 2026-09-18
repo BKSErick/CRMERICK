@@ -18,6 +18,7 @@ import {
   type FundoMotivo,
 } from "@/lib/followup";
 import { getCompanySignals, signalAliases, signalWeight, type CompanySignal } from "@/lib/sinais";
+import { loadDailyPriorityEvidence } from "@/lib/aiRetrievalBroker";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
 // (disparos/follow-ups/calls/deals movidos), a fila priorizada do dia e os alertas das regras
@@ -437,6 +438,11 @@ export async function GET(request: NextRequest) {
     // Alerta dia 20: usa a agregacao da meta (mesma da North Star).
     const northStar = await computeNorthStar(now);
     const forecastResult = await calculateForecastFromSupabase(supabase, { now: now.toISOString() });
+    // A mesma fonte deterministica alimenta o chat e a Sala de Comando. O bloco e
+    // adicional para manter o contrato historico de queue/followupQueue intacto.
+    const smartPriorities = await loadDailyPriorityEvidence(supabase, 30, now)
+      .then((result) => ({ items: result.facts, total: result.total, limitation: null }))
+      .catch(() => ({ items: [], total: 0, limitation: "Prioridades inteligentes temporariamente indisponiveis." }));
 
     return NextResponse.json({
       ok: true,
@@ -465,6 +471,7 @@ export async function GET(request: NextRequest) {
       queue,
       followupQueue,
       referralQueue,
+      smartPriorities,
       forecast: {
         rubricVersion: forecastResult.rubricVersion,
         probabilitySource: forecastResult.probabilitySource,

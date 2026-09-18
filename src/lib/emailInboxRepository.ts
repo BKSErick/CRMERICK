@@ -14,6 +14,8 @@ type EmailThreadRow = {
   subject: string;
   last_message_preview: string | null;
   last_message_at: string | null;
+  last_message_id: number | null;
+  last_message_direction: "received" | "sent" | null;
   unread_count: number;
   status: string;
 };
@@ -89,7 +91,7 @@ export function createEmailInboxRepository(supabase: SupabaseAdmin) {
       let request = supabase
         .from("email_threads")
         .select(
-          "id, provider, provider_thread_id, deal_id, contact_id, participant_email, participant_name, subject, last_message_preview, last_message_at, unread_count, status",
+          "id, provider, provider_thread_id, deal_id, contact_id, participant_email, participant_name, subject, last_message_preview, last_message_at, last_message_id, last_message_direction, unread_count, status",
           { count: "exact" },
         );
 
@@ -126,7 +128,7 @@ export function createEmailInboxRepository(supabase: SupabaseAdmin) {
       const thread = await supabase
         .from("email_threads")
         .select(
-          "id, provider, provider_thread_id, deal_id, contact_id, participant_email, participant_name, subject, last_message_preview, last_message_at, unread_count, status",
+          "id, provider, provider_thread_id, deal_id, contact_id, participant_email, participant_name, subject, last_message_preview, last_message_at, last_message_id, last_message_direction, unread_count, status",
         )
         .eq("id", threadId)
         .maybeSingle();

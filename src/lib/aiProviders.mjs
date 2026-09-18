@@ -7,7 +7,13 @@
 // erro e classificada como `model_gone`, o modelo sai de circulacao na hora e o catalogo e
 // remontado: a proxima chamada ja nasce curada, sem ninguem editar codigo.
 
-import { getProviderModels, getUnsupportedParams, markModelDead, markParamUnsupported } from "./aiModelCatalog.mjs";
+import {
+  getProviderModels,
+  getUnsupportedParams,
+  markModelDead,
+  markParamUnsupported,
+  validateFreeOpenRouterModel,
+} from "./aiModelCatalog.mjs";
 
 // Parametros de raciocinio so existem em modelo de raciocinio. Mandar pros outros e 400.
 // `reasoning_effort` foi removido de proposito: nao existe valor portavel (medido em
@@ -73,6 +79,7 @@ const FAILURE_LABELS = {
   provider_error: "provedor indisponivel",
   empty_completion: "resposta vazia",
   network_error: "falha de rede",
+  model_not_free: "modelo nao comprovado como gratuito",
 };
 
 /** Mensagem curta e acionavel a partir das falhas acumuladas na cascata. */
@@ -155,15 +162,35 @@ async function callModel(provider, key, model, systemPrompt, userPrompt, options
  */
 export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
   const failures = [];
+  const attempts = [];
+  const fixed = options?.modelPreference?.mode === "fixed" ? options.modelPreference : null;
+
+  if (fixed && (fixed.provider !== "OpenRouter" || !fixed.modelId)) {
+    failures.push({ provider: "OpenRouter", model: fixed?.modelId ?? null, status: null, reason: "model_not_free" });
+    return { result: null, failures, attempts };
+  }
 
   for (const provider of PROVIDERS) {
+    if (fixed && provider.name !== fixed.provider) continue;
+    if (options?.freeOnly === true && provider.name !== "OpenRouter") continue;
     const key = provider.getKey();
     if (!key) {
       failures.push({ provider: provider.name, model: null, status: null, reason: "missing_key" });
       continue;
     }
 
-    const models = await getProviderModels(provider.name, key);
+    let models;
+    if (fixed) {
+      try {
+        await validateFreeOpenRouterModel(fixed.modelId, key);
+        models = [fixed.modelId];
+      } catch {
+        failures.push({ provider: provider.name, model: fixed.modelId, status: null, reason: "model_not_free" });
+        return { result: null, failures, attempts };
+      }
+    } else {
+      models = await getProviderModels(provider.name, key);
+    }
     if (models.length === 0) {
       failures.push({ provider: provider.name, model: null, status: null, reason: "no_models" });
       continue;
@@ -172,7 +199,7 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
     let pularProvedor = false;
     for (const model of models) {
       if (pularProvedor) break;
-      if (options?.signal?.aborted) return { result: null, failures };
+      if (options?.signal?.aborted) return { result: null, failures, attempts };
 
       // Comeca ja sem os parametros que este modelo recusou em chamadas anteriores.
       const extras = { ...provider.requestOptionsFor(model), ...(options?.requestOptions ?? {}) };
@@ -181,7 +208,8 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
       // Ate 3 passadas no MESMO modelo: cada 400 de parametro ensina algo e a proxima ja vai
       // sem ele. Ultimo recurso e o payload minimo (so model + messages).
       for (let passada = 0; passada < 3; passada += 1) {
-        if (options?.signal?.aborted) return { result: null, failures };
+        if (options?.signal?.aborted) return { result: null, failures, attempts };
+        const attemptStartedAt = Date.now();
         try {
           const response = await callModel(provider, key, model, systemPrompt, userPrompt, options, extras);
 
@@ -195,6 +223,7 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
               reason,
               detail: bodyText.slice(0, 200),
             });
+            attempts.push({ provider: provider.name, model, status: "failed", reason, latencyMs: Date.now() - attemptStartedAt });
             console.warn("[ai-provider] request rejected", { provider: provider.name, model, status: response.status, reason });
 
             if (reason === "model_gone") markModelDead(provider.name, model);
@@ -223,9 +252,20 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
 
           const data = await response.json();
           const content = data?.choices?.[0]?.message?.content;
-          if (content) return { result: { content: String(content).trim(), provider: provider.name, model }, failures };
+          if (content) {
+            const usage = data?.usage
+              ? {
+                  inputTokens: Number.isFinite(Number(data.usage.prompt_tokens)) ? Number(data.usage.prompt_tokens) : null,
+                  outputTokens: Number.isFinite(Number(data.usage.completion_tokens)) ? Number(data.usage.completion_tokens) : null,
+                  totalTokens: Number.isFinite(Number(data.usage.total_tokens)) ? Number(data.usage.total_tokens) : null,
+                }
+              : null;
+            attempts.push({ provider: provider.name, model, status: "success", reason: null, latencyMs: Date.now() - attemptStartedAt });
+            return { result: { content: String(content).trim(), provider: provider.name, model, usage }, failures, attempts };
+          }
 
           failures.push({ provider: provider.name, model, status: response.status, reason: "empty_completion" });
+          attempts.push({ provider: provider.name, model, status: "failed", reason: "empty_completion", latencyMs: Date.now() - attemptStartedAt });
           console.warn("[ai-provider] empty completion", {
             provider: provider.name,
             model,
@@ -243,6 +283,7 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
             reason: "network_error",
             detail: error instanceof Error ? error.name : "unknown",
           });
+          attempts.push({ provider: provider.name, model, status: "failed", reason: "network_error", latencyMs: Date.now() - attemptStartedAt });
           console.warn("[ai-provider] request failed", {
             provider: provider.name,
             model,
@@ -254,7 +295,7 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
     }
   }
 
-  return { result: null, failures };
+  return { result: null, failures, attempts };
 }
 
 export async function aiComplete(systemPrompt, userPrompt, options) {
