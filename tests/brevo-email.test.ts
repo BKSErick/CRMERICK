@@ -31,6 +31,17 @@ test("copy institucional oferece uma unica saida comercial pelo site", () => {
   assert.match(email.html, /https:\/\/www\.mydrion\.com\.br\/\?utm_source=email&amp;utm_medium=cold&amp;utm_campaign=institucional/);
   assert.match(email.text, /https:\/\/www\.mydrion\.com\.br\/\?utm_source=email&utm_medium=cold&utm_campaign=institucional/);
   assert.doesNotMatch(`${email.html}\n${email.text}`, /wa\.me|553191072407/i);
+  // Sem dealId o link nao ganha utm_content: preview e teste manual nao viram sinal falso.
+  assert.doesNotMatch(`${email.html}\n${email.text}`, /utm_content/);
+});
+
+test("link do site carrega a referencia do deal para o CRM ligar o clique ao card", () => {
+  const email = montarEmail({ empresa: "Empresa Tecnica Ltda", setor: "industria", dealId: 1234 });
+
+  assert.match(email.html, /utm_campaign=institucional&amp;utm_content=d1234"/);
+  assert.match(email.text, /utm_campaign=institucional&utm_content=d1234(\s|$)/);
+  assert.doesNotMatch(montarEmail({ empresa: "X", dealId: 0 }).text, /utm_content/);
+  assert.doesNotMatch(montarEmail({ empresa: "X", dealId: Number.NaN }).text, /utm_content/);
 });
 
 test("rampa diaria inicia em 20 e nunca ultrapassa o teto de 250", () => {

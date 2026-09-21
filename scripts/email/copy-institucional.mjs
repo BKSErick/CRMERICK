@@ -15,8 +15,10 @@
  *    Usa: endereço próprio, território, indicação, indicação que chegou.
  * 4. Movimento de 3 tempos: CONCORDA com o símbolo que ele defende (indicação),
  *    ESTENDE (tem uma etapa que ninguém mede), PERGUNTA um número que ele não sabe.
- * 5. CTA é sempre "Faz sentido pra vocês?". Nunca pedir call em lead frio.
+ * 5. Fecho sem pedir permissão: "Faz sentido pra vocês?" virou termo morto do playbook em
+ *    02/09/2026 e saiu daqui em 18/09/2026. Nunca pedir call em lead frio.
  * 6. Um único link, e é o da própria Mydrion (prova), nunca um diagnóstico sob medida.
+ *    O segundo e-mail da sequência (copy-sequencia2.mjs) é outra peça: Governante, WhatsApp.
  *
  * Tratamento: usamos só o PRIMEIRO NOME do decisor. Nada de Dr./Dra. deduzido do nome,
  * porque o nome não diz o tratamento que a pessoa usa e errar isso queima a abertura.
@@ -75,8 +77,13 @@ function trechoCidade(cidade) {
   return c.includes("monlevade") ? ", aqui de João Monlevade" : "";
 }
 
-function botaoSite() {
-  const site = `${SITE}?utm_source=email&utm_medium=cold&utm_campaign=institucional`;
+// utm_content=d<dealId> e o que liga o clique ao card: o site manda o beacon com a URL
+// inteira pro /api/facebook-pixel do CRM, que resolve o deal e grava signal_view /
+// signal_whatsapp na timeline. Sem isso o Brevo diz QUEM clicou e o site diz O QUE fez,
+// mas ninguem junta os dois (21/09/2026).
+function botaoSite(dealId) {
+  const ref = Number.isInteger(dealId) && dealId > 0 ? `&utm_content=d${dealId}` : "";
+  const site = `${SITE}?utm_source=email&utm_medium=cold&utm_campaign=institucional${ref}`;
   const siteHtml = site.replace(/&/g, "&amp;");
   // Botao em e-mail e <a> com estilo inline: nada de flex, grid ou classe, que cliente
   // de e-mail descarta. display:inline-block com padding e o que funciona em todos.
@@ -91,10 +98,10 @@ function botaoSite() {
 
 /**
  * Monta o e-mail de primeiro contato.
- * @param {{empresa:string, decisorNome?:string, setor?:string, cidade?:string}} lead
+ * @param {{empresa:string, decisorNome?:string, setor?:string, cidade?:string, dealId?:number}} lead
  * @returns {{subject:string, html:string, text:string, tratamento:string}}
  */
-export function montarEmail({ empresa, decisorNome, setor, cidade }) {
+export function montarEmail({ empresa, decisorNome, setor, cidade, dealId }) {
   const nome = nomeCurto(empresa);
   const pessoa = primeiroNome(decisorNome);
   const v = VOCABULARIO[setor] || VOCABULARIO.padrao;
@@ -109,10 +116,13 @@ export function montarEmail({ empresa, decisorNome, setor, cidade }) {
     `Só que existe uma etapa invisível dentro dela. Entre alguém ouvir o nome da ${nome} e ${v.acao}, essa pessoa procura vocês. O que ela encontra nesse intervalo decide se a indicação ${v.verboFinal} ou virou nada.`,
     `Daí a pergunta que ${v.ninguemSabe}: quantas indicações vocês recebem por mês, e quantas dessas você sabe que ${v.chegouAte}?`,
     `Não é sobre aparecer. É sobre estar de pé quando alguém já decidiu te procurar. É isso que eu faço: dar forma visível à reputação que vocês já construíram.`,
-    `Faz sentido pra vocês?`,
+    // Fecho do Mago: nomeia a entrada que ele organiza e para. Ate 18/09/2026 aqui havia
+    // "Faz sentido pra voces?", termo morto do playbook (pede permissao; o roundtable
+    // Celso/Finch/Hormozi apontou que era a linha em que o e-mail perdia a pessoa).
+    `Se essa conta não fecha aí hoje, é essa entrada que eu organizo.`,
   ];
 
-  const b = botaoSite();
+  const b = botaoSite(dealId);
   const text = `${paragrafos.join("\n\n")}\n\n${b.text}\n\nErick Sena\nMydrion`;
   const html = `${paragrafos.map((p) => `<p>${p}</p>`).join("\n")}
 ${b.html}
@@ -137,6 +147,10 @@ export const REGRAS_PROIBIDAS = [
   /\bpode ser\?/i,
   /sem gastar/i,
   /concorrente/i,
+  // Termos mortos do playbook (content/sales-playbook.json) que pedem permissao.
+  /faz sentido/i,
+  /posso te mostrar/i,
+  /quer ver\?/i,
 ];
 
 /** Guarda de regressão: devolve as regras do playbook que a copy violou. */

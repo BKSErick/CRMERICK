@@ -107,7 +107,50 @@ export function classifySource(host: string, path: string): { key: string; label
   if (h.includes("linkbio") || h.includes("link-in-bio") || h.includes("euericksena")) {
     return { key: "bio", label: "Link in Bio", kind: "inbound" };
   }
+  // Depois de ostrack: ostrack.mydrion.com.br e linha do OStrack, nao do site.
+  if (h.includes("mydrion.com.br") || h === "mydrion.vercel.app") {
+    return { key: "mydrion", label: "Site Mydrion", kind: "inbound" };
+  }
   return { key: h || "desconhecido", label: h || "Origem desconhecida", kind: "inbound" };
+}
+
+/**
+ * O link do e-mail frio leva utm_content=d<dealId> (copy-institucional.mjs). Quem clica
+ * cai no site proprio, que e trafego inbound por host; a referencia e o que permite ligar
+ * a visita ao card sem depender do nome da empresa.
+ */
+export function emailDealRef(raw: unknown): number | null {
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (!value) return null;
+  try {
+    const content = new URL(value).searchParams.get("utm_content") ?? "";
+    const match = /^d(\d{1,9})$/.exec(content);
+    return match ? Number(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sinal de PROSPECT (entra no radar e fura a fila do Comando) e o que vem de pagina
+ * outbound OU de visita ao site proprio com referencia do deal. O resto e trafego.
+ */
+export function trafficKindForUrl(raw: unknown): TrafficKind {
+  const page = normalizeUrl(raw);
+  if (!page) return "inbound";
+  if (classifySource(page.host, page.label).kind === "outbound") return "outbound";
+  return emailDealRef(raw) !== null ? "outbound" : "inbound";
+}
+
+// Cada propriedade nomeia o evento com prefixo proprio (Diagnostico*, MydrionSite*); o
+// que importa pro radar e o sufixo. ScrollDepth e engajamento, nao clique: nao conta.
+export type SignalEventKind = "view" | "whatsapp" | "scroll" | "click";
+export function signalEventKind(eventName: unknown): SignalEventKind {
+  const name = String(eventName ?? "");
+  if (/View$/.test(name)) return "view";
+  if (/WhatsAppClick$/.test(name)) return "whatsapp";
+  if (/ScrollDepth$/.test(name)) return "scroll";
+  return "click";
 }
 
 export const signalKey = (v?: string | null) => (v ?? "").trim().toLowerCase();
@@ -125,7 +168,9 @@ export function signalAliases(company: string): string[] {
 /**
  * Indice de sinal por empresa, pronto para join com deals.company / deals.name.
  * So considera linhas OUTBOUND: link in bio e site proprio sao trafego, nao prospect,
- * e entrariam como empresa fantasma na fila de quem abordar.
+ * e entrariam como empresa fantasma na fila de quem abordar. A excecao e a visita ao
+ * site vinda do e-mail frio com utm_content=d<dealId>: o beacon ja chega gravado com
+ * client_name = deals.company, entao ela conta como sinal do prospect.
  */
 export async function getCompanySignals(
   supabase: SupabaseClient,
@@ -143,7 +188,7 @@ export async function getCompanySignals(
   for (const row of data ?? []) {
     if (isTestTrafficUrl(row.page_url)) continue;
     const page = normalizeUrl(row.page_url);
-    if (page && classifySource(page.host, page.label).kind !== "outbound") continue;
+    if (page && trafficKindForUrl(row.page_url) !== "outbound") continue;
 
     const company = (row.client_name ?? "").trim();
     if (!company) continue;
@@ -153,10 +198,10 @@ export async function getCompanySignals(
       byCompany.get(signalKey(company)) ??
       ({ company, views: 0, waClicks: 0, linkClicks: 0, lastEvent: created, hot: false, pageUrl: page?.url ?? null } as CompanySignal);
 
-    const name = String(row.event_name ?? "");
-    if (name === "DiagnosticoView") entry.views++;
-    else if (name === "DiagnosticoWhatsAppClick") entry.waClicks++;
-    else entry.linkClicks++;
+    const kind = signalEventKind(row.event_name);
+    if (kind === "view") entry.views++;
+    else if (kind === "whatsapp") entry.waClicks++;
+    else if (kind === "click") entry.linkClicks++;
 
     if (created && created > entry.lastEvent) entry.lastEvent = created;
     if (!entry.pageUrl && page) entry.pageUrl = page.url;

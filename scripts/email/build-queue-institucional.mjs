@@ -15,10 +15,10 @@
  *   node build-queue-institucional.mjs --setor=industria --liberar=273,755  # deals cuja "resposta" era bot
  */
 import fs from "node:fs";
-import { estaBloqueado, lerBlocklist } from "./blocklist.mjs";
+import { lerBlocklist } from "./blocklist.mjs";
 import { contactForDeal, recipientFromActivityDescription } from "./brevo-support.mjs";
 import { montarEmail, violacoes } from "./copy-institucional.mjs";
-import { qualificar } from "./qualificar-destinatario.mjs";
+import { indiceBlocklistPorDominio, salvarCacheMx, validarEmail } from "./validar-email.mjs";
 
 const arg = (n) => process.argv.find((x) => x.startsWith(`--${n}=`))?.split("=")[1] || "";
 const SETORES = (arg("setor") || "industria").split(",").map((s) => s.trim()).filter(Boolean);
@@ -44,7 +44,7 @@ async function todas(tabela, select, extra = "") {
 }
 
 const [deals, contacts, activities, messages] = await Promise.all([
-  todas("deals", "id,contact_id,company,stage,setor,porte,points,decisor_nome,email_receita,site_url", `&setor=in.(${SETORES.join(",")})`),
+  todas("deals", "id,contact_id,company,stage,setor,porte,points,decisor_nome,email_receita,site_url,blocker,loss_reason_code", `&setor=in.(${SETORES.join(",")})`),
   todas("contacts", "id,email,city"),
   todas("activities", "deal_id,type,description"),
   todas("messages", "deal_id,direction"),
@@ -90,25 +90,48 @@ const lixo = (e) => {
 // Hard bounce/spam nao pode voltar na fila do dia seguinte: o build nasce dos deals,
 // entao sem esta lista o endereco morto reaparece a cada rebuild.
 const blocklist = lerBlocklist();
+const indiceDominios = indiceBlocklistPorDominio(blocklist);
+
+// "Lost" so porque o numero nao tem WhatsApp NAO e lost pra e-mail (18/09/2026). O
+// pull-city-serper encadeia descartar-sem-whatsapp.mjs, que marca stage=lost +
+// blocker=sem_whatsapp|sem_telefone pra fila do WhatsApp nao entupir; isso escondia 1009
+// deals (549 com site, 313 com CNPJ) do canal onde eles sao o publico ideal: nunca foram
+// abordados, entao nao existe risco de dois canais na mesma pessoa. Recusa explicita
+// (loss_reason_code) continua lost. --sem-lost-whatsapp volta ao comportamento antigo.
+const LOST_SEM_WHATSAPP = !process.argv.includes("--sem-lost-whatsapp");
+const lostSoPorCanal = (d) => d.stage === "lost" && ["sem_whatsapp", "sem_telefone"].includes(d.blocker) && !d.loss_reason_code;
 
 const fila = [];
-const descartes = { lost: 0, naoAbordado: 0, jaRespondeu: 0, semEmail: 0, terceiro: 0, incerto: 0, bloqueado: 0, jaEnviado: 0, mesmaCasa: 0 };
+const descartes = { lost: 0, lostSemWhatsappIncluido: 0, naoAbordado: 0, jaRespondeu: 0, semEmail: 0, terceiro: 0, incerto: 0, bloqueado: 0, jaEnviado: 0, mesmaCasa: 0 };
 
 for (const d of deals) {
-  if (d.stage === "lost") { descartes.lost++; continue; }
+  if (d.stage === "lost") {
+    if (!(LOST_SEM_WHATSAPP && lostSoPorCanal(d))) { descartes.lost++; continue; }
+    descartes.lostSemWhatsappIncluido++;
+  }
   if (!TODOS) {
     if (!PRIMEIRO_TOQUE && !abordados.has(d.id)) { descartes.naoAbordado++; continue; }
     if (responderam.has(d.id) && !LIBERAR.has(d.id)) { descartes.jaRespondeu++; continue; }
   }
   const c = contactForDeal(d, contatoPorId) || {};
-  const destino = [d.email_receita, c.email].find((e) => !lixo(e)) || null;
-  if (!destino) { descartes.semEmail++; continue; }
-  if (estaBloqueado(destino, blocklist)) { descartes.bloqueado++; continue; }
+  // Os dois enderecos passam pelo validador e o PRIMEIRO aprovado vence. Antes o build
+  // pegava o primeiro nao-vazio e, se ele fosse nfe@ ou contador, o lead caia inteiro
+  // mesmo tendo um segundo e-mail bom (18/09/2026). O validador tambem pega typo de
+  // dominio, artefato do extrator, caixa errada e dominio sem MX, que antes so o bounce
+  // real revelava.
+  const candidatos = [d.email_receita, c.email].filter((e) => !lixo(e));
+  if (!candidatos.length) { descartes.semEmail++; continue; }
+  let q = null;
+  let ultimo = null;
+  for (const cand of candidatos) {
+    const r = await validarEmail(cand, { decisorNome: d.decisor_nome, empresa: d.company, siteUrl: d.site_url, blocklist, indiceDominios });
+    ultimo = r;
+    if (r.ok) { q = r; break; }
+  }
+  if (!q) { descartes[ultimo.classe] = (descartes[ultimo.classe] || 0) + 1; continue; }
+  const destino = q.email;
 
-  const q = qualificar({ email: destino, decisorNome: d.decisor_nome, empresa: d.company, siteUrl: d.site_url });
-  if (!q.enviar) { descartes[q.classe] = (descartes[q.classe] || 0) + 1; continue; }
-
-  const email = montarEmail({ empresa: d.company, decisorNome: d.decisor_nome, setor: d.setor, cidade: c.city });
+  const email = montarEmail({ empresa: d.company, decisorNome: d.decisor_nome, setor: d.setor, cidade: c.city, dealId: d.id });
   const v = violacoes(`${email.subject}\n${email.text}`);
   if (v.length) {
     console.error(`ABORTADO: copy do deal #${d.id} viola o playbook: ${v.join(", ")}`);
@@ -122,8 +145,10 @@ for (const d of deals) {
     company: d.company,
     setor: d.setor,
     classe: q.classe,
+    motivo: q.motivo,
     semSite: !d.site_url,
     score: Number(d.points) || 0,
+    scoreEmail: q.score,
     subject: email.subject,
     html: email.html,
   });
@@ -179,14 +204,16 @@ for (const q of unicos) {
 }
 unicos.length = 0;
 unicos.push(...novos);
-// decisor nominal na frente, depois score.
-unicos.sort((a, b) => (a.classe === "decisor" ? -1 : 0) - (b.classe === "decisor" ? -1 : 0) || b.score - a.score);
+// decisor nominal na frente, depois o score do e-mail (dominio proprio, caixa viva),
+// depois o score do lead.
+unicos.sort((a, b) => (a.classe === "decisor" ? -1 : 0) - (b.classe === "decisor" ? -1 : 0) || b.scoreEmail - a.scoreEmail || b.score - a.score);
 const final = LIMITE ? unicos.slice(0, LIMITE) : unicos;
 
+salvarCacheMx();
 fs.writeFileSync("email_queue.json", JSON.stringify(final, null, 1), "utf8");
 console.log(`Fila: ${final.length} e-mails únicos (setor: ${SETORES.join(", ")})`);
 console.log(
-  `Descartados -> lost=${descartes.lost} naoAbordado=${descartes.naoAbordado} ` +
+  `Descartados -> lost=${descartes.lost} (lost so por falta de WhatsApp, INCLUIDOS: ${descartes.lostSemWhatsappIncluido}) naoAbordado=${descartes.naoAbordado} ` +
     `jaRespondeu=${descartes.jaRespondeu} semEmail=${descartes.semEmail} ` +
     `terceiro=${descartes.terceiro || 0} incerto=${descartes.incerto || 0} ` +
     `bloqueado=${descartes.bloqueado} jaEnviado=${descartes.jaEnviado} mesmaCasa=${descartes.mesmaCasa}`,

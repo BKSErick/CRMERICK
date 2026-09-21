@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
-import { classifySource, isTestTrafficUrl, normalizeUrl } from "@/lib/sinais";
+import { classifySource, emailDealRef, isTestTrafficUrl, normalizeUrl, signalEventKind } from "@/lib/sinais";
 
 type PixelEventBody = {
   eventName?: string;
@@ -83,7 +83,9 @@ function supabaseHeaders(extra: Record<string, string> = {}) {
 }
 
 // Persiste o evento no Supabase (best-effort) para o read-back agregado do funil.
-async function persistEvent(body: PixelEventBody, eventName: string): Promise<boolean> {
+// clientName vem resolvido: para visita do e-mail frio e o deals.company, e assim o
+// radar de Sinais e o Comando (getCompanySignals) agrupam pela empresa certa.
+async function persistEvent(body: PixelEventBody, eventName: string, clientName: string | null): Promise<boolean> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return false;
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/pixel_events`, {
@@ -92,7 +94,7 @@ async function persistEvent(body: PixelEventBody, eventName: string): Promise<bo
       body: JSON.stringify({
         event_name: eventName,
         page_url: body.pageUrl ?? null,
-        client_name: body.clientName ?? null,
+        client_name: clientName,
         button_name: body.buttonName ?? null,
       }),
     });
@@ -102,33 +104,54 @@ async function persistEvent(body: PixelEventBody, eventName: string): Promise<bo
   }
 }
 
-// Fio 1: o sinal vira evento na timeline do deal. Só para páginas OUTBOUND
-// (diagnóstico/LP ligada a um prospect) — inbound (bio/site próprio) não mapeia
-// para um deal. Aberturas são deduplicadas (1 por deal a cada 12h) para o
-// histórico não encher de "abriu a página"; cliques entram sempre.
-async function logSignalActivity(body: PixelEventBody, eventName: string): Promise<void> {
+type SignalDeal = { id: number; company: string; origin: "email" | "outbound" };
+
+// Qual card recebe o sinal. Dois caminhos:
+// - e-mail frio: o link leva utm_content=d<dealId> e o site proprio manda o beacon
+//   com a URL inteira; o id vale mais que qualquer casamento por nome.
+// - pagina OUTBOUND (diagnostico/LP de um prospect): casa client_name com
+//   deals.company. Inbound sem referencia (bio, site) nao mapeia para deal.
+async function resolveSignalDeal(body: PixelEventBody): Promise<SignalDeal | null> {
   try {
+    const supabase = getCrmSupabaseAdmin();
+    const ref = emailDealRef(body.pageUrl);
+    if (ref !== null) {
+      const { data } = await supabase.from("deals").select("id, company").eq("id", ref).maybeSingle();
+      return data ? { id: (data as { id: number }).id, company: String((data as { company: string }).company ?? ""), origin: "email" } : null;
+    }
+
     const page = normalizeUrl(body.pageUrl);
-    if (page && classifySource(page.host, page.label).kind !== "outbound") return;
+    if (page && classifySource(page.host, page.label).kind !== "outbound") return null;
 
     const company = (body.clientName ?? "").trim();
-    if (!company) return;
+    if (!company) return null;
 
-    const supabase = getCrmSupabaseAdmin();
     // Nomes do Garimpo truncam ("ABC Metal - Caixa de... - Por..."), entao o
     // client_name da pagina raramente casa exato com deals.company. Tenta exato e,
     // se falhar, casa pelo prefixo antes do primeiro " - ".
     const prefix = company.split(" - ")[0].trim();
     const candidates = prefix && prefix !== company ? [company, `${prefix}%`] : [company];
-    let deal: { id: number } | null = null;
     for (const pattern of candidates) {
-      const { data } = await supabase.from("deals").select("id").ilike("company", pattern).limit(1).maybeSingle();
-      if (data) { deal = data as { id: number }; break; }
+      const { data } = await supabase.from("deals").select("id, company").ilike("company", pattern).limit(1).maybeSingle();
+      if (data) return { id: (data as { id: number }).id, company: String((data as { company: string }).company ?? ""), origin: "outbound" };
     }
-    if (!deal) return;
+    return null;
+  } catch {
+    return null;
+  }
+}
 
-    const isView = eventName === "DiagnosticoView";
-    if (isView) {
+// Fio 1: o sinal vira evento na timeline do deal. Aberturas são deduplicadas
+// (1 por deal a cada 12h) para o histórico não encher de "abriu a página"; cliques
+// entram sempre; profundidade de rolagem fica só no pixel_events.
+async function logSignalActivity(body: PixelEventBody, eventName: string, deal: SignalDeal | null): Promise<void> {
+  if (!deal) return;
+  try {
+    const kind = signalEventKind(eventName);
+    if (kind === "scroll") return;
+
+    const supabase = getCrmSupabaseAdmin();
+    if (kind === "view") {
       const since = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
       const { data: recent } = await supabase
         .from("activities")
@@ -140,16 +163,14 @@ async function logSignalActivity(body: PixelEventBody, eventName: string): Promi
       if (recent && recent.length > 0) return;
     }
 
-    const type = isView
-      ? "signal_view"
-      : eventName === "DiagnosticoWhatsAppClick"
-        ? "signal_whatsapp"
-        : "signal_click";
-    const description = isView
-      ? "Abriu a página de diagnóstico"
-      : eventName === "DiagnosticoWhatsAppClick"
-        ? "Clicou no WhatsApp na página de diagnóstico"
-        : `Clicou em "${(body.buttonName ?? "link").slice(0, 60)}" na página`;
+    const type = kind === "view" ? "signal_view" : kind === "whatsapp" ? "signal_whatsapp" : "signal_click";
+    const onde = deal.origin === "email" ? "no site, vindo do e-mail frio" : "na página de diagnóstico";
+    const description =
+      kind === "view"
+        ? deal.origin === "email" ? "Abriu o site pelo e-mail frio" : "Abriu a página de diagnóstico"
+        : kind === "whatsapp"
+          ? `Clicou no WhatsApp ${onde}`
+          : `Clicou em "${(body.buttonName ?? "link").slice(0, 60)}" ${onde}`;
 
     await supabase.from("activities").insert({ deal_id: deal.id, type, description });
   } catch {
@@ -165,6 +186,10 @@ const GA_EVENT_NAMES: Record<string, string> = {
   DiagnosticoWhatsAppClick: "diagnostico_whatsapp_click",
   DiagnosticoLinkClick: "diagnostico_link_click",
   DiagnosticoOStrackClick: "diagnostico_ostrack_click",
+  MydrionSiteView: "mydrion_site_view",
+  MydrionSiteScrollDepth: "mydrion_site_scroll_depth",
+  MydrionSiteCtaClick: "mydrion_site_cta_click",
+  MydrionSiteWhatsAppClick: "mydrion_site_whatsapp_click",
 };
 
 function toGaEventName(eventName: string): string {
@@ -290,11 +315,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 1) Persiste SEMPRE (independe do CAPI) para alimentar o funil.
-  const persisted = await persistEvent(body, eventName);
+  // 0) Qual card e esse sinal (referencia do e-mail ou pagina outbound), se algum.
+  const deal = await resolveSignalDeal(body);
+
+  // 1) Persiste SEMPRE (independe do CAPI) para alimentar o funil. Visita vinda do
+  //    e-mail grava a empresa do card, nao o rotulo do site, para o radar agrupar certo.
+  const clientName = deal?.origin === "email" && deal.company ? deal.company : (body.clientName ?? null);
+  const persisted = await persistEvent(body, eventName, clientName);
 
   // 1b) Fio 1: reflete o sinal na timeline do deal casado (best-effort).
-  await logSignalActivity(body, eventName);
+  await logSignalActivity(body, eventName, deal);
 
   // 1c) Espelha no GA4 server-side. Independe do CAPI: se o token Meta cair, o
   // GA4 continua recebendo.
