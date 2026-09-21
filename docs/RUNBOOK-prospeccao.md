@@ -17,7 +17,21 @@ Puxa do Google Maps via Serper. **As chaves ficam no `.env.local` do Garimpo** (
 
 O lead entra com cidade, UF, nota, avaliações, `maps_cid`, WhatsApp publicado no site, segmento canônico e score com lookalike.
 
-Opções: `--queries="usinagem,solda"` troca os nichos, `--paginas=3` vai mais fundo, `--limit=N` limita, `--sem-enrich` pula a visita aos sites.
+Opções: `--queries="usinagem,solda"` troca os nichos, `--paginas=3` vai mais fundo, `--limit=N` limita, `--sem-enrich` pula a visita aos sites, `--cnpj-serper` liga a busca de CNPJ no Google (1 crédito por lead; desligada por padrão, o `colher-emails` faz isso com orçamento). O CNPJ publicado no site é lido de graça.
+
+**Crédito:** cada chamada ao Maps com 20 resultados custa **3 créditos**; 13 nichos × 1 página = 39, × 2 = 78.
+
+⚠️ O pull encadeia `uazapi-check-numbers --go` + `descartar-sem-whatsapp --go`: lead sem WhatsApp entra como `stage=lost` + `blocker=sem_whatsapp` (fila do WhatsApp limpa). **Pra e-mail isso não é lost**: o `build-queue-institucional` e o `colher-emails` tratam esse caso como vivo (ver seção de e-mail).
+
+Várias cidades de uma vez (lista padrão = polos industriais de MG, cidade grande com 2 páginas):
+
+```bash
+node scripts/pull-cidades.mjs                                   # dry-run
+node scripts/pull-cidades.mjs --go --reserva=400                # para quando o saldo Serper bater em 400
+node scripts/pull-cidades.mjs --cidades="Betim,Contagem" --go --colher   # e colhe e-mail dos novos no fim
+```
+
+Log em `logs/pull-cidades-<data>.log`; duas cidades seguidas com erro param o runner (em 18/09 um bug de env queimou 11 cidades de crédito contra o Supabase errado antes de alguém olhar o log).
 
 Alternativa, quando o lead já está no Garimpo:
 
@@ -136,7 +150,39 @@ node brevo_send.mjs --test=SEU_EMAIL_PESSOAL
 node brevo_send.mjs --limit=10
 ```
 
-Quando a fila zera, o que enche de novo é e-mail da Receita: `node scripts/enrich-decisores.mjs --cidade="Joao Monlevade" --com-email --go` (ou `--setor=industria,construcao --so-sem-decisor --limit=N`), ~21s por CNPJ. O `qualificar-destinatario.mjs` já descarta caixa de contador (`terceiro`) e endereço que não bate com decisor nem empresa (`incerto`); o `checar-mx-fila.mjs` tira o domínio morto. Acima de 20/dia é `--limit=N --cap=N`, de propósito.
+Acima de 20/dia é `--limit=N --cap=N`, de propósito.
+
+### Colher e-mail (quando a fila zera) — desde 18/09/2026
+
+Rodar da **raiz** do CRM (os caches são relativos ao cwd):
+
+```bash
+node scripts/email/colher-emails.mjs                                  # dry-run: quem ganharia e-mail
+node scripts/email/colher-emails.mjs --go                             # grava
+node scripts/email/colher-emails.mjs --desde=2026-09-18 --go          # só leads criados a partir da data
+node scripts/email/colher-emails.mjs --cidade="Betim" --go
+node scripts/email/colher-emails.mjs --descobrir-cnpj --max-serper=300 --go   # Google pra quem não tem site nem CNPJ
+node scripts/email/colher-emails.mjs --receitaws --go                 # fallback lento (21s/CNPJ) quando a OpenCNPJ não tem e-mail
+```
+
+Fontes, em ordem de custo: **site do lead** (home + páginas de contato: `mailto`, texto, JSON-LD, Cloudflare `cfemail`) → **CNPJ → OpenCNPJ** (e-mail da Receita, QSA, CNAE, porte, cidade, ~500ms, sem limite; substituiu a ReceitaWS de 21s como fonte padrão) → `--descobrir-cnpj` busca o CNPJ no Google pra quem não tem (1 crédito Serper por lead, ~1 em 3 acha). Rendimento medido: ~22% dos leads de uma cidade saem com e-mail aprovado só pelo site.
+
+Cada candidato passa pelo **`validar-email.mjs`** antes de ser gravado: sintaxe, artefato do extrator (`x@y.com.brmailto`, `@www.dominio`), placeholder, e-mail de plataforma (`press@linktr.ee`), typo de domínio (`@gamil.com` → corrige e penaliza), caixa errada (`nfe@`, `rh@`, `noreply@`), blocklist, MX (cache 30 dias em `.cache/mx-dominios.json`), `qualificar-destinatario` (decisor/empresa/terceiro/incerto) e score 0-100. Só o aprovado vai pro CRM; e-mail antigo que reprova vai pras `notes` do contato. O mesmo validador roda dentro do `build-queue-institucional` (os dois endereços do deal concorrem, o primeiro aprovado vence, e a fila ordena por `decisor` → `scoreEmail` → pontos do lead), então o `checar-mx-fila.mjs` virou redundante.
+
+Pra testar um endereço ou auditar a fila:
+
+```bash
+node scripts/email/validar-email.mjs contato@empresa.com.br --empresa="Empresa" --site=empresa.com.br
+cd scripts/email && node validar-email.mjs --fila          # lista quem cairia do email_queue.json
+```
+
+Também preenche `deals.setor` (CNAE → `setorDeCnae`, senão segmento/palavra: usinagem/caldeiraria/manutenção/automação → industria, engenharia → construcao; **agro fica sem setor de propósito**), `decisor_nome`, `cnpj`, `porte` e `contacts.city/uf` quando vazios. Nunca sobrescreve `setor` já preenchido (o `enrich-decisores` fazia isso e apagava etiqueta manual). Os 9 deals deixados sem setor na triagem manual de 11 e 15/09 estão em `NUNCA_ETIQUETAR`.
+
+**Lost só por falta de WhatsApp é público de e-mail.** `descartar-sem-whatsapp` marca `stage=lost` + `blocker=sem_whatsapp|sem_telefone` sem `loss_reason_code`; o build e o colhedor incluem esses deals (em 18/09 eram 1.009, 549 com site). Recusa explícita (`loss_reason_code`) continua lost. `--sem-lost-whatsapp` desliga.
+
+Saída de cada colheita em `scripts/email/colheita/colheita-<data>.json` (gitignorado, tem PII): todos os candidatos, aprovados, rejeitados com motivo e os patches aplicados.
+
+O caminho antigo (`enrich-decisores.mjs --com-email`) continua existindo e agora também usa a OpenCNPJ antes da ReceitaWS.
 
 `--check` envia zero mensagens e precisa mostrar o remetente, o destino das respostas,
 o limite do dia e pelo menos um MX para o dominio de resposta. Enquanto o MX ainda nao

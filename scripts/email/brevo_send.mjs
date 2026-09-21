@@ -7,6 +7,12 @@
 //   node brevo_send.mjs --limit=20              # dispara ate 20 da fila (dedup)
 //   node brevo_send.mjs --limit=30 --cap=30     # sobe a rampa conscientemente
 //   node brevo_send.mjs --limit=20 --from="Erick Sena <erick@dominio.com>"
+//   node brevo_send.mjs --queue=email_queue_seq2_2026-09-22.json --log=sent_log_seq2.json --limit=39
+//
+// --queue/--log existem por causa do segundo e-mail da sequencia (18/09/2026): o dedup
+// e por endereco dentro de UM log, entao mandar o e-mail 2 pra quem ja levou o 1 exige
+// fila e log proprios. O sent_log.json principal continua sendo o que o build do frio
+// le pra jaEnviado/mesmaCasa; nunca gravar sequencia nele.
 //
 // Defaults conservadores de propósito (proteger reputação de domínio + ToS Brevo).
 import fs from 'node:fs';
@@ -37,6 +43,8 @@ const THROTTLE_MS = parseInt(arg('throttle', '8000'));   // 8s entre envios
 const REPLY_TO = arg('reply-to', '');
 const REPLY_TO_EMAIL = REPLY_TO ? validateMailbox(REPLY_TO) : '';
 const DAILY_CAP = resolveDailyCap(arg('cap', ''));       // padrao 20; teto duro absoluto 250
+const QUEUE_PATH = arg('queue', 'email_queue.json');
+const LOG_PATH = arg('log', 'sent_log.json');
 
 if (!LIMIT && !TEST && !CHECK) {
   console.log('Sem --limit, --test ou --check: nada a fazer.');
@@ -57,7 +65,7 @@ const BH = { 'api-key': BREVO, accept: 'application/json', 'content-type': 'appl
 const SB_URL = envCRM.SUPABASE_URL, SB_KEY = envCRM.SUPABASE_SERVICE_ROLE_KEY;
 const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'content-type': 'application/json' };
 
-const sentLogPath = 'sent_log.json';
+const sentLogPath = LOG_PATH;
 const sentLog = fs.existsSync(sentLogPath) ? JSON.parse(fs.readFileSync(sentLogPath, 'utf8')) : {};
 const saveLog = () => fs.writeFileSync(sentLogPath, JSON.stringify(sentLog, null, 1), 'utf8');
 const sentTodayLocal = countEmailSendsForDay(
@@ -165,19 +173,19 @@ if (CHECK) { console.log('CHECK ok — nada enviado.'); process.exit(0); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 if (TEST) {
-  const queue = JSON.parse(fs.readFileSync('email_queue.json', 'utf8'));
+  const queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));
   const sample = queue[0];
   const id = await sendOne(sender, { ...sample, email: TEST, subject: '[TESTE] ' + sample.subject });
   console.log(`TESTE enviado pra ${TEST} (messageId ${id}). Confira inbox E spam.`);
   process.exit(0);
 }
 
-const queue = JSON.parse(fs.readFileSync('email_queue.json', 'utf8'));
+const queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));
 const pending = queue.filter(q => !sentLog[q.email]);
 const budget = Math.min(LIMIT, DAILY_CAP - sentToday);
 if (budget <= 0) { console.log(`Cap diário atingido (${sentToday}/${DAILY_CAP}). Pare por hoje.`); process.exit(0); }
 const batch = pending.slice(0, budget);
-console.log(`Fila pendente: ${pending.length} | vou enviar: ${batch.length} (throttle ${THROTTLE_MS}ms)`);
+console.log(`Fila ${QUEUE_PATH} (log ${LOG_PATH}) pendente: ${pending.length} | vou enviar: ${batch.length} (throttle ${THROTTLE_MS}ms)`);
 
 let ok = 0, err = 0, crmErr = 0;
 for (const item of batch) {
