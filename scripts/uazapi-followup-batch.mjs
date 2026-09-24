@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
 import { conferirCanal } from "./lib/canalWhatsapp.mjs";
+import { segmentoVetado } from "./lib/analise-comum.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { renderFollowupMessage } = salesPlaybookModule;
@@ -172,13 +173,14 @@ async function carregarFila() {
   const hist = {};
   for (const a of acts) {
     if (!a.deal_id) continue;
-    const h = (hist[a.deal_id] = hist[a.deal_id] || { saidas: 0, humanas: 0, bots: 0, ultimaSaida: null });
+    const h = (hist[a.deal_id] = hist[a.deal_id] || { saidas: 0, humanas: 0, bots: 0, ultimaSaida: null, saidasDepoisBot: 0 });
     if (a.type === "whatsapp_received") {
       if (AUTORESPONDER.test(a.description || "")) h.bots++;
       else h.humanas++;
     } else {
       h.saidas++;
       h.ultimaSaida = a.created_at;
+      if (h.bots > 0) h.saidasDepoisBot++;
     }
   }
 
@@ -189,10 +191,17 @@ async function carregarFila() {
       const celular = canal(porId[d.id]);
       if (!h || !h.ultimaSaida || !celular) return null;
       if (h.humanas > 0) return null; // conversa viva: responder na mao, nunca automatizar
+      if (segmentoVetado(d.segment, d.company)) return null; // refrigeracao/climatizacao, 24/09/2026
       const dias = Math.floor((agora - Date.parse(h.ultimaSaida)) / 86400000);
       const tier = tierForDays(dias);
       if (tier === "aguardar") return null;
       if (h.saidas >= 3) return null; // ja levou 3 toques: parar por respeito e por seguranca
+      // Lead de autoresponder recebe o texto "bot" em QUALQUER degrau, entao o segundo
+      // toque depois da saudacao automatica era o mesmo pedido de novo, palavra por
+      // palavra. Em 24/09/2026 havia 14 leads que ja tinham levado o texto bot 2x sem
+      // resposta humana e 24 na fila prestes a levar. O pedido do responsavel sai uma
+      // vez; sem resposta humana depois dele, o lead sai do WhatsApp (e-mail assume).
+      if (h.bots > 0 && h.saidasDepoisBot > 0) return null;
       return { ...d, fone: celular, dias, tier, ehBot: h.bots > 0, toques: h.saidas, cidade: porId[d.id]?.city };
     })
     .filter(Boolean)
@@ -207,6 +216,54 @@ async function statusInstancia() {
   return fetch(`${BASE}/instance/status`, { headers: { token: TOKEN } })
     .then((r) => r.json())
     .catch(() => ({}));
+}
+
+// Risquinhos (24/09/2026). A Uazapi guarda o status de cada mensagem nossa no chat:
+// "Sent" e um risquinho so (saiu do servidor, nao chegou no aparelho), "Delivered" e
+// "Read" sao dois. Mensagem sem status nao conta pra lado nenhum. Chat sem historico
+// (mensagem antiga ou enviada por outra instancia) devolve zero e nao afirma nada.
+const ENTREGUE = /delivered|read|played/i;
+async function entregaDoCanal(fone) {
+  const d = String(fone).replace(/\D/g, "");
+  // Mesmo numero em duas grafias, com e sem o nono digito: tenta as duas.
+  const variantes = [d];
+  if (d.startsWith("55") && d.length === 13 && d[4] === "9") variantes.push(d.slice(0, 4) + d.slice(5));
+  if (d.startsWith("55") && d.length === 12) variantes.push(`${d.slice(0, 4)}9${d.slice(4)}`);
+  for (const v of variantes) {
+    const corpo = await fetch(`${BASE}/message/find`, {
+      method: "POST",
+      headers: { token: TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify({ chatid: `${v}@s.whatsapp.net`, limit: 30 }),
+    })
+      .then((r) => r.json())
+      .catch(() => ({}));
+    const nossas = (corpo?.messages || []).filter((m) => m.fromMe && m.status);
+    if (!nossas.length) continue;
+    const entregues = nossas.filter((m) => ENTREGUE.test(m.status)).length;
+    return { nossas: nossas.length, entregues, naoEntregues: nossas.length - entregues };
+  }
+  return { nossas: 0, entregues: 0, naoEntregues: 0 };
+}
+
+// Duas mensagens paradas num risquinho e nenhuma entregue: o numero nao recebe (ou
+// bloqueou). O terceiro toque so queima o numero da Mydrion. Lost com blocker, sem
+// loss_reason_code, para o e-mail continuar tratando o lead como vivo.
+async function perderPorNaoEntrega(dealId, empresa, entrega) {
+  const deal = await supa(`deals?id=eq.${dealId}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ stage: "lost", blocker: "whatsapp_nao_entregue" }),
+  });
+  await supa("activities", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      deal_id: dealId,
+      type: "stage_change",
+      description: `${empresa} -> lost: ${entrega.naoEntregues} mensagens de WhatsApp paradas em um risquinho, nenhuma entregue`,
+    }),
+  });
+  return deal.ok;
 }
 
 // Espelha uazapi-send-batch.mjs: queda de rede ganha nova tentativa em vez de matar o
@@ -312,11 +369,19 @@ async function registrar(dealId, empresa, tier) {
   // Consertech (#1146) saiu de manha para um perfil "Omega Tech". Ver canalWhatsapp.mjs.
   const lote = [];
   const retidosCanal = [];
+  const naoEntregues = [];
   for (const l of fila) {
     if (lote.length >= alvo) break;
     const canal = await conferirCanal(l.fone, l.company, { base: BASE, token: TOKEN });
     if (!canal.ok) {
       retidosCanal.push(`#${l.id} ${l.company} -> ${l.fone} (${canal.motivo}${canal.nome ? `: perfil "${canal.nome}"` : ""})`);
+      continue;
+    }
+    // Uma mensagem sem entregar ganha a segunda tentativa; a segunda tambem parada,
+    // o lead sai da cadencia.
+    const entrega = await entregaDoCanal(l.fone);
+    if (entrega.naoEntregues >= 2 && entrega.entregues === 0) {
+      naoEntregues.push({ ...l, entrega });
       continue;
     }
     lote.push({ ...l, perfilWpp: canal.nome || "" });
@@ -325,6 +390,13 @@ async function registrar(dealId, empresa, tier) {
   if (retidosCanal.length) {
     console.log(`Retidos pela conferencia do numero na Uazapi: ${retidosCanal.length} (corrigir whatsapp_site/whatsapp_jid no cadastro)`);
     retidosCanal.forEach((r) => console.log(`   ${r}`));
+  }
+  if (naoEntregues.length) {
+    console.log(`Nao entregues (2+ mensagens num risquinho so): ${naoEntregues.length}${GO ? " -> lost" : " (com --go vao pra lost)"}`);
+    for (const l of naoEntregues) {
+      const perdeu = GO ? await perderPorNaoEntrega(l.id, l.company, l.entrega) : false;
+      console.log(`   #${l.id} ${l.company} -> ${l.fone} (${l.entrega.naoEntregues} paradas)${GO ? (perdeu ? " LOST" : " FALHOU GRAVAR") : ""}`);
+    }
   }
 
   console.log(`\nFila de follow-up: ${fila.length} ${JSON.stringify(porTier)} | lote: ${lote.length} | modo: ${GO ? "ENVIO REAL" : "dry-run"}\n`);

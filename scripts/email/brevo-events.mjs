@@ -10,6 +10,7 @@
 //   node brevo-events.mjs --email=alguem@x.br # um destinatario
 //   node brevo-events.mjs --json              # saida JSON (para script/automacao)
 //   node brevo-events.mjs --bloquear          # manda bounce/spam para o blocklist.json
+//   node brevo-events.mjs --log=sent_log_seq2.json  # le a sequencia 2 em vez do e-mail 1
 //
 // LEIA ANTES DE CONFIAR NA ABERTURA: "aberto" vem de pixel de imagem. Quem bloqueia
 // imagem nunca conta como aberto, e o proxy do Gmail as vezes conta abertura que nao
@@ -48,7 +49,9 @@ const BH = { 'api-key': BREVO, accept: 'application/json' };
 const SB_URL = envCRM.SUPABASE_URL, SB_KEY = envCRM.SUPABASE_SERVICE_ROLE_KEY;
 
 // ---- quem foi enviado ----
-const sentLogPath = path.join(AQUI, 'sent_log.json');
+// --log=sent_log_seq2.json le a sequencia 2. O casamento e por destinatario e a janela
+// comeca no primeiro envio do log, entao evento do e-mail 1 anterior fica de fora.
+const sentLogPath = path.join(AQUI, arg('log', 'sent_log.json'));
 const sentLog = fs.existsSync(sentLogPath) ? JSON.parse(fs.readFileSync(sentLogPath, 'utf8')) : {};
 
 const corte = DAYS ? new Date(Date.now() - DAYS * 864e5).toISOString() : '';

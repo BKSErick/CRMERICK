@@ -86,6 +86,17 @@ const SEGMENTOS = [
 ];
 
 export const CANONICOS = ["usinagem", "caldeiraria", "automacao", "climatizacao", "manutencao"];
+
+/**
+ * Fora da prospeccao automatica (decisao do Erick, 24/09/2026): refrigeracao e
+ * climatizacao sao lead pessimo. Vale pelo segment E pelo nome, porque ha
+ * "Refrigeracao" gravada como manutencao (Assistemak) e ar condicionado automotivo.
+ * Exaustor industrial NAO entra aqui (RBR Exaustores e manutencao industrial).
+ */
+const NOME_VETADO = /refrigera|climat|ar[\s-]*condicionado|\bclima\b/i;
+export function segmentoVetado(segment, empresa) {
+  return segment === "climatizacao" || NOME_VETADO.test(`${segment || ""} ${empresa || ""}`);
+}
 const SET_CANONICOS = new Set(CANONICOS);
 
 /**

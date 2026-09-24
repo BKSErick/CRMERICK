@@ -31,6 +31,7 @@ import { createRequire } from "node:module";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
 import { conferirCanal } from "./lib/canalWhatsapp.mjs";
+import { segmentoVetado } from "./lib/analise-comum.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { avaliarLead, carregarAprovados } = createRequire(import.meta.url)("./lib/triagemLead.js");
@@ -108,10 +109,11 @@ const supa = async (rota, init = {}) =>
   });
 
 // So dispara para a fila CURADA: deals com segment preenchido (usinagem, caldeiraria,
-// manutencao, automacao, climatizacao). Sem isso o script pegava qualquer prospect com
-// copy, inclusive eletricista autonomo e MEI que o filtro tinha descartado, e ainda com
-// a copy antiga. Marcar o segmento no card e o que separa quem entra do que nao entra.
-const SEGMENTOS_VALIDOS = "usinagem,caldeiraria,manutencao,automacao,climatizacao";
+// manutencao, automacao). Sem isso o script pegava qualquer prospect com copy,
+// inclusive eletricista autonomo e MEI que o filtro tinha descartado, e ainda com a
+// copy antiga. Marcar o segmento no card e o que separa quem entra do que nao entra.
+// climatizacao saiu em 24/09/2026 (segmentoVetado, que tambem pega pelo nome).
+const SEGMENTOS_VALIDOS = "usinagem,caldeiraria,manutencao,automacao";
 
 // Ordem de confianca do canal:
 //   1) whatsapp_jid  -> confirmado pela propria Uazapi
@@ -131,7 +133,7 @@ async function carregarFila() {
     ? `id=in.(${IDS.join(",")})`
     : `stage=eq.prospect&segment=in.(${SEGMENTOS_VALIDOS})`;
   const [deals, contatos] = await Promise.all([
-    fetchAllPages(supa, `deals?${filtro}&select=id,company,stage,copy_text,site_url`),
+    fetchAllPages(supa, `deals?${filtro}&select=id,company,stage,copy_text,site_url,segment`),
     fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url"),
   ]);
   const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
@@ -145,6 +147,11 @@ async function carregarFila() {
     .filter((d) => !STRICT_IDS || d.stage === "prospect")
     .filter((d) => d.copy_text)
     .filter((d) => !fora.has(d.id))
+    .filter((d) => {
+      if (!segmentoVetado(d.segment, d.company)) return true;
+      retidos.push(`#${d.id} ${d.company} (refrigeracao/climatizacao)`);
+      return false;
+    })
     .filter((d) => {
       const c = porId[d.id] || {};
       const v = avaliarLead(
