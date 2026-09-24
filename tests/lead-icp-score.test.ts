@@ -88,7 +88,9 @@ test("classify-icp nao sobrescreve decisao manual nem de importacao", () => {
   assert.match(script, /regraManda = fonte === null \|\| fonte === "regra" \|\| \(fonte === "ia" && veredito !== null\)/);
   assert.match(script, /ESTAGIOS_PROTEGIDOS/);
   assert.match(script, /brandbook\.json/, "criterio de ICP da IA vem do brandbook, nao do codigo");
-  assert.match(script, /providerPolicy: "free-strict"/);
+  assert.match(script, /providerPolicy: POLITICA/);
+  assert.match(script, /groq: "groq-free", openrouter: "free-strict"/, "um provedor gratuito por execucao, sem cascata");
+  assert.doesNotMatch(script, /free-then-groq/, "classificador nunca usa cascata entre provedores");
   assert.match(script, /evidence:/);
   assert.doesNotMatch(script, /state:\s*\{\s*empresa:/, "nome da empresa nao sai para o provedor externo");
 });

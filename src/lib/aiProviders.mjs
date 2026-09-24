@@ -129,12 +129,22 @@ function timeoutSignal(ms) {
 
 /**
  * `free-strict`: so OpenRouter gratuito (Story 055). `free-then-groq`: OpenRouter gratuito e,
- * se ninguem responder, Groq no plano gratuito (Story 056). `freeOnly: true` e alias do estrito.
+ * se ninguem responder, Groq no plano gratuito (Story 056). `groq-free`: so Groq no plano
+ * gratuito, sem cartao cadastrado (Story 062, cota diaria do OpenRouter esgotada).
+ * `freeOnly: true` e alias do estrito.
  */
+const POLITICAS = new Set(["free-strict", "free-then-groq", "groq-free"]);
+
 function politicaDe(options) {
-  if (options?.providerPolicy === "free-strict" || options?.providerPolicy === "free-then-groq") return options.providerPolicy;
+  if (POLITICAS.has(options?.providerPolicy)) return options.providerPolicy;
   return options?.freeOnly === true ? "free-strict" : "free-then-groq";
 }
+
+/**
+ * Modelos `compound` do Groq executam ferramentas (busca web, codigo) do lado do provedor. Numa
+ * politica de dado restrito, o payload poderia sair do Groq para terceiros: ficam fora.
+ */
+const MODELOS_COM_FERRAMENTA = /compound/i;
 
 /**
  * Descobre QUAL parametro o provedor recusou, pra o motor parar de mandar aquele parametro
@@ -197,6 +207,7 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
     if (encerrado()) return { result: null, failures, attempts };
     if (fixed && provider.name !== fixed.provider) continue;
     if (policy === "free-strict" && provider.name !== "OpenRouter") continue;
+    if (policy === "groq-free" && provider.name !== "Groq") continue;
     // Orcamento por provedor: garante que sobra tempo pra reserva quando o primeiro trava.
     const providerBudget = timeoutSignal(options?.perProviderTimeoutMs);
     const key = provider.getKey();
@@ -216,6 +227,7 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
       }
     } else {
       models = await getProviderModels(provider.name, key);
+      if (policy === "groq-free") models = models.filter((model) => !MODELOS_COM_FERRAMENTA.test(model));
     }
     if (models.length === 0) {
       failures.push({ provider: provider.name, model: null, status: null, reason: "no_models" });

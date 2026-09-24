@@ -4,7 +4,7 @@ export type AiResult = { content: string; provider: string; model: string; usage
 export type AiModelPreference =
   | { mode: "auto" }
   | { mode: "fixed"; provider: "OpenRouter"; modelId: string };
-export type AiProviderPolicy = "free-strict" | "free-then-groq";
+export type AiProviderPolicy = "free-strict" | "free-then-groq" | "groq-free";
 export type AiCompleteOptions = {
   signal?: AbortSignal;
   /** Prazo TOTAL da cascata. Ao esgotar, devolve as falhas registradas sem lancar erro. */
@@ -16,7 +16,7 @@ export type AiCompleteOptions = {
   /** Parametros extras do payload (ex.: response_format, temperature) mesclados por chamada. */
   requestOptions?: Record<string, unknown>;
   modelPreference?: AiModelPreference;
-  /** `free-strict`: so OpenRouter gratuito. `free-then-groq` (padrao): OpenRouter gratuito, depois Groq. */
+  /** `free-strict`: so OpenRouter gratuito. `free-then-groq` (padrao): OpenRouter gratuito, depois Groq. `groq-free`: so Groq gratuito, sem modelos com ferramenta. */
   providerPolicy?: AiProviderPolicy;
   /** Alias de `providerPolicy: "free-strict"`. */
   freeOnly?: boolean;

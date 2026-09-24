@@ -75,6 +75,18 @@ const IA = process.argv.includes("--ia");
 const RELATORIO = process.argv.includes("--relatorio");
 const LIMITE = Math.max(1, Number(arg("limite", 50)) || 50);
 const PAUSA = Math.max(0, Number(arg("pausa", 2000)) || 0);
+// Story 062: as duas contas sao so plano gratuito, sem cartao em lugar nenhum. O OpenRouter
+// gratis tem 50 chamadas/dia; o Groq gratis e limitado por taxa, nao por preco. Um provedor por
+// execucao, sem cascata: a politica escolhida e a unica que recebe o payload desidentificado.
+const PROVEDOR = arg("provedor", "groq");
+const POLITICA_POR_PROVEDOR = { groq: "groq-free", openrouter: "free-strict" };
+const POLITICA = POLITICA_POR_PROVEDOR[PROVEDOR];
+if (!POLITICA) {
+  console.error(`--provedor=${PROVEDOR} invalido. Use groq ou openrouter.`);
+  process.exit(1);
+}
+// Cota estourada vira falha em serie: parar cedo e fechado, em vez de queimar a fila inteira.
+const MAX_LIMITE_SEGUIDO = Math.max(1, Number(arg("parar-apos-limite", 5)) || 5);
 const db = clienteSupabase();
 // A cascata loga cada tentativa em detalhe; aqui o placar por deal ja diz o que importa.
 if (IA && !process.argv.includes("--verbose")) console.warn = () => {};
@@ -180,8 +192,9 @@ async function passeIa(candidatos) {
   const criterios = criteriosIcp();
   const segmentos = Object.fromEntries([...CANONICOS.map((c) => [c, c]), ["outro", "nenhum dos anteriores"]]);
   const fila = candidatos.sort((a, b) => Number(b.points || 0) - Number(a.points || 0)).slice(0, LIMITE);
-  console.log(`\nIA: ${fila.length} de ${candidatos.length} indefinidos (maior nota primeiro). ${GO ? "GRAVANDO" : "simulacao"}\n`);
+  console.log(`\nIA (${PROVEDOR}, ${POLITICA}): ${fila.length} de ${candidatos.length} indefinidos (maior nota primeiro). ${GO ? "GRAVANDO" : "simulacao"}\n`);
   const placar = { sim: 0, nao: 0, incerto: 0, falha: 0 };
+  let limiteSeguido = 0;
   for (const d of fila) {
     const r = await decide({
       state: {
@@ -210,13 +223,19 @@ async function passeIa(candidatos) {
       timeoutMs: 20000,
       perProviderTimeoutMs: 10000,
       perModelTimeoutMs: 8000,
-      providerPolicy: "free-strict",
+      providerPolicy: POLITICA,
     });
     const nome = String(d.company || d.name).slice(0, 40).padEnd(40);
     const decisao = normalizarDecisaoIcpIa({ result: r, deal: d });
+    const soLimite = !r.ok && r.failures?.length > 0 && r.failures.every((f) => f.reason === "rate_limited");
+    limiteSeguido = soLimite ? limiteSeguido + 1 : 0;
     if (!decisao.persist) {
       placar.falha += 1;
       console.log(`  x ${nome} [${String(d.segment || "").slice(0, 12)}] ${r.ok ? "resposta fora da lista" : r.detail.slice(0, 90)}`);
+      if (limiteSeguido >= MAX_LIMITE_SEGUIDO) {
+        console.log(`\nParado: ${limiteSeguido} deals seguidos so com limite de uso (${PROVEDOR}). Nada aberto; rode de novo depois.`);
+        break;
+      }
     } else {
       placar[decisao.veredito] += 1;
       const nota = applyIcpPoints(d.points, d.icp_points, decisao.isIcp);

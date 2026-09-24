@@ -326,6 +326,24 @@ test("free-then-groq cai no Groq quando o OpenRouter gratuito recusa", async () 
   });
 });
 
+test("groq-free nunca chama o OpenRouter e pula modelos compound (ferramenta do lado do provedor)", async () => {
+  await comAmbiente(async () => {
+    const { chamadas, stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free"],
+      groqModels: ["groq/compound", "openai/gpt-oss-120b"],
+      responderChat: () => respostaOk("groq respondeu"),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", { providerPolicy: "groq-free" });
+
+    assert.equal(resultado.result?.provider, "Groq");
+    assert.equal(resultado.result?.model, "openai/gpt-oss-120b");
+    assert.equal(chamadas.some((chamada) => chamada.url.includes("openrouter.ai")), false, "payload nao sai para o OpenRouter");
+    assert.equal(chamadas.some((chamada) => /compound/.test(String(chamada.body.model))), false, "compound nunca recebe o payload");
+  });
+});
+
 test("orcamento por provedor sobra tempo para o Groq quando todo o OpenRouter trava", async () => {
   await comAmbiente(async () => {
     const { stub } = montarFetch({
