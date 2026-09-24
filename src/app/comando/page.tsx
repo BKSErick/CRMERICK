@@ -31,6 +31,11 @@ type QueueItem = {
   channel: string;
   opportunity: string;
   signal: LeadSignal | null;
+  capacity_tier: string;
+  capacity_evidence: string[];
+  decision_access: string;
+  offer_track: string;
+  eligibility_reason: string;
 };
 
 const APPROACH_LABELS: Record<string, string> = {
@@ -59,6 +64,8 @@ type FollowupItem = {
   health: { score: number; classification: string; confidence: number; recommendation: string } | null;
   qualificationReview: boolean;
   qualification: { completeness: number; confirmedCount: number; totalFields: number; pendingLabels: string[] } | null;
+  // Story 057: leitura tipada da ultima mensagem do lead. Opcional contra deploy antigo da API.
+  leitura?: { intent: string; intentLabel: string; objection: string | null; card: string | null; cardLabel: string } | null;
 };
 
 // Selo compacto do sinal: "abriu a pagina 4x, clicou no WhatsApp, ha 2h".
@@ -163,15 +170,15 @@ const forecastCurrency = new Intl.NumberFormat("pt-BR", { style: "currency", cur
 const READY_MESSAGES: { title: string; text: string }[] = [
   {
     title: "🚪 Quem responde nao e o dono (atendente / central)",
-    text: "Perfeito, obrigado! Consegue me direcionar pra quem cuida dessa parte, ou pro dono? E bem rapido: fiz uma analise do que aparece quando um cliente procura voces no Google, e tem um ponto que pode estar custando orcamento. Queria mostrar direto pra quem decide.",
+    text: cartaComando(SALES_PLAYBOOK.routing.humanGatekeeper),
   },
   {
     title: "🚪 Dar algo pronto pra pessoa encaminhar",
-    text: "Tranquilo! Se for mais facil, pode repassar pra ele: montei uma analise rapida da presenca de voces no Google e do que faz um comprador desistir antes de pedir orcamento. E um link que ele ve em 2 minutos. Consigo mandar aqui ou prefere que eu chame ele direto?",
+    text: cartaComando(SALES_PLAYBOOK.routing.forwardable),
   },
   {
     title: "🚪 Abrir pedindo o responsavel (numero de central)",
-    text: "Oi! Falo com o responsavel comercial, ou com o dono? Fiz uma analise da presenca de voces no Google e queria mostrar pra quem decide sobre isso. E rapido.",
+    text: cartaComando(SALES_PLAYBOOK.routing.centralOpening),
   },
   // BOT/IA e caso diferente do atendente humano acima: nao le nuance, nao
   // encaminha e nao tem constrangimento social pra ignorar. Insistir no mesmo
@@ -181,11 +188,11 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   // metade dos fixos de industria pequena atende.
   {
     title: "🤖 Bot/IA respondendo: sair em 2 mensagens",
-    text: "Entendi! Só o nome de quem cuida do comercial já me ajuda — eu ligo direto e não tomo o tempo de vocês por aqui. Qual é?",
+    text: cartaComando(SALES_PLAYBOOK.routing.botName),
   },
   {
     title: "🤖 Bot ignorou 2x: encerrar o canal (nao insistir)",
-    text: "Sem problema, vou tentar pelo telefone do site. Obrigado!",
+    text: cartaComando(SALES_PLAYBOOK.routing.botClose),
   },
   // SIM FRACO ("Diferente", "sim" seco, "ok", "pode mandar"): o lead deu espaco
   // pro case, nao pro preco. Ponte = bloco 1 da msg 2 terminando em pergunta
@@ -680,6 +687,15 @@ export default function ComandoPage() {
                                 ? `Lacunas de qualificacao: ${item.qualification?.pendingLabels.join(", ")}.`
                                 : item.message}
                         </div>
+                        {item.leitura ? (
+                          <div className="muted-copy" style={{ fontSize: "11px", marginTop: "4px" }}>
+                            Leitura: {item.leitura.intentLabel}
+                            {item.leitura.objection && item.leitura.objection !== "nenhuma" ? ` · objeção: ${item.leitura.objection.replaceAll("_", " ")}` : ""}
+                            {item.leitura.card && item.leitura.card !== "nenhuma" ? (
+                              <> · carta: <strong>{item.leitura.cardLabel}</strong></>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="font-mono">{item.phone ? `+${item.phone}` : "--"}</td>
                       <td>
@@ -718,7 +734,7 @@ export default function ComandoPage() {
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila do dia</div>
-            <span className="card-badge">por score</span>
+            <span className="card-badge">gate → sinal → capacidade → score</span>
           </div>
           {data.queue.length === 0 ? (
             <div className="connection-status fallback">
@@ -730,7 +746,7 @@ export default function ComandoPage() {
                 <thead>
                   <tr>
                     <th>Empresa</th>
-                    <th>Etapa</th>
+                    <th>Perfil</th>
                     <th>Score</th>
                     <th>Abordagem</th>
                     <th>Telefone</th>
@@ -741,8 +757,23 @@ export default function ComandoPage() {
                   {data.queue.map((item) => (
                     <Fragment key={item.id}>
                       <tr>
-                        <td>{item.company}{signalBadge(item.signal)}</td>
-                        <td><span className={`status-pill ${item.stage}`}>{item.stage}</span></td>
+                        <td>
+                          {item.company}{signalBadge(item.signal)}
+                          <div className="muted-copy" style={{ fontSize: "11px", marginTop: "4px" }}>
+                            {item.eligibility_reason}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`status-pill ${item.stage}`}>{item.capacity_tier}</span>
+                          <div className="muted-copy" style={{ fontSize: "11px", marginTop: "4px" }}>
+                            {item.offer_track} · acesso {item.decision_access}
+                          </div>
+                          {item.capacity_evidence.length > 0 ? (
+                            <div className="muted-copy" style={{ fontSize: "10px", marginTop: "2px" }}>
+                              {item.capacity_evidence.join(" · ")}
+                            </div>
+                          ) : null}
+                        </td>
                         <td>{item.points}</td>
                         <td>
                           <span className="status-pill">{APPROACH_LABELS[item.recommended_approach] ?? item.recommended_approach}</span>

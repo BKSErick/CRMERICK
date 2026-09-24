@@ -94,6 +94,15 @@
     },
     "_nota": "Escrito em 02/09/2026 depois de ler as 142 conversas da base. Substitui o fecho anterior da mensagemExemplo() ('Te mostro em 15 min (...) amanha de manha ou a tarde?'), reprovado em 12/08 e nunca reescrito, e o 'faz sentido pra voces?' que estava sendo digitado na mao. Medicao que motivou: dos 54 leads que receberam o case, so 11 chegaram a falar preco (20%) e 32 sumiram sem responder — e nas conversas que chegaram a preco foi quase sempre o LEAD que puxou o assunto. A msg 2 nunca teve um degrau seguinte. O fecho pela vaga de producao e a troca de 'trocas de texto e foto' por 'manter no ar e atualizada' vieram da calibragem do clone Willian Celso: 'topa?' derrubava a autoridade construida por 'comeco quinta', e 'manutencao' pertence a cadeia de simbolos do cliente, nao a do servico."
   },
+  "routing": {
+    "version": "routing-governante-2026-09-24.1",
+    "humanGatekeeper": "Perfeito. Me direcione para quem responde pela área comercial ou para o dono. Identifiquei um ponto na entrada dos pedidos de orçamento da {{company}} e vou tratar direto com quem decide.",
+    "forwardable": "Pode encaminhar assim:\n\nErick trabalha com presença digital para indústria e identificou onde o pedido de orçamento perde informação antes de chegar ao comercial da {{company}}. Ele separou um exemplo do mesmo setor e fala direto com quem decide essa operação. Contato: [SEU WHATSAPP].",
+    "centralOpening": "Oi! Erick aqui. Preciso falar com quem responde pela área comercial da {{company}}. É sobre a forma como os pedidos de orçamento chegam hoje; vou direto ao ponto com o responsável.",
+    "botName": "Entendi. Me informe só o nome de quem responde pelo comercial; eu sigo direto com essa pessoa por outro canal.",
+    "botClose": "Certo. Vou seguir pelo telefone institucional. Obrigado.",
+    "referredDecisionMaker": "Oi, {{nomeDecisor}}! Erick aqui. {{ponte}}. Eu organizo a entrada do pedido para ele chegar no WhatsApp da {{company}} já com serviço, medida e prazo, sem a ida e volta. Hoje essa ida e volta ainda acontece aí?"
+  },
   "followups": {
     "bot": "Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da {{company}} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.",
     "M1": "Oi, Erick de novo. Pergunto porque, em {{segmentDescription}}, o orçamento costuma virar ida e volta de mensagem até sair material, medida e prazo. Isso aparece na rotina da {{company}} ou quem chama já chega com o escopo definido?",

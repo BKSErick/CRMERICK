@@ -300,7 +300,9 @@ export function DealDetailOverlay({ deal, onClose, onDelete, onStageChange }: De
         deal.copyText || `Oi! Vi a oportunidade da ${deal.company} e queria te mandar uma analise rapida.`,
       )}`
     : "";
-  const score = Math.max(0, Math.min(10, deal.points ?? 0));
+  // A nota real vai de 0 a ~140 (mediana ~57); o corte em 10 mostrava "Score: 10" pra quase
+  // todo deal (Story 058).
+  const score = Math.max(0, Math.round(deal.points ?? 0));
 
   const [activities, setActivities] = useState<DealActivity[]>([]);
   const [activitiesStatus, setActivitiesStatus] = useState<"loading" | "ready" | "error">("loading");

@@ -1,5 +1,5 @@
 import { getCrmSupabaseAdmin } from "../src/lib/crmSupabase.ts";
-import { planAiQuery } from "../src/lib/aiQueryRouter.ts";
+import { planAiQueryWithFallback } from "../src/lib/aiQueryPlanner.ts";
 import { retrieveAiEvidence } from "../src/lib/aiRetrievalBroker.ts";
 
 function questionFromArgs(argv) {
@@ -15,9 +15,10 @@ async function main() {
     process.exitCode = 2;
     return;
   }
-  const plan = planAiQuery(question);
+  // Mesmo planejador do chat (Story 056): regex primeiro, decisao tipada so no `unknown`.
+  const { plan, decidedBy, note } = await planAiQueryWithFallback(question);
   const evidence = await retrieveAiEvidence(getCrmSupabaseAdmin(), plan);
-  console.log(JSON.stringify({ ok: true, readOnly: true, question, plan, evidence }, null, 2));
+  console.log(JSON.stringify({ ok: true, readOnly: true, question, plan, decidedBy, note, evidence }, null, 2));
 }
 
 main().catch((error) => {

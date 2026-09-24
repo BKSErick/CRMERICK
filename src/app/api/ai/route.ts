@@ -287,7 +287,7 @@ Ela DEVE ser escrita em português (PT-BR) e seguir o estilo de abordagem do "ve
 - Nome do contato (opcional, use se fizer sentido): ${contactRow?.name || ""}
 - Site do lead: ${deal.siteUrl || "Não informado"}
 - Gargalo identificado: ${deal.segment || "Não detalhado"}
-- Pontuação/Score do lead (de 0 a 10): ${deal.points || 0}/10${signalContext}
+- Nota de prospecção do lead: ${deal.points || 0} (quanto maior, maior a prioridade; não é escala de 0 a 10)${signalContext}
 
 Se o lead já abriu a página ou clicou no WhatsApp, use isso a favor (ex: "vi que você deu uma olhada..."), sem soar invasivo.
 Retorne APENAS o texto da mensagem a ser enviada no WhatsApp. Não inclua observações, tags adicionais, introduções ou explicações.`;
@@ -306,7 +306,7 @@ Retorne o resumo formatado em Markdown limpo (usando negritos e listas). Mantenh
 - Estágio no Pipeline: ${deal.stage}
 - Valor Estimado: R$ ${deal.value || 0}
 - Gargalo Principal: ${deal.segment || "Não detalhado"}
-- Prioridade (Pontuação): ${deal.points || 0}/10
+- Nota de prospecção: ${deal.points || 0} (quanto maior, maior a prioridade; não é escala de 0 a 10)
 - Última atualização: ${deal.updated_at || "Recente"}${signalContext}
 
 No "Próximo Passo Recomendado", leve em conta o sinal de interesse e a atividade recente acima (se o lead esquentou, priorize; se esfriou, sugira reativação).`;
@@ -335,7 +335,7 @@ Dado um lead, o sinal de interesse (aberturas/cliques nas páginas) e a atividad
 Direto, sem enrolação, PT-BR, sem markdown. Se não houver sinal nenhum, diga que é abordagem fria e sugira o primeiro toque.${doutrinaDeMensagem()}`;
       userPrompt = `Lead: ${deal.company}
 Estágio: ${deal.stage}
-Score: ${deal.points || 0}/10
+Nota de prospecção: ${deal.points || 0} (quanto maior, maior a prioridade)
 Gargalo: ${deal.segment || "não detalhado"}${signalContext}`;
     } else if (action === "suggest-qualification") {
       const messagesResult = await supabase

@@ -27,6 +27,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { carregarEnv, clienteSupabase, ehProspect } from "./lib/analise-comum.mjs";
 import { aiCompleteDetailed, describeFailures } from "../src/lib/aiProviders.mjs";
+import { evidenciaVemDoLead, extrairJson } from "../src/lib/typedDecision.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 carregarEnv(RAIZ);
@@ -104,25 +105,8 @@ devolva string vazia.
 Formato exato:
 {"awareness_level":3,"sophistication_level":4,"offer_clarity":"clara","conversation_depth":3,"offer_demanded":"pagina_nova","blocker":"preco","classification_evidence":"frase do lead"}`;
 
-/**
- * O modelo as vezes embrulha o JSON em cerca de codigo ou em uma frase de cortesia.
- * Sem isto, uma resposta valida vira excecao e o lead deixa de ser classificado.
- */
-function extrairJson(texto) {
-  const limpo = String(texto)
-    .replace(/^\s*```(?:json)?/i, "")
-    .replace(/```\s*$/, "")
-    .trim();
-  try {
-    return JSON.parse(limpo);
-  } catch {
-    // Sobrou prosa em volta: recorta do primeiro { ao ultimo }.
-  }
-  const inicio = limpo.indexOf("{");
-  const fim = limpo.lastIndexOf("}");
-  if (inicio >= 0 && fim > inicio) return JSON.parse(limpo.slice(inicio, fim + 1));
-  throw new Error("resposta da IA nao continha JSON");
-}
+// `extrairJson` e `evidenciaVemDoLead` moram em src/lib/typedDecision.mjs desde a Story 056,
+// compartilhados com a leitura do WhatsApp e o ICP.
 
 // Usa a MESMA cascata do app (src/lib/aiProviders.mjs), com o catalogo vivo de modelos.
 // Antes este script tinha copia propria da lista de modelos e ficou disparando nomes
@@ -134,34 +118,6 @@ async function classificarComIA(thread) {
   });
   if (!result) throw new Error(describeFailures(failures));
   return { dados: extrairJson(result.content), model: `${result.provider}/${result.model}` };
-}
-
-const normalizar = (s) =>
-  String(s || "").toLowerCase().replace(/[^\wàáâãéêíóôõúç ]/gi, " ").replace(/\s+/g, " ").trim();
-
-/**
- * A evidencia tem que sair da boca do LEAD.
- *
- * Motivo concreto: na primeira rodada o modelo classificou a Eletrica GB citando
- * "Faz sentido pro momento de voces?" — que e frase do ERICK. Quando o modelo
- * troca quem falou o que, ele nao errou so a citacao: ele leu a conversa invertida,
- * e consciencia/sofisticacao derivadas dali nao valem nada. Por isso isso invalida
- * a classificacao inteira em vez de so limpar o campo.
- *
- * Comparacao por trecho normalizado porque o modelo quase sempre reescreve
- * pontuacao e acentuacao ao citar.
- */
-function evidenciaVemDoLead(evidencia, msgsDoLead) {
-  const e = normalizar(evidencia);
-  if (!e) return true; // sem citacao e admissivel (lead so mandou audio, por ex.)
-  if (e.length < 12) return true; // trecho curto demais pra casar com seguranca
-  const corpus = msgsDoLead.map(normalizar).join(" | ");
-  if (corpus.includes(e)) return true;
-  // tolera reescrita: exige que uma janela longa da citacao apareca no corpus
-  for (let i = 0; i + 25 <= e.length; i += 5) {
-    if (corpus.includes(e.slice(i, i + 25))) return true;
-  }
-  return false;
 }
 
 /** Rejeita o que o modelo devolveu fora da rubrica em vez de gravar lixo. */

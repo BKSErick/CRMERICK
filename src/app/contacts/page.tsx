@@ -35,6 +35,7 @@ const activityLabel: Record<string, string> = {
   whatsapp_opened: "WhatsApp aberto",
   whatsapp_sent_sync: "WhatsApp enviado",
   whatsapp_received: "WhatsApp recebido",
+  whatsapp_ai_insight: "Leitura do WhatsApp",
   quiz_lead: "Veio do quiz",
   note: "Nota",
 };

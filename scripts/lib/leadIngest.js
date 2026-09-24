@@ -12,7 +12,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { diagnoseLead, normalize } = require("../../src/lib/leadScoring.js");
+const { pathToFileURL } = require("node:url");
+const { applyIcpPoints, diagnoseLead, normalize } = require("../../src/lib/leadScoring.js");
 const { fetchLeadHtml, analyzeHtml } = require("./leadEnrich.js");
 
 const RAIZ = path.resolve(__dirname, "..", "..");
@@ -219,9 +220,57 @@ function perfilVencedor() {
 
 function pontuar(leads) {
   const perfil = perfilVencedor();
-  const itens = leads.map((lead) => ({ lead, diag: diagnoseLead(lead, perfil) }));
+  const itens = leads.map((lead) => {
+    // O lookalike procura o segmento pela chave canonica (Story 058).
+    lead.segment_canonico = lead.segmento || segmentoCanonico(lead.name, lead.categoria);
+    return { lead, diag: diagnoseLead(lead, perfil) };
+  });
   itens.sort((a, b) => b.diag.priority_score - a.diag.priority_score);
   return { itens, temPerfil: Boolean(perfil) };
+}
+
+// --- ICP na entrada (Story 058) -----------------------------------------------
+// Mesma regra do classify-icp (scripts/lib/analise-comum.mjs). E ESM, por isso o import
+// dinamico. Antes o lead entrava sem ICP e so um classify-icp manual preenchia: em 24/09/2026
+// eram 8.078 deals com is_icp nulo. Casa de evento e vertente separada; o ICP industrial nao
+// julga.
+let regrasIcp = null;
+async function carregarRegrasIcp() {
+  if (!regrasIcp) regrasIcp = await import(pathToFileURL(path.join(__dirname, "analise-comum.mjs")).href);
+  return regrasIcp;
+}
+
+function icpNaEntrada(regras, nome, segmento) {
+  if (segmento === "eventos") return null;
+  const veredito = regras.classificaIcp(nome, nome, regras.segmentoCanonico(segmento, nome));
+  return veredito === "sim" ? true : veredito === "nao" ? false : null;
+}
+
+let regraElegibilidade = null;
+async function carregarRegraElegibilidade() {
+  if (!regraElegibilidade) {
+    regraElegibilidade = await import(
+      pathToFileURL(path.join(RAIZ, "src", "lib", "prospectingEligibility.mjs")).href
+    );
+  }
+  return regraElegibilidade;
+}
+
+async function elegibilidadeNaEntrada(lead, isIcp, segmento) {
+  const { avaliarElegibilidadeProspeccao } = await carregarRegraElegibilidade();
+  return avaliarElegibilidadeProspeccao({
+    company: lead.name,
+    name: lead.name,
+    segment: segmento,
+    segment_norm: segmento,
+    is_icp: isIcp,
+    porte: lead.porte || null,
+    capital_social: lead.capital_social || null,
+    cnae_descricao: lead.cnae_descricao || null,
+    site_url: lead.website || lead.site_url || null,
+    decisor_nome: lead.decisor_nome || null,
+    decision_access: lead.decision_access || null,
+  });
 }
 
 // --- Gravacao --------------------------------------------------------------
@@ -231,6 +280,7 @@ async function gravar(crm, itens, proximoId, aoGravar) {
   let id = proximoId;
   let gravados = 0;
   const falhas = [];
+  const regras = await carregarRegrasIcp();
 
   for (const { lead, diag } of itens) {
     const meuId = id++;
@@ -274,6 +324,11 @@ async function gravar(crm, itens, proximoId, aoGravar) {
       continue;
     }
 
+    // lead.segmento vem do --segmento do pull (ex.: eventos), que nao tem regra aqui.
+    const segmento = lead.segmento || segmentoCanonico(lead.name, lead.categoria);
+    const isIcp = icpNaEntrada(regras, nome, segmento);
+    const nota = applyIcpPoints(diag.priority_score, 0, isIcp);
+    const elegibilidade = await elegibilidadeNaEntrada(lead, isIcp, segmento);
     const rd = await crm("deals", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
@@ -281,14 +336,21 @@ async function gravar(crm, itens, proximoId, aoGravar) {
         id: meuId,
         name: nome,
         company: nome,
-        // lead.segmento vem do --segmento do pull (ex.: eventos), que nao tem regra aqui.
-        segment: lead.segmento || segmentoCanonico(lead.name, lead.categoria),
+        segment: segmento,
         stage: "prospect",
         status: "open",
         contact_id: meuId,
         phone: lead.phone || null,
         site_url: lead.website || null,
-        points: diag.priority_score,
+        points: nota.points,
+        icp_points: nota.icp_points,
+        is_icp: isIcp,
+        icp_source: isIcp === null ? null : "regra",
+        capacity_tier: elegibilidade.capacity_tier,
+        capacity_evidence: elegibilidade.capacity_evidence,
+        decision_access: elegibilidade.decision_access,
+        offer_track: elegibilidade.offer_track,
+        eligibility_reason: elegibilidade.eligibility_reason,
         cnpj: lead.cnpj || null,
         capital_social: lead.capital_social || null,
         porte: lead.porte || null,
@@ -322,5 +384,9 @@ module.exports = {
   enriquecer,
   perfilVencedor,
   pontuar,
+  carregarRegrasIcp,
+  icpNaEntrada,
+  carregarRegraElegibilidade,
+  elegibilidadeNaEntrada,
   gravar,
 };

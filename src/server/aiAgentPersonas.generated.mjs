@@ -29,7 +29,7 @@ export const AI_AGENT_PERSONAS = Object.freeze([
     ],
     "sourceHash": "56861a87191926a6482036c6e5375a155d8ad46ab80edd53161de17e6662b629",
     "promptVersion": "1.0.0",
-    "syncedAt": "2026-09-10T18:14:28.360Z"
+    "syncedAt": "2026-09-24T17:23:43.751Z"
   },
   {
     "id": "copy-chief",
@@ -60,7 +60,7 @@ export const AI_AGENT_PERSONAS = Object.freeze([
     ],
     "sourceHash": "b6588724118a5317ec21b49a188d10e2998a2f23e950a6e033af6430723580dd",
     "promptVersion": "1.0.0",
-    "syncedAt": "2026-09-10T18:14:28.360Z"
+    "syncedAt": "2026-09-24T17:23:43.751Z"
   },
   {
     "id": "willian-celso",
@@ -91,7 +91,7 @@ export const AI_AGENT_PERSONAS = Object.freeze([
     ],
     "sourceHash": "ee5ca2ae1565b5acd99dd56da092a2f7b0d8b106f01ed22102fe9cf6937370a0",
     "promptVersion": "2.1.0",
-    "syncedAt": "2026-09-10T18:14:28.360Z"
+    "syncedAt": "2026-09-24T17:23:43.751Z"
   },
   {
     "id": "thiago-finch",
@@ -122,7 +122,7 @@ export const AI_AGENT_PERSONAS = Object.freeze([
     ],
     "sourceHash": "571d1ab04a9411885ecf341bb9981adc47323c256e9f6d0504f57b8d9f76cf58",
     "promptVersion": "2.1.0",
-    "syncedAt": "2026-09-10T18:14:28.360Z"
+    "syncedAt": "2026-09-24T17:23:43.751Z"
   },
   {
     "id": "alex-hormozi",
@@ -153,7 +153,7 @@ export const AI_AGENT_PERSONAS = Object.freeze([
     ],
     "sourceHash": "02bc2aadbe5aa950990f9290c3aceac89bd2bb5cb696245623bc8f0eaf1374f5",
     "promptVersion": "3.1.0",
-    "syncedAt": "2026-09-10T18:14:28.360Z"
+    "syncedAt": "2026-09-24T17:23:43.751Z"
   },
   {
     "id": "webson-vendedor",
@@ -182,9 +182,9 @@ export const AI_AGENT_PERSONAS = Object.freeze([
       "Crie um rascunho de follow-up",
       "Qual pergunta destrava este deal?"
     ],
-    "sourceHash": "6a68a181532c12c2f35ab7a27ab2e6ae248fa90b63e5631091a2ce12e89ea739",
+    "sourceHash": "71008fb87da35c68859eddeb076bc804e3b3065193910ac40b615ceaf81e8930",
     "promptVersion": "1.0.0",
-    "syncedAt": "2026-09-10T18:14:28.360Z"
+    "syncedAt": "2026-09-24T17:23:43.751Z"
   },
   {
     "id": "data-chief",
@@ -215,6 +215,6 @@ export const AI_AGENT_PERSONAS = Object.freeze([
     ],
     "sourceHash": "c12c9c2280e4e16b01f24c735997876d9e1189b14f10c0fcf07dc01472e3943a",
     "promptVersion": "1.0.0",
-    "syncedAt": "2026-09-10T18:14:28.360Z"
+    "syncedAt": "2026-09-24T17:23:43.751Z"
   }
 ]);

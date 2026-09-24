@@ -25,12 +25,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
+import {
+  avaliarElegibilidadeProspeccao,
+  compararPrioridadeProspeccao,
+} from "../src/lib/prospectingEligibility.mjs";
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
 import { conferirCanal } from "./lib/canalWhatsapp.mjs";
 import { segmentoVetado } from "./lib/analise-comum.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { renderFollowupMessage } = salesPlaybookModule;
+let retidosElegibilidade = [];
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
   const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
@@ -52,7 +57,9 @@ const TETO_DIA = Number(arg("teto-dia", 40));
 // Teto de SAIDA DO NUMERO: prospeccao + conversa do aparelho somadas. Existe porque o
 // WhatsApp conta o numero, nao a fila do CRM.
 const TETO_NUMERO = Number(arg("teto-numero", 40));
-const IDS = new Set(arg("ids", "").split(",").map(Number).filter(Boolean));
+const IDS_LISTA = arg("ids", "").split(",").map(Number).filter(Boolean);
+const IDS = new Set(IDS_LISTA);
+const ordemIdsExplicitos = new Map(IDS_LISTA.map((id, index) => [id, index]));
 const EXCLUDE_IDS = new Set(arg("exclude-ids", "").split(",").map(Number).filter(Boolean));
 const JSON_OUT = arg("json-out", "");
 
@@ -154,7 +161,10 @@ const AUTORESPONDER = new RegExp(
 
 async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
-    fetchAllPages(supa, "deals?stage=in.(abordado,followup)&select=id,company,segment,origin_detail"),
+    fetchAllPages(
+      supa,
+      "deals?stage=in.(abordado,followup)&select=id,company,name,segment,segment_norm,origin_detail,is_icp,porte,capital_social,cnae_descricao,site_url,decisor_nome,points",
+    ),
     fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,city"),
     fetchAllPages(supa,
       "activities?type=in.(whatsapp_sent,whatsapp_sent_sync,whatsapp_received)&select=deal_id,type,description,created_at&order=created_at.asc",
@@ -187,6 +197,12 @@ async function carregarFila() {
   const agora = Date.now();
   return deals
     .map((d) => {
+      const elegibilidade = avaliarElegibilidadeProspeccao(d);
+      const { eligible, capacity_tier, eligibility_reason } = elegibilidade;
+      if (!eligible) {
+        retidosElegibilidade.push(`#${d.id} ${d.company} (${eligibility_reason}; capacidade ${capacity_tier})`);
+        return null;
+      }
       const h = hist[d.id];
       const celular = canal(porId[d.id]);
       if (!h || !h.ultimaSaida || !celular) return null;
@@ -203,13 +219,15 @@ async function carregarFila() {
       // resposta humana e 24 na fila prestes a levar. O pedido do responsavel sai uma
       // vez; sem resposta humana depois dele, o lead sai do WhatsApp (e-mail assume).
       if (h.bots > 0 && h.saidasDepoisBot > 0) return null;
-      return { ...d, fone: celular, dias, tier, ehBot: h.bots > 0, toques: h.saidas, cidade: porId[d.id]?.city };
+      return { ...d, prospectingEligibility: elegibilidade, fone: celular, dias, tier, ehBot: h.bots > 0, toques: h.saidas, cidade: porId[d.id]?.city };
     })
     .filter(Boolean)
     .filter((d) => !TIER_FILTRO || d.tier === TIER_FILTRO)
     .filter((d) => IDS.size === 0 || IDS.has(d.id))
     .filter((d) => !EXCLUDE_IDS.has(d.id))
-    .sort((a, b) => b.dias - a.dias);
+    .sort((a, b) => IDS_LISTA.length
+      ? ordemIdsExplicitos.get(a.id) - ordemIdsExplicitos.get(b.id)
+      : b.dias - a.dias || compararPrioridadeProspeccao(a, b));
 }
 
 // Espelha uazapi-send-batch.mjs: .catch() no fetch inteiro, sem rede o fetch rejeita.
@@ -388,6 +406,11 @@ async function registrar(dealId, empresa, tier) {
     lote.push({ ...l, perfilWpp: canal.nome || "" });
   }
   console.log(`Enviados hoje (disparo + follow-up): ${jaHoje}/${TETO_DIA} | saidas do numero: ${jaNumero}/${TETO_NUMERO}`);
+  if (retidosElegibilidade.length) {
+    console.log(`Retidos pela regua ICP/capacidade: ${retidosElegibilidade.length}`);
+    retidosElegibilidade.slice(0, 8).forEach((r) => console.log(`   ${r}`));
+    if (retidosElegibilidade.length > 8) console.log(`   ... e mais ${retidosElegibilidade.length - 8}`);
+  }
   if (retidosCanal.length) {
     console.log(`Retidos pela conferencia do numero na Uazapi: ${retidosCanal.length} (corrigir whatsapp_site/whatsapp_jid no cadastro)`);
     retidosCanal.forEach((r) => console.log(`   ${r}`));

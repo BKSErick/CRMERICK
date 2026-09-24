@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 
-import { aiComplete } from "@/lib/aiComplete";
 import { processCommercialEventBestEffort } from "@/lib/commercialAutomationService.mjs";
+import { readInboundMessage, renderReadingLine } from "@/lib/inboundReading.mjs";
 import { getCrmSupabaseAdmin } from "@/lib/crmSupabase";
 import {
   classifyInboundResponse,
@@ -28,6 +28,7 @@ type DealRef = {
   id: number;
   name: string | null;
   company: string | null;
+  stage: string | null;
   response_type: ResponseType | null;
   response_type_source: "automatic" | "manual" | null;
   next_action_at: string | null;
@@ -36,7 +37,7 @@ type DealRef = {
 };
 
 const dealOperationalSelect =
-  "id, name, company, response_type, response_type_source, next_action_at, next_action_source, last_outbound_at";
+  "id, name, company, stage, response_type, response_type_source, next_action_at, next_action_source, last_outbound_at";
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ ok: false, error: message }, { status });
@@ -205,10 +206,14 @@ async function registrarFalhaAi(
   }
 }
 
+// Story 057: leitura tipada (intencao, objecao, carta do playbook) no lugar do texto livre.
+// Regra primeiro (bot, encaminhamento, sinaisDeSim); o modelo so entra no que sobra. O teto
+// de 20 s fica abaixo do maxDuration, para a falha ser registrada antes de a funcao morrer.
 async function enrichWithAi(
   supabase: SupabaseAdmin,
   messageRowId: number,
   deal: DealRef,
+  responseType: ResponseType,
 ) {
   try {
     const historyResult = await supabase
@@ -220,37 +225,36 @@ async function enrichWithAi(
       .limit(10);
     if (historyResult.error) throw historyResult.error;
 
-    const history = (historyResult.data ?? [])
-      .reverse()
-      .map((item) => `${item.direction === "sent" ? "Erick" : "Lead"}: ${item.content}`)
-      .join("\n");
-    if (!history.trim()) {
-      await registrarFalhaAi(supabase, messageRowId, "Sem historico de conversa para resumir.");
+    const history = [...(historyResult.data ?? [])].reverse();
+    if (!history.some((item) => String(item.content ?? "").trim())) {
+      await registrarFalhaAi(supabase, messageRowId, "Sem historico de conversa para ler.");
       return;
     }
 
-    const result = await aiComplete(
-      [
-        "Voce apenas analisa uma conversa comercial para alimentar um CRM.",
-        "Nunca responda ao lead e nunca invente informacoes.",
-        "Retorne em portugues, em no maximo 4 linhas: resumo, intencao, objecao (se houver) e proximo passo sugerido.",
-      ].join(" "),
-      `Deal: ${deal.company || deal.name || deal.id}\n\nConversa recente:\n${history}`,
-    );
-    if (!result) {
-      // Caminho mais comum das 38 falhas de 29/07 e 07/08: aiComplete devolve null
-      // quando o provider esta fora ou sem chave, e antes isso sumia em silencio.
-      await registrarFalhaAi(supabase, messageRowId, "aiComplete retornou vazio (provider indisponivel ou sem chave).");
+    const reading = await readInboundMessage({
+      company: deal.company || deal.name,
+      stage: deal.stage,
+      history,
+      responseType,
+      timeoutMs: 20000,
+    });
+    if (!reading.ok) {
+      await registrarFalhaAi(supabase, messageRowId, reading.detail);
       return;
     }
 
-    const insight = result.content.slice(0, 1500);
+    const insight = renderReadingLine(reading);
     const update = await supabase
       .from("messages")
       .update({
         ai_insight: insight,
-        ai_provider: result.provider,
-        ai_model: result.model,
+        ai_intent: reading.intent,
+        ai_objection: reading.objection,
+        ai_card: reading.card,
+        ai_evidence: reading.evidence || null,
+        ai_decided_by: reading.decidedBy,
+        ai_provider: reading.provider ?? null,
+        ai_model: reading.model ?? null,
         ai_processed_at: new Date().toISOString(),
         ai_error: null,
       })
@@ -260,7 +264,7 @@ async function enrichWithAi(
     const activity = await supabase.from("activities").insert({
       deal_id: deal.id,
       type: "whatsapp_ai_insight",
-      description: `Leitura da IA:\n${insight}`,
+      description: `${reading.decidedBy === "llm" ? "Leitura da IA" : "Leitura por regra"}:\n${insight}`,
     });
     if (activity.error) throw activity.error;
   } catch (error) {
@@ -376,11 +380,13 @@ export async function POST(request: NextRequest) {
     });
     if (activity.error) throw activity.error;
 
+    let detectedInboundType: ResponseType = "humana";
     if (message.direction === "received") {
       const indicatedContact = extrairContatoIndicado(message.content, deal.company);
       const detectedResponseType = indicatedContact
         ? "encaminhamento"
         : classifyInboundResponse(message.content);
+      detectedInboundType = detectedResponseType;
       const responseType =
         deal.response_type_source === "manual"
           ? (deal.response_type ?? detectedResponseType)
@@ -459,7 +465,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (message.direction === "received" && !message.content.startsWith("[")) {
-      after(() => enrichWithAi(supabase, Number(inserted.data.id), deal));
+      after(() => enrichWithAi(supabase, Number(inserted.data.id), deal, detectedInboundType));
     }
 
     return NextResponse.json(

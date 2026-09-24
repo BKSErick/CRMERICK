@@ -18,6 +18,10 @@
  *   consciencia: +16 pronto | +12 comparando | +10 consciente | +0 desconhecido
  *   -45 excluido (sindicato/prefeitura/etc.)
  * content_score e calculado A PARTE (nao entra no priority_score).
+ *
+ * ICP (Story 058) fica FORA do priority_score e entra por cima em deals.points, com a
+ * parcela gravada em deals.icp_points: +15 dentro do ICP, -25 fora, 0 indefinido. Assim o
+ * recalculo e idempotente e nao precisa refazer a analise do site (que nao fica no banco).
  */
 
 const RECOMMENDED_APPROACHES = ["sem_site_ativo", "builder_fraco", "site_concorrente", "site_auditar", "industrial_email"];
@@ -320,7 +324,9 @@ function lookalikeBoost(lead, profile, ctx, segment) {
   const minAmostra = Number(profile.minAmostra || 5);
   const reviews = Number(lead.reviews_count || 0);
   const chaves = {
-    segment: segment.key,
+    // O perfil e gerado com a chave CANONICA (usinagem, caldeiraria...), nao com a do
+    // classifySegment (industrial_b2b). Sem isto a dimensao segment nunca casava (Story 058).
+    segment: lead.segment_canonico || segment.key,
     ddd: ctx.phone.ddd,
     city: lead.city || null,
     reputacao: reviews >= 50 ? "50+" : reviews >= 10 ? "10a49" : "0a9",
@@ -341,6 +347,28 @@ function lookalikeBoost(lead, profile, ctx, segment) {
 
   const bonus = Math.round(Math.max(-LOOKALIKE_TETO, Math.min(LOOKALIKE_TETO, bruto)));
   return { bonus, reasons };
+}
+
+// --- ICP por cima da nota (Story 058) ----------------------------------------
+// "nao" pesa mais que "sim": lead fora do perfil que fecha barato contamina a tabela por
+// meses (brandbook, Anti-ICP), entao ele desce na fila sem sair dela.
+const ICP_POINTS = Object.freeze({ sim: 15, nao: -25 });
+
+function icpPoints(isIcp) {
+  if (isIcp === true) return ICP_POINTS.sim;
+  if (isIcp === false) return ICP_POINTS.nao;
+  return 0;
+}
+
+/**
+ * Nova nota a partir da atual, descontando o ICP que ja estava aplicado. Idempotente:
+ * rodar duas vezes com o mesmo is_icp nao muda nada. Nunca fica abaixo de zero; nesse caso
+ * a parcela gravada e a efetivamente aplicada, para o proximo recalculo continuar exato.
+ */
+function applyIcpPoints(points, currentIcpPoints, isIcp) {
+  const base = Number(points || 0) - Number(currentIcpPoints || 0);
+  const next = Math.max(0, base + icpPoints(isIcp));
+  return { points: next, icp_points: next - base };
 }
 
 function diagnoseLead(lead, profile) {
@@ -425,4 +453,7 @@ module.exports = {
   scoreV2,
   diagnoseLead,
   dedupeLeads,
+  ICP_POINTS,
+  icpPoints,
+  applyIcpPoints,
 };

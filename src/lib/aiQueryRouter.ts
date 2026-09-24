@@ -3,6 +3,7 @@ export const AI_QUERY_INTENTS = [
   "email_replies",
   "whatsapp_replies",
   "deal_search",
+  "pipeline_overview",
   "unknown",
 ] as const;
 
@@ -74,11 +75,23 @@ export function normalizeAiQueryPlan(value: unknown): AiQueryPlan {
   }
   if (rawFilters.minPoints !== undefined) {
     const minPoints = Number(rawFilters.minPoints);
-    if (!Number.isFinite(minPoints) || minPoints < 0 || minPoints > 100) throw new Error("Score invalido no plano.");
+    // A nota real passa de 100 (base ate ~125, mais o ICP). Story 058.
+    if (!Number.isFinite(minPoints) || minPoints < 0 || minPoints > 200) throw new Error("Score invalido no plano.");
     filters.minPoints = minPoints;
   }
   return { intent, filters, requiresSalesPlaybook: row.requiresSalesPlaybook === true };
 }
+
+const OVERVIEW = new RegExp([
+  "relatorio",
+  "panorama",
+  "visao geral",
+  "status geral",
+  "resumo (?:geral|do (?:funil|pipeline|mes|comercial))",
+  "situacao (?:geral|do funil|do pipeline|comercial)",
+  "como (?:estao|esta|anda|andam|vai|vao) (?:as coisas|o funil|o pipeline|as vendas|a prospeccao|o comercial|os numeros)",
+  "numeros do (?:funil|mes|comercial|pipeline)",
+].join("|"));
 
 function searchTerm(question: string) {
   const match = question.match(/(?:procure|buscar?|encontre|localize)\s+(?:o\s+|a\s+)?(?:prospect|lead|deal|empresa|oportunidade)?\s*(.+)$/i);
@@ -112,6 +125,11 @@ export function planAiQuery(question: string): AiQueryPlan {
   }
   if (/prospect|lead|deal|empresa|oportunidade/.test(text) && (/(?:procure|buscar?|encontre|localize)\s/.test(text) || /score|pontos?|etapa|estagio|acima de|minimo/.test(text))) {
     return normalizeAiQueryPlan({ intent: "deal_search", filters: dealSearchFilters(original, text) });
+  }
+  // Story 056: "me da o relatorio de como estao as coisas" caia em `unknown` e o chat
+  // respondia sem dado nenhum. Visao geral carrega so agregados (escopo reports).
+  if (OVERVIEW.test(text)) {
+    return normalizeAiQueryPlan({ intent: "pipeline_overview", filters: { limit: 20 } });
   }
   return normalizeAiQueryPlan({
     intent: "unknown",

@@ -5,6 +5,7 @@ import test from "node:test";
 
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 import { buildRunPlan } from "../scripts/prospeccao-runner.mjs";
+import { mensagemDecisorIndicado } from "../src/lib/followup.ts";
 
 // regenerate-copies.js e CommonJS (usa `return` de topo e module.exports), entao entra por
 // createRequire, do mesmo jeito que scripts/generate-copies-db.mjs faz.
@@ -142,6 +143,39 @@ test("Comando le as cartas do playbook e nao tem card de reuniao para lead frio"
   assert.match(comando, /CARTAS\.retomadaSemPreco\.texto/);
   assert.doesNotMatch(comando, /puxar pra reuni[aã]o/i);
   assert.doesNotMatch(comando, /n[aã]o [eé] minha inten[cç][aã]o mexer nisso/i);
+});
+
+test("roteamento por gatekeeper e decisor indicado e versionado e nao pede permissao", () => {
+  const routing = SALES_PLAYBOOK.routing;
+  const mensagens = [
+    routing.humanGatekeeper,
+    routing.forwardable,
+    routing.centralOpening,
+    routing.botName,
+    routing.botClose,
+    routing.referredDecisionMaker,
+  ];
+  for (const mensagem of mensagens) {
+    assert.doesNotMatch(mensagem, /posso|consegue|prefere|quer ver|faz sentido|topa/i);
+  }
+  assert.equal(
+    renderFollowupMessage({ tier: "M1", company: "Metal Forte", responseType: "bot" }),
+    routing.botName,
+    "o follow-up automatico de bot usa a mesma fala governante do cockpit",
+  );
+
+  const indicado = mensagemDecisorIndicado({
+    nomeDecisor: "Marcos Silva",
+    empresa: "Metal Forte",
+    quemIndicou: "Carla",
+  });
+  assert.match(indicado, /Carla me passou seu contato/);
+  assert.match(indicado, /ida e volta/i);
+  assert.doesNotMatch(indicado, /quer ver|posso|prefere/i);
+
+  const comando = readFileSync(new URL("../src/app/comando/page.tsx", import.meta.url), "utf8");
+  assert.match(comando, /SALES_PLAYBOOK\.routing\.humanGatekeeper/);
+  assert.doesNotMatch(comando, /Consegue me direcionar|Consigo mandar aqui ou prefere/);
 });
 
 test("runner e dry-run por padrao e so propaga --go com autorizacao explicita", () => {

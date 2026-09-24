@@ -64,19 +64,18 @@ if (!CIDADE) {
 // Nichos que a operacao ja sabe atender e para os quais existe copy e case. Puxar
 // alem disso enche a base de lead que nao vai ser abordado.
 const QUERIES_PADRAO = [
-  "usinagem",
+  "usinagem cnc",
   "tornearia mecanica",
-  "caldeiraria",
-  "serralheria",
-  "metalurgica",
+  "caldeiraria industrial",
+  "metalurgica industrial",
   "manutencao industrial",
-  "manutencao de maquinas",
+  "manutencao de maquinas industriais",
   "automacao industrial",
   "instalacoes eletricas industriais",
-  "empresa de engenharia",
   "engenharia industrial",
-  "agronegocio",
-  "maquinas agricolas",
+  "hidraulica industrial",
+  "pneumatica industrial",
+  "recuperacao de componentes industriais",
 ];
 const QUERIES = arg("queries", "") ? arg("queries", "").split(",").map((q) => q.trim()).filter(Boolean) : QUERIES_PADRAO;
 

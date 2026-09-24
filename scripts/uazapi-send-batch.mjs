@@ -29,6 +29,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
+import {
+  avaliarElegibilidadeProspeccao,
+  compararPrioridadeProspeccao,
+} from "../src/lib/prospectingEligibility.mjs";
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
 import { conferirCanal } from "./lib/canalWhatsapp.mjs";
 import { segmentoVetado } from "./lib/analise-comum.mjs";
@@ -53,6 +57,7 @@ const FORCE_HORA = process.argv.includes("--force-hora");
 // mao fecham a meta de 30 a 35 por dia. Bloco de 5 = duas metades com pausa no meio.
 const LIMITE = Number(arg("limit", 10));
 const IDS = arg("ids", "").split(",").map(Number).filter(Boolean);
+const ordemIdsExplicitos = new Map(IDS.map((id, index) => [id, index]));
 const EXCLUDE_IDS = new Set(arg("exclude-ids", "").split(",").map(Number).filter(Boolean));
 const STRICT_IDS = process.argv.includes("--strict-ids");
 const JSON_OUT = arg("json-out", "");
@@ -133,7 +138,10 @@ async function carregarFila() {
     ? `id=in.(${IDS.join(",")})`
     : `stage=eq.prospect&segment=in.(${SEGMENTOS_VALIDOS})`;
   const [deals, contatos] = await Promise.all([
-    fetchAllPages(supa, `deals?${filtro}&select=id,company,stage,copy_text,site_url,segment`),
+    fetchAllPages(
+      supa,
+      `deals?${filtro}&select=id,company,name,stage,copy_text,site_url,segment,segment_norm,is_icp,porte,capital_social,cnae_descricao,decisor_nome,points`,
+    ),
     fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url"),
   ]);
   const porId = Object.fromEntries(contatos.map((c) => [c.id, c]));
@@ -147,6 +155,13 @@ async function carregarFila() {
     .filter((d) => !STRICT_IDS || d.stage === "prospect")
     .filter((d) => d.copy_text)
     .filter((d) => !fora.has(d.id))
+    .map((d) => ({ ...d, prospectingEligibility: avaliarElegibilidadeProspeccao(d) }))
+    .filter((d) => {
+      const { eligible, capacity_tier, eligibility_reason } = d.prospectingEligibility;
+      if (eligible) return true;
+      retidos.push(`#${d.id} ${d.company} (${eligibility_reason}; capacidade ${capacity_tier})`);
+      return false;
+    })
     .filter((d) => {
       if (!segmentoVetado(d.segment, d.company)) return true;
       retidos.push(`#${d.id} ${d.company} (refrigeracao/climatizacao)`);
@@ -198,7 +213,9 @@ async function carregarFila() {
     })
     .filter((d) => IDS.length === 0 || IDS.includes(d.id))
     .filter((d) => !EXCLUDE_IDS.has(d.id))
-    .sort((a, b) => b.confianca - a.confianca);
+    .sort((a, b) => IDS.length
+      ? ordemIdsExplicitos.get(a.id) - ordemIdsExplicitos.get(b.id)
+      : compararPrioridadeProspeccao(a, b));
 }
 
 async function jaDisparado(dealId) {

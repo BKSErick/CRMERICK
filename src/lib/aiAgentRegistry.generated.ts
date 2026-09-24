@@ -88,7 +88,7 @@ export const AI_AGENT_PUBLIC_SNAPSHOTS = Object.freeze([
     "version": "1.0.0",
     "specialty": "Vendas consultivas, objecoes, follow-up e fechamento",
     "sourcePath": ".aios-core/development/agents/webson-vendedor.md",
-    "sourceHash": "6a68a181532c12c2f35ab7a27ab2e6ae248fa90b63e5631091a2ce12e89ea739",
+    "sourceHash": "71008fb87da35c68859eddeb076bc804e3b3065193910ac40b615ceaf81e8930",
     "disclosure": "Especialista de IA.",
     "suggestions": [
       "Analise esta objecao",

@@ -429,10 +429,13 @@ export function mensagemDecisorIndicado(input: {
     ? `Me passaram seu contato aí na ${empresa}`
     : `${primeiroNome(indicou)} me passou seu contato`;
 
-  return (
-    `Oi, ${primeiroNome(input.nomeDecisor)}! Erick aqui. ${ponte}. ` +
-    `Eu faço o pedido do cliente chegar no WhatsApp de vocês já com serviço, medida e prazo definidos, sem a ida e volta pra descobrir o que ele precisa. ` +
-    `Separei um exemplo de uma empresa do mesmo ramo. Quer ver?`
+  return Object.entries({
+    nomeDecisor: primeiroNome(input.nomeDecisor),
+    ponte,
+    company: empresa,
+  }).reduce(
+    (texto, [chave, valor]) => texto.replaceAll(`{{${chave}}}`, valor),
+    SALES_PLAYBOOK.routing.referredDecisionMaker,
   );
 }
 

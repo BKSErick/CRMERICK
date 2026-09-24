@@ -29,6 +29,8 @@ export interface LeadInput {
   /** Cidade do lead. Alimenta a dimensao city do lookalike. */
   city?: string | null;
   uf?: string | null;
+  /** Segmento canonico (usinagem, caldeiraria...). E a chave da dimensao segment do lookalike. */
+  segment_canonico?: string | null;
 }
 
 export type PhoneKind = "celular" | "fixo" | "invalido" | "nenhum";
@@ -110,3 +112,10 @@ export function phoneScore(p: PhoneProfile): number;
 export function scoreV1(lead: LeadInput): number;
 export function diagnoseLead(lead: LeadInput, profile?: WinningProfile | null): LeadDiagnosis;
 export function dedupeLeads(leads: LeadInput[]): LeadInput[];
+export const ICP_POINTS: Readonly<{ sim: number; nao: number }>;
+export function icpPoints(isIcp: boolean | null | undefined): number;
+export function applyIcpPoints(
+  points: number | null | undefined,
+  currentIcpPoints: number | null | undefined,
+  isIcp: boolean | null | undefined,
+): { points: number; icp_points: number };

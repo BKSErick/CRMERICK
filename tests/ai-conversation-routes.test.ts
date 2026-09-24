@@ -27,6 +27,15 @@ test("rotas exigem sessao e persistem metadados auditaveis", () => {
   assert.doesNotMatch(chat, /tool_calls|\.from\(body|\.rpc\(body/);
 });
 
+test("chat usa planejador com fallback tipado, Groq de reserva e teto por modelo (Story 056)", () => {
+  const chat = source("src/app/api/ai/chat/route.ts");
+  assert.match(chat, /planAiQueryWithFallback/);
+  assert.match(chat, /providerPolicy: "free-then-groq"/);
+  assert.match(chat, /perModelTimeoutMs/);
+  assert.match(chat, /decidedBy/);
+  assert.doesNotMatch(chat, /freeOnly: true/);
+});
+
 test("catalogo de modelos exige sessao e expoe somente modelos gratuitos", () => {
   const route = source("src/app/api/ai/models/route.ts");
   assert.match(route, /requireAiChatAdminSession/);

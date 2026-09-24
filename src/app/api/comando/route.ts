@@ -7,6 +7,10 @@ import { QUALIFICATION_REVIEW_STAGES, summarizeDealQualification } from "@/lib/d
 import { computeNorthStar, loadGoals } from "@/lib/metrics";
 import { diagnoseLead } from "@/lib/leadScoring";
 import {
+  avaliarElegibilidadeProspeccao,
+  compararPrioridadeProspeccao,
+} from "@/lib/prospectingEligibility.mjs";
+import {
   FUNDO_STAGES,
   TIER_INFO,
   classifyInboundResponse,
@@ -18,7 +22,7 @@ import {
   type FundoMotivo,
 } from "@/lib/followup";
 import { getCompanySignals, signalAliases, signalWeight, type CompanySignal } from "@/lib/sinais";
-import { loadDailyPriorityEvidence } from "@/lib/aiRetrievalBroker";
+import { loadDailyPriorityEvidence, loadLatestInboundReadings } from "@/lib/aiRetrievalBroker";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
 // (disparos/follow-ups/calls/deals movidos), a fila priorizada do dia e os alertas das regras
@@ -152,8 +156,11 @@ export async function GET(request: NextRequest) {
     // Fila do dia: deals ativos com telefone, priorizados pelo score (points) ja persistido.
     const { data: dealRows, error: dealErr } = await supabase
       .from("deals")
-      .select("id, company, phone, whatsapp, points, stage, copy_text, name, site_url, contact_id")
+      .select("id, company, phone, whatsapp, points, stage, copy_text, name, site_url, contact_id, segment, segment_norm, is_icp, porte, capital_social, cnae_descricao, decisor_nome, decision_access")
       .in("stage", ["prospect", "qualified"])
+      // Filtra no banco antes do limit; a avaliacao abaixo confirma novamente para
+      // nenhum registro materializado antigo furar a regua por dado desatualizado.
+      .eq("offer_track", "projeto")
       .order("points", { ascending: false })
       .limit(1000);
     if (dealErr) throw dealErr;
@@ -205,6 +212,8 @@ export async function GET(request: NextRequest) {
     };
 
     const queue = (dealRows ?? [])
+      .map((d) => ({ ...d, prospectingEligibility: avaliarElegibilidadeProspeccao(d) }))
+      .filter((d) => d.prospectingEligibility.eligible)
       .map((d) => {
         const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
         const phone =
@@ -234,14 +243,19 @@ export async function GET(request: NextRequest) {
             ? { views: signal.views, waClicks: signal.waClicks, linkClicks: signal.linkClicks, lastEvent: signal.lastEvent, hot: signal.hot, pageUrl: signal.pageUrl }
             : null,
           signalWeight: signalWeight(signal),
+          capacity_tier: d.prospectingEligibility.capacity_tier,
+          capacity_evidence: d.prospectingEligibility.capacity_evidence,
+          decision_access: d.prospectingEligibility.decision_access,
+          offer_track: d.prospectingEligibility.offer_track,
+          eligibility_reason: d.prospectingEligibility.eligibility_reason,
           message:
             (d.copy_text as string) ||
-            `Oi! Falo sobre ${(d.name as string) || "a oportunidade"} da ${d.company}. Posso te mandar uma analise rapida?`,
+            `Oi! Erick aqui. Em ${(d.name as string) || d.company}, o pedido de orçamento já chega com serviço, medida e prazo definidos ou ainda volta para buscar essas informações?`,
         };
       })
       .filter((d) => d.phone && isWhatsappMobile(d.phone))
-      // Quem deu sinal fura a fila; sem sinal, mantem a ordem por points.
-      .sort((a, b) => b.signalWeight - a.signalWeight || b.points - a.points)
+      // Gate primeiro. Dentro dos elegiveis: sinal, capacidade e score.
+      .sort(compararPrioridadeProspeccao)
       .slice(0, goals.dailyInputs.disparos);
 
     // Fila de follow-up: quem ja foi contatado (abordado/followup) e esta na janela
@@ -375,6 +389,11 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 50);
 
+    // Story 057: leitura tipada da ultima mensagem do lead (intencao + carta do playbook).
+    // So aponta a carta; quem decide e envia e o Erick.
+    const readings = await loadLatestInboundReadings(supabase, followupQueue.map((item) => item.id));
+    const followupQueueWithReading = followupQueue.map((item) => ({ ...item, leitura: readings.get(item.id) ?? null }));
+
     // FILA DE ENCAMINHAMENTOS (10/08/2026). Encaminhamento e o melhor lead do
     // funil: o gatekeeper ja deu a permissao e o decisor chega com nome de quem
     // indicou. Ate aqui extract-referrals.mjs gravava deals.referred_* e NINGUEM
@@ -469,7 +488,7 @@ export async function GET(request: NextRequest) {
         },
       },
       queue,
-      followupQueue,
+      followupQueue: followupQueueWithReading,
       referralQueue,
       smartPriorities,
       forecast: {

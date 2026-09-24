@@ -71,7 +71,7 @@ function renderFollowupMessage(input) {
     segmentDescription: segmentDescription(input.segment),
   };
   if (input.responseType === "bot") {
-    return interpolate(SALES_PLAYBOOK.followups.bot, values);
+    return interpolate(SALES_PLAYBOOK.routing.botName, values);
   }
   if (input.tier === "M1") return interpolate(SALES_PLAYBOOK.followups.M1, values);
   if (input.tier === "M2") {

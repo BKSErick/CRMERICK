@@ -35,7 +35,7 @@ function catalogoGroq(ids: string[]) {
 function montarFetch(opcoes: {
   openRouterModels?: string[];
   groqModels?: string[];
-  responderChat: (chamada: Chamada) => Response;
+  responderChat: (chamada: Chamada, signal?: AbortSignal | null) => Response | Promise<Response>;
 }) {
   const chamadas: Chamada[] = [];
   const stub = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -52,9 +52,17 @@ function montarFetch(opcoes: {
     }
 
     chamadas.push(chamada);
-    return opcoes.responderChat(chamada);
+    return opcoes.responderChat(chamada, init?.signal);
   };
   return { chamadas, stub: stub as unknown as typeof globalThis.fetch };
+}
+
+/** Modelo gratuito travado: so termina quando o sinal da cascata aborta. */
+function travar(signal?: AbortSignal | null) {
+  return new Promise<Response>((_resolve, reject) => {
+    if (!signal) throw new Error("teste sem sinal ficaria travado para sempre");
+    signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+  });
 }
 
 function respostaOk(texto: string) {
@@ -242,6 +250,116 @@ test("modo freeOnly nunca cai para provedor sem prova de preco zero", async () =
     globalThis.fetch = stub;
 
     const resultado = await aiCompleteDetailed("sistema", "pergunta", { freeOnly: true });
+
+    assert.equal(resultado.result, null);
+    assert.equal(chamadas.some((item) => item.url.includes("api.groq.com")), false);
+  });
+});
+
+test("modelo travado estoura o teto dele, fica registrado e a cascata tenta o proximo", async () => {
+  await comAmbiente(async () => {
+    const { chamadas, stub } = montarFetch({
+      openRouterModels: ["fornecedor/lento:free", "fornecedor/rapido:free"],
+      responderChat: (chamada, signal) => chamada.body.model === "fornecedor/lento:free" ? travar(signal) : respostaOk("respondeu"),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", { timeoutMs: 2000, perModelTimeoutMs: 40, providerPolicy: "free-strict" });
+
+    assert.equal(resultado.result?.model, "fornecedor/rapido:free");
+    assert.deepEqual(chamadas.map((item) => item.body.model), ["fornecedor/lento:free", "fornecedor/rapido:free"]);
+    assert.equal(resultado.attempts[0].reason, "timeout");
+    assert.equal(resultado.attempts[1].status, "success");
+  });
+});
+
+test("prazo total esgotado devolve as tentativas sem lancar erro", async () => {
+  await comAmbiente(async () => {
+    const { stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free", "fornecedor/b:free"],
+      groqModels: ["groq/modelo"],
+      responderChat: (_chamada, signal) => travar(signal),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", { timeoutMs: 60, perModelTimeoutMs: 5000 });
+
+    assert.equal(resultado.result, null);
+    assert.equal(resultado.attempts.length, 1, "a tentativa que estourou o prazo fica registrada");
+    assert.equal(resultado.failures[0].reason, "timeout");
+    assert.match(describeFailures(resultado.failures), /demoraram demais/i);
+  });
+});
+
+test("cancelamento de quem chamou encerra sem lancar e marca cancelled", async () => {
+  await comAmbiente(async () => {
+    const { stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free"],
+      responderChat: (_chamada, signal) => travar(signal),
+    });
+    globalThis.fetch = stub;
+    const controle = new AbortController();
+    setTimeout(() => controle.abort(), 30);
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", { signal: controle.signal, providerPolicy: "free-strict" });
+
+    assert.equal(resultado.result, null);
+    assert.equal(resultado.failures[0].reason, "cancelled");
+  });
+});
+
+test("free-then-groq cai no Groq quando o OpenRouter gratuito recusa", async () => {
+  await comAmbiente(async () => {
+    const { chamadas, stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free"],
+      groqModels: ["groq/modelo"],
+      responderChat: (chamada) => chamada.url.includes("openrouter.ai")
+        ? new Response("rate limit", { status: 429 })
+        : respostaOk("reserva respondeu"),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", { providerPolicy: "free-then-groq" });
+
+    assert.equal(resultado.result?.provider, "Groq");
+    assert.equal(chamadas[0].url.includes("openrouter.ai"), true, "OpenRouter gratuito vem primeiro");
+  });
+});
+
+test("orcamento por provedor sobra tempo para o Groq quando todo o OpenRouter trava", async () => {
+  await comAmbiente(async () => {
+    const { stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free", "fornecedor/b:free", "fornecedor/c:free"],
+      groqModels: ["groq/modelo"],
+      responderChat: (chamada, signal) => chamada.url.includes("openrouter.ai") ? travar(signal) : respostaOk("reserva"),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", {
+      timeoutMs: 3000,
+      perProviderTimeoutMs: 80,
+      perModelTimeoutMs: 1000,
+      providerPolicy: "free-then-groq",
+    });
+
+    assert.equal(resultado.result?.provider, "Groq");
+    assert.ok(resultado.failures.every((item) => item.provider !== "OpenRouter" || item.reason === "timeout"));
+  });
+});
+
+test("modelo fixo nunca usa Groq, mesmo com free-then-groq", async () => {
+  await comAmbiente(async () => {
+    const { chamadas, stub } = montarFetch({
+      openRouterModels: ["fornecedor/a:free"],
+      groqModels: ["groq/modelo"],
+      responderChat: (chamada) => chamada.url.includes("openrouter.ai") ? new Response("rate limit", { status: 429 }) : respostaOk("nao podia"),
+    });
+    globalThis.fetch = stub;
+
+    const resultado = await aiCompleteDetailed("sistema", "pergunta", {
+      providerPolicy: "free-then-groq",
+      modelPreference: { mode: "fixed", provider: "OpenRouter", modelId: "fornecedor/a:free" },
+    });
 
     assert.equal(resultado.result, null);
     assert.equal(chamadas.some((item) => item.url.includes("api.groq.com")), false);

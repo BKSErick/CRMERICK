@@ -1,6 +1,8 @@
 import type { getCrmSupabaseAdmin } from "./crmSupabase";
 import { classifyInboundResponse } from "./followup.ts";
+import { loadAiContext } from "./aiContextBroker.ts";
 import type { AiQueryPlan } from "./aiQueryRouter.ts";
+import { cardLabel, intentLabel } from "./inboundReading.mjs";
 
 type SupabaseAdmin = ReturnType<typeof getCrmSupabaseAdmin>;
 type UnknownRow = Record<string, unknown>;
@@ -31,6 +33,15 @@ export type EmailAwaitingFact = {
   href: string;
 };
 
+export type InboundReadingSummary = {
+  intent: string;
+  intentLabel: string;
+  objection: string | null;
+  card: string | null;
+  cardLabel: string;
+  occurredAt: string;
+};
+
 export type WhatsappAwaitingFact = {
   dealId: number;
   company: string;
@@ -38,7 +49,45 @@ export type WhatsappAwaitingFact = {
   preview: string;
   stage: string;
   href: string;
+  /** Leitura tipada da ultima mensagem lida (Story 057). Nunca envia nada. */
+  leitura?: InboundReadingSummary | null;
 };
+
+/**
+ * Leitura tipada mais recente por deal (Story 057). Opcional por natureza: sem a migration
+ * 20260924 a coluna nao existe e a fila segue sem leitura, nunca quebra.
+ */
+export async function loadLatestInboundReadings(supabase: SupabaseAdmin, dealIds: number[]): Promise<Map<number, InboundReadingSummary>> {
+  const readings = new Map<number, InboundReadingSummary>();
+  const ids = [...new Set(dealIds.filter((id) => Number.isInteger(id) && id > 0))];
+  if (ids.length === 0) return readings;
+  try {
+    const result = await supabase
+      .from("messages")
+      .select("deal_id, ai_intent, ai_objection, ai_card, occurred_at")
+      .in("deal_id", ids)
+      .eq("direction", "received")
+      .not("ai_intent", "is", null)
+      .order("occurred_at", { ascending: false })
+      .limit(Math.min(ids.length * 5, 1000));
+    if (result.error) return readings;
+    for (const row of (result.data ?? []) as UnknownRow[]) {
+      const dealId = Number(row.deal_id);
+      if (readings.has(dealId)) continue;
+      readings.set(dealId, {
+        intent: String(row.ai_intent),
+        intentLabel: intentLabel(String(row.ai_intent)),
+        objection: row.ai_objection ? String(row.ai_objection) : null,
+        card: row.ai_card ? String(row.ai_card) : null,
+        cardLabel: row.ai_card ? cardLabel(String(row.ai_card)) : "",
+        occurredAt: String(row.occurred_at ?? ""),
+      });
+    }
+  } catch {
+    // Leitura e enfeite da fila: qualquer falha aqui devolve fila sem leitura.
+  }
+  return readings;
+}
 
 export type OverdueFact = {
   dealId: number;
@@ -170,7 +219,10 @@ async function loadWhatsappAwaiting(supabase: SupabaseAdmin, plan: AiQueryPlan, 
     : { data: [] as UnknownRow[], error: null };
   if (deals.error) throw deals.error;
   const allFacts = buildWhatsappAwaitingFacts(rows, (deals.data ?? []) as UnknownRow[], activityLimit);
-  return { facts: allFacts.slice(0, plan.filters.limit), total: allFacts.length, activityLimitReached: rows.length >= activityLimit };
+  const facts = allFacts.slice(0, plan.filters.limit);
+  const readings = await loadLatestInboundReadings(supabase, facts.map((fact) => fact.dealId));
+  const withReading = facts.map((fact) => ({ ...fact, leitura: readings.get(fact.dealId) ?? null }));
+  return { facts: withReading, total: allFacts.length, activityLimitReached: rows.length >= activityLimit };
 }
 
 async function loadOverdue(supabase: SupabaseAdmin, limit: number, now: Date) {
@@ -233,6 +285,67 @@ async function loadDealSearch(supabase: SupabaseAdmin, plan: AiQueryPlan) {
   return { facts, total: result.count ?? facts.length, term };
 }
 
+/**
+ * Visao geral (Story 056): so agregados. Funil, forecast e perdas vem do escopo `reports` do
+ * broker de contexto; a fila do dia entra como contagem mais os 5 primeiros itens.
+ */
+async function loadPipelineOverview(supabase: SupabaseAdmin, plan: AiQueryPlan, now: Date): Promise<AiEvidenceEnvelope[]> {
+  const asOf = now.toISOString();
+  const [reports, priorities] = await Promise.all([
+    loadAiContext(supabase, { type: "reports" }),
+    loadDailyPriorityEvidence(supabase, 5, now).then((data) => ({ ok: true as const, data }), (error: unknown) => ({ ok: false as const, error })),
+  ]);
+  const envelopes: AiEvidenceEnvelope[] = reports.map((source) => ({
+    sourceId: source.sourceId,
+    label: source.label,
+    query: plan.intent,
+    asOf: source.asOf,
+    scope: source.scope,
+    total: source.facts.length,
+    facts: source.facts,
+    filters: {},
+    limitations: source.limitations,
+    links: source.links,
+    truncated: false,
+  }));
+  if (priorities.ok) {
+    const { data } = priorities;
+    envelopes.push({
+      sourceId: "daily-queue-summary",
+      label: "Fila de hoje (contagens)",
+      query: plan.intent,
+      asOf,
+      scope: "operations",
+      total: data.total,
+      facts: [{
+        whatsappAguardandoResposta: data.whatsapp.total,
+        emailsAguardandoResposta: data.email.total,
+        followupsVencidos: data.overdue.total,
+        primeiros: data.facts,
+      }],
+      filters: { period: "last_30_days", limit: 5 },
+      limitations: data.whatsapp.activityLimitReached ? ["O teto de leitura da timeline de WhatsApp foi atingido."] : [],
+      links: [{ label: "Abrir Sala de Comando", href: "/comando" }],
+      truncated: data.total > data.facts.length,
+    });
+  } else {
+    envelopes.push({
+      sourceId: "daily-queue-summary",
+      label: "Fila de hoje (contagens)",
+      query: plan.intent,
+      asOf,
+      scope: "operations",
+      total: 0,
+      facts: [],
+      filters: {},
+      limitations: ["Fila do dia indisponivel nesta resposta."],
+      links: [],
+      truncated: false,
+    });
+  }
+  return envelopes;
+}
+
 export async function retrieveAiEvidence(supabase: SupabaseAdmin, plan: AiQueryPlan, now = new Date()): Promise<AiEvidenceEnvelope[]> {
   const asOf = now.toISOString();
   if (plan.intent === "unknown") {
@@ -258,6 +371,9 @@ export async function retrieveAiEvidence(supabase: SupabaseAdmin, plan: AiQueryP
   if (plan.intent === "whatsapp_replies") {
     const data = await loadWhatsappAwaiting(supabase, plan, now);
     return [{ sourceId: "whatsapp-awaiting-reply", label: "WhatsApp aguardando resposta", query: plan.intent, asOf, scope: "whatsapp", total: data.total, facts: data.facts, filters: plan.filters, limitations: data.activityLimitReached ? ["O teto de leitura da timeline foi atingido."] : [], links: [{ label: "Abrir pipeline", href: "/pipeline" }], truncated: data.total > data.facts.length || data.activityLimitReached }];
+  }
+  if (plan.intent === "pipeline_overview") {
+    return loadPipelineOverview(supabase, plan, now);
   }
   if (plan.intent === "deal_search") {
     const data = await loadDealSearch(supabase, plan);

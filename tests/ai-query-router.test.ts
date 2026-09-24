@@ -31,6 +31,21 @@ test("busca natural converte etapa e score em filtros fechados", () => {
   assert.equal(plan.filters.textContains, undefined);
 });
 
+test("pedido de relatorio geral vira pipeline_overview (pergunta real de 21/09/2026)", () => {
+  assert.deepEqual(planAiQuery("me da o relatorio de como estão as coisas"), {
+    intent: "pipeline_overview",
+    filters: { limit: 20 },
+    requiresSalesPlaybook: false,
+  });
+  for (const pergunta of ["Como está o funil?", "me dá um panorama", "resumo geral do mês", "quais os números do funil?", "situação comercial"]) {
+    assert.equal(planAiQuery(pergunta).intent, "pipeline_overview", pergunta);
+  }
+});
+
+test("busca de lead com score continua deal_search mesmo citando funil", () => {
+  assert.equal(planAiQuery("leads do funil com score acima de 60").intent, "deal_search");
+});
+
 test("intencao desconhecida e minima e nunca vira escopo all", () => {
   assert.deepEqual(planAiQuery("Explique o que é um CRM"), {
     intent: "unknown",

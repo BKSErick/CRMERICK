@@ -80,6 +80,8 @@ const FAILURE_LABELS = {
   empty_completion: "resposta vazia",
   network_error: "falha de rede",
   model_not_free: "modelo nao comprovado como gratuito",
+  timeout: "tempo limite esgotado",
+  cancelled: "cancelado",
 };
 
 /** Mensagem curta e acionavel a partir das falhas acumuladas na cascata. */
@@ -105,6 +107,9 @@ export function describeFailures(failures) {
   if (razoes.has("rate_limited")) {
     return "Limite de uso dos modelos gratuitos atingido. Tente de novo em alguns minutos.";
   }
+  if (failures.every((item) => item.reason === "timeout" || item.reason === "cancelled")) {
+    return "Os modelos gratuitos demoraram demais para responder. Tente de novo em instantes.";
+  }
   const resumo = failures
     .slice(0, 3)
     .map((item) => `${item.provider}${item.model ? `/${item.model}` : ""}: ${FAILURE_LABELS[item.reason] ?? item.reason}`)
@@ -112,12 +117,23 @@ export function describeFailures(failures) {
   return `Nenhum modelo respondeu. ${resumo}.`;
 }
 
-function abortSignalFor(options) {
-  const signals = [];
-  if (options?.signal) signals.push(options.signal);
-  if (options?.timeoutMs > 0) signals.push(AbortSignal.timeout(options.timeoutMs));
-  if (signals.length === 0) return undefined;
-  return signals.length === 1 ? signals[0] : AbortSignal.any(signals);
+function combinarSinais(sinais) {
+  const vivos = sinais.filter(Boolean);
+  if (vivos.length === 0) return undefined;
+  return vivos.length === 1 ? vivos[0] : AbortSignal.any(vivos);
+}
+
+function timeoutSignal(ms) {
+  return Number(ms) > 0 ? AbortSignal.timeout(Number(ms)) : null;
+}
+
+/**
+ * `free-strict`: so OpenRouter gratuito (Story 055). `free-then-groq`: OpenRouter gratuito e,
+ * se ninguem responder, Groq no plano gratuito (Story 056). `freeOnly: true` e alias do estrito.
+ */
+function politicaDe(options) {
+  if (options?.providerPolicy === "free-strict" || options?.providerPolicy === "free-then-groq") return options.providerPolicy;
+  return options?.freeOnly === true ? "free-strict" : "free-then-groq";
 }
 
 /**
@@ -140,11 +156,11 @@ export function extractRejectedParams(bodyText, sentKeys) {
   return [...encontrados];
 }
 
-async function callModel(provider, key, model, systemPrompt, userPrompt, options, extras) {
+async function callModel(provider, key, model, systemPrompt, userPrompt, signal, extras) {
   return fetch(provider.url, {
     method: "POST",
     headers: provider.getHeaders(key),
-    signal: abortSignalFor(options),
+    signal,
     body: JSON.stringify({
       model,
       messages: [
@@ -164,6 +180,13 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
   const failures = [];
   const attempts = [];
   const fixed = options?.modelPreference?.mode === "fixed" ? options.modelPreference : null;
+  const policy = politicaDe(options);
+
+  // `timeoutMs` e o prazo TOTAL da cascata. Antes cada chamada ganhava um timeout novo e o
+  // primeiro estouro lancava erro: um modelo gratuito travado matava o chat inteiro sem
+  // tentar o proximo (medido em 21/09/2026: 2/2 perguntas mortas assim).
+  const deadline = timeoutSignal(options?.timeoutMs);
+  const encerrado = () => Boolean(options?.signal?.aborted || deadline?.aborted);
 
   if (fixed && (fixed.provider !== "OpenRouter" || !fixed.modelId)) {
     failures.push({ provider: "OpenRouter", model: fixed?.modelId ?? null, status: null, reason: "model_not_free" });
@@ -171,8 +194,11 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
   }
 
   for (const provider of PROVIDERS) {
+    if (encerrado()) return { result: null, failures, attempts };
     if (fixed && provider.name !== fixed.provider) continue;
-    if (options?.freeOnly === true && provider.name !== "OpenRouter") continue;
+    if (policy === "free-strict" && provider.name !== "OpenRouter") continue;
+    // Orcamento por provedor: garante que sobra tempo pra reserva quando o primeiro trava.
+    const providerBudget = timeoutSignal(options?.perProviderTimeoutMs);
     const key = provider.getKey();
     if (!key) {
       failures.push({ provider: provider.name, model: null, status: null, reason: "missing_key" });
@@ -198,8 +224,8 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
 
     let pularProvedor = false;
     for (const model of models) {
-      if (pularProvedor) break;
-      if (options?.signal?.aborted) return { result: null, failures, attempts };
+      if (pularProvedor || providerBudget?.aborted) break;
+      if (encerrado()) return { result: null, failures, attempts };
 
       // Comeca ja sem os parametros que este modelo recusou em chamadas anteriores.
       const extras = { ...provider.requestOptionsFor(model), ...(options?.requestOptions ?? {}) };
@@ -208,10 +234,12 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
       // Ate 3 passadas no MESMO modelo: cada 400 de parametro ensina algo e a proxima ja vai
       // sem ele. Ultimo recurso e o payload minimo (so model + messages).
       for (let passada = 0; passada < 3; passada += 1) {
-        if (options?.signal?.aborted) return { result: null, failures, attempts };
+        if (encerrado()) return { result: null, failures, attempts };
+        if (providerBudget?.aborted) break;
         const attemptStartedAt = Date.now();
+        const signal = combinarSinais([options?.signal, deadline, providerBudget, timeoutSignal(options?.perModelTimeoutMs)]);
         try {
-          const response = await callModel(provider, key, model, systemPrompt, userPrompt, options, extras);
+          const response = await callModel(provider, key, model, systemPrompt, userPrompt, signal, extras);
 
           if (!response.ok) {
             const bodyText = await response.text().catch(() => "");
@@ -274,8 +302,16 @@ export async function aiCompleteDetailed(systemPrompt, userPrompt, options) {
           });
           break;
         } catch (error) {
-          // Abortou por timeout/cancelamento: nao adianta tentar o proximo modelo.
-          if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) throw error;
+          if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) {
+            // Estouro do modelo ou do orcamento do provedor: registra e segue. Cancelamento do
+            // chamador ou fim do prazo total: devolve o que tem, sem lancar.
+            const reason = options?.signal?.aborted ? "cancelled" : "timeout";
+            failures.push({ provider: provider.name, model, status: null, reason });
+            attempts.push({ provider: provider.name, model, status: "failed", reason, latencyMs: Date.now() - attemptStartedAt });
+            console.warn("[ai-provider] request aborted", { provider: provider.name, model, reason });
+            if (encerrado()) return { result: null, failures, attempts };
+            break;
+          }
           failures.push({
             provider: provider.name,
             model,

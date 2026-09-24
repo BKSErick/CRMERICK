@@ -4,13 +4,21 @@ export type AiResult = { content: string; provider: string; model: string; usage
 export type AiModelPreference =
   | { mode: "auto" }
   | { mode: "fixed"; provider: "OpenRouter"; modelId: string };
+export type AiProviderPolicy = "free-strict" | "free-then-groq";
 export type AiCompleteOptions = {
   signal?: AbortSignal;
+  /** Prazo TOTAL da cascata. Ao esgotar, devolve as falhas registradas sem lancar erro. */
   timeoutMs?: number;
+  /** Teto de cada chamada de modelo. Estourou: registra `timeout` e tenta o proximo modelo. */
+  perModelTimeoutMs?: number;
+  /** Teto por provedor, para sobrar tempo para a reserva quando o primeiro trava. */
+  perProviderTimeoutMs?: number;
   /** Parametros extras do payload (ex.: response_format, temperature) mesclados por chamada. */
   requestOptions?: Record<string, unknown>;
   modelPreference?: AiModelPreference;
-  /** Fail-closed: chama somente endpoints OpenRouter comprovadamente gratuitos. */
+  /** `free-strict`: so OpenRouter gratuito. `free-then-groq` (padrao): OpenRouter gratuito, depois Groq. */
+  providerPolicy?: AiProviderPolicy;
+  /** Alias de `providerPolicy: "free-strict"`. */
   freeOnly?: boolean;
 };
 
@@ -25,7 +33,9 @@ export type AiFailureReason =
   | "provider_error"
   | "empty_completion"
   | "network_error"
-  | "model_not_free";
+  | "model_not_free"
+  | "timeout"
+  | "cancelled";
 
 export type AiFailure = {
   provider: string;

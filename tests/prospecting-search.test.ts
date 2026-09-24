@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -126,4 +127,15 @@ test("fila prioriza o rascunho persistido em vez de recalcular outra copy", () =
     ], generated),
     generated,
   );
+});
+
+test("busca padrao parte de termos industriais e nao de categorias anti-ICP", () => {
+  const source = readFileSync(new URL("../scripts/pull-city-serper.mjs", import.meta.url), "utf8");
+  const bloco = source.match(/const QUERIES_PADRAO = \[([\s\S]*?)\];/)?.[1] ?? "";
+
+  assert.match(bloco, /usinagem cnc/i);
+  assert.match(bloco, /manutencao industrial/i);
+  assert.match(bloco, /recuperacao de componentes industriais/i);
+  assert.doesNotMatch(bloco, /serralheria|marmoraria|refrigera|climatiza|agronegocio|maquinas agricolas/i);
+  assert.doesNotMatch(bloco, /"empresa de engenharia"/i);
 });

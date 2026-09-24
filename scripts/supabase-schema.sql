@@ -105,6 +105,14 @@ create table if not exists public.messages (
   ai_provider text,
   ai_model    text,
   ai_processed_at timestamptz,
+  ai_error    text,                         -- 20260811_ai_insight_retry
+  ai_attempts smallint not null default 0,
+  ai_last_attempt_at timestamptz,
+  ai_intent   text,                         -- 20260924_whatsapp_leitura_tipada (Story 057)
+  ai_objection text,
+  ai_card     text,                         -- chave do sales-playbook.json, sem check
+  ai_evidence text,
+  ai_decided_by text,                       -- regra | llm
   created_at  timestamptz default now()
 );
 

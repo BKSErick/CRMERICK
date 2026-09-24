@@ -54,6 +54,7 @@ export const activityTypeLabels: Record<string, string> = {
   whatsapp_opened: "WhatsApp aberto",
   whatsapp_sent_sync: "WhatsApp enviado",
   whatsapp_received: "WhatsApp recebido",
+  whatsapp_ai_insight: "Leitura do WhatsApp",
   automation_task_upserted: "Tarefa automatica",
   automation_priority_set: "Prioridade automatica",
   automation_draft_created: "Rascunho automatico",

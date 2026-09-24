@@ -7,7 +7,7 @@ import { getAgentChatAvailability } from "@/lib/aiChatAvailability";
 import { loadAiContext } from "@/lib/aiContextBroker";
 import { assertReadOnlyChatPayload, composeChatPrompts, normalizeContextScope, normalizeModelPreference, parseAgentMention, requireAgentId, truncateContextEnvelopes } from "@/lib/aiConversation";
 import { boundMessageHistory } from "@/lib/aiMessageHistory";
-import { planAiQuery } from "@/lib/aiQueryRouter";
+import { planAiQueryWithFallback } from "@/lib/aiQueryPlanner";
 import { retrieveAiEvidence } from "@/lib/aiRetrievalBroker";
 import { AI_AGENT_PERSONAS } from "@/server/aiAgentPersonas.generated.mjs";
 import salesPlaybookModule from "@/lib/salesPlaybook.mjs";
@@ -45,7 +45,11 @@ export async function POST(request: NextRequest) {
     if (!persona) throw new Error("DNA do especialista indisponivel.");
 
     const smartRetrievalEnabled = String(process.env.AI_CHAT_SMART_RETRIEVAL_ENABLED ?? "false").toLowerCase() === "true";
-    const routingPlan = smartRetrievalEnabled ? planAiQuery(mention.message) : null;
+    // Regex primeiro; se ela nao reconhecer a pergunta, decisao tipada entre as intencoes fechadas.
+    const planned = smartRetrievalEnabled
+      ? await planAiQueryWithFallback(mention.message, { signal: request.signal, timeoutMs: Number(process.env.AI_CHAT_ROUTER_TIMEOUT_MS) || 8000 })
+      : null;
+    const routingPlan = planned?.plan ?? null;
     const context = routingPlan
       ? await retrieveAiEvidence(supabase, routingPlan)
       : await loadAiContext(supabase, scope);
@@ -88,15 +92,21 @@ export async function POST(request: NextRequest) {
 
     const userInsert = await supabase.from("ai_conversation_messages").insert({ conversation_id: conversationId, role: "user", status: "complete", agent_id: mention.agentId, content: message }).select("*").single();
     if (userInsert.error) throw userInsert.error;
-    const pending = await supabase.from("ai_conversation_messages").insert({ conversation_id: conversationId, role: "assistant", status: "pending", agent_id: mention.agentId, content: "", citations, context_manifest: contextManifest, prompt_version: persona.promptVersion, source_hash: persona.sourceHash, usage: null, provider_attempts: [], routing_plan: routingPlan }).select("*").single();
+    const pending = await supabase.from("ai_conversation_messages").insert({ conversation_id: conversationId, role: "assistant", status: "pending", agent_id: mention.agentId, content: "", citations, context_manifest: contextManifest, prompt_version: persona.promptVersion, source_hash: persona.sourceHash, usage: null, provider_attempts: [], routing_plan: planned ? { ...planned.plan, decidedBy: planned.decidedBy } : null }).select("*").single();
     if (pending.error) throw pending.error;
     assistantMessageId = pending.data.id;
 
+    // Story 056: prazo total abaixo do maxDuration, teto por modelo (um gratuito travado nao
+    // mata mais a resposta) e orcamento por provedor para sobrar tempo pro Groq de reserva.
+    const totalTimeoutMs = Math.max(5000, Math.min(Number(process.env.AI_CHAT_TIMEOUT_MS) || 42000, 45000));
+    const perModelTimeoutMs = Math.max(3000, Math.min(Number(process.env.AI_CHAT_PER_MODEL_TIMEOUT_MS) || 15000, totalTimeoutMs));
     const { result, failures, attempts } = await aiCompleteDetailed(prompts.systemPrompt, prompts.userPrompt, {
       signal: request.signal,
-      timeoutMs: Math.max(5000, Math.min(Number(process.env.AI_CHAT_TIMEOUT_MS) || 45000, 55000)),
+      timeoutMs: totalTimeoutMs,
+      perModelTimeoutMs,
+      perProviderTimeoutMs: Math.round(totalTimeoutMs * 0.6),
       modelPreference,
-      freeOnly: true,
+      providerPolicy: "free-then-groq",
     });
     providerAttempts = attempts;
     // A causa vem classificada (modelo descontinuado, chave rejeitada, limite de uso...) em vez
