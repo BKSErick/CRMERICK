@@ -154,8 +154,10 @@ async function carregarFila() {
     })
     .filter((d) => {
       const c = porId[d.id] || {};
+      // Casa de evento: porte grande (muita avaliacao) e o alvo da vertente, nao motivo
+      // de corte. Sem reviews o avaliarLead so aplica as travas de comercio e de rede.
       const v = avaliarLead(
-        { id: d.id, company: d.company, reviews: c.reviews_count, siteUrl: d.site_url || c.site_url },
+        { id: d.id, company: d.company, reviews: d.segment === "eventos" ? null : c.reviews_count, siteUrl: d.site_url || c.site_url },
         aprovados,
       );
       if (!v.ok) retidos.push(`#${d.id} ${d.company} (${v.motivo})`);
