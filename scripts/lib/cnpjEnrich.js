@@ -25,6 +25,12 @@
  * quando a MinhaReceita oscilava, o enriquecimento devolvia null em silêncio.
  * ReceitaWS gratuita permite 3 consultas/minuto, então toda chamada passa por uma fila
  * com intervalo mínimo. Por isso o e-mail é OPT-IN (`comEmail`), e não parte do caminho padrão.
+ *
+ * OPENCNPJ (18/09/2026): api.opencnpj.org devolve o MESMO e-mail da Receita que a ReceitaWS
+ * (batido em 3/3 CNPJs da base), mais QSA, telefones, CNAE e porte, em ~500ms e sem limite
+ * de 3/min. Virou a fonte de e-mail padrão quando `comEmail` está ligado; a ReceitaWS só
+ * entra se a OpenCNPJ falhar E o chamador pedir (`receitaWs: true`). Sem isso, 1000 CNPJs
+ * levavam ~6h; agora levam ~10min.
  */
 
 const fs = require("node:fs");
@@ -312,24 +318,135 @@ async function fetchReceitaWs(cnpj, timeoutMs) {
   }
 }
 
+// OpenCNPJ escreve a qualificacao do socio por extenso, sem o codigo. Mapeia para o codigo
+// oficial, senao todo socio cai em PESO_PADRAO e o decisor vira sorteio.
+const QUALIFICACAO_TEXTO_PARA_CODIGO = [
+  [/s[oó]cio[\s-]*administrador/i, 49],
+  [/titular pessoa f[ií]sica/i, 65],
+  [/^empres[aá]rio/i, 50],
+  [/^administrador/i, 5],
+  [/^presidente/i, 16],
+  [/^diretor/i, 10],
+  [/conselheiro de administra/i, 8],
+  [/^fundador/i, 54],
+  [/^s[oó]cio$/i, 22],
+];
+
+function codigoDeQualificacaoTexto(texto) {
+  const t = String(texto || "").trim();
+  for (const [re, codigo] of QUALIFICACAO_TEXTO_PARA_CODIGO) if (re.test(t)) return codigo;
+  return null;
+}
+
+// Traduz o payload da OpenCNPJ para o formato que montarDados() ja entende (o da
+// MinhaReceita/ReceitaWS). Capital vem "100000,00" (string com virgula) e os telefones vem
+// em lista {ddd, numero}; sem esta traducao o porte cairia em NaN e o telefone se perderia.
+function adaptarOpenCnpj(p) {
+  if (!p || !p.cnpj) return null;
+  const capital = Number(String(p.capital_social || "0").replace(/\./g, "").replace(",", "."));
+  const principal = (p.cnaes || []).find((c) => c && c.is_principal) || null;
+  const telefone = (p.telefones || [])
+    .filter((t) => t && !t.is_fax && t.numero)
+    .map((t) => `(${t.ddd || ""}) ${t.numero}`)
+    .join(" / ");
+  return {
+    razao_social: p.razao_social || null,
+    nome_fantasia: p.nome_fantasia || null,
+    situacao_cadastral: p.situacao_cadastral || "ATIVA",
+    capital_social: Number.isFinite(capital) ? capital : 0,
+    porte: p.porte_empresa || null,
+    cnae_fiscal: p.cnae_principal || null,
+    cnae_fiscal_descricao: principal ? principal.descricao : null,
+    natureza_juridica: p.natureza_juridica || null,
+    data_inicio_atividade: p.data_inicio_atividade || null,
+    municipio: p.municipio || null,
+    uf: p.uf || null,
+    email: p.email || null,
+    telefone: telefone || null,
+    qsa: (p.QSA || p.qsa || []).map((s) => ({
+      nome_socio: s.nome_socio,
+      codigo_qualificacao_socio: codigoDeQualificacaoTexto(s.qualificacao_socio),
+      qualificacao_socio: s.qualificacao_socio,
+      data_entrada_sociedade: s.data_entrada_sociedade,
+      identificador_de_socio: /jur[ií]dica/i.test(String(s.identificador_socio || "")) ? 1 : 2,
+    })),
+  };
+}
+
+// api.opencnpj.org: base publica da Receita, com e-mail. Sem fila: em 18/09/2026 respondeu
+// 6/6 em ~500ms sem 429 (a cnpj.ws, testada junto, bloqueou na 4a chamada).
+async function fetchOpenCnpj(cnpj, timeoutMs = 8000) {
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(`https://api.opencnpj.org/${cnpj}`, {
+        signal: controller.signal,
+        headers: { "User-Agent": "CRM-Erick-LeadBot/1.0" },
+      }).catch(() => null);
+      clearTimeout(timer);
+      if (!res) return null;
+      if (res.status === 404) return null;
+      if (res.status === 429 || res.status >= 500) {
+        await new Promise((r) => setTimeout(r, 1500 * (tentativa + 1)));
+        continue;
+      }
+      if (!res.ok) return null;
+      const payload = await res.json().catch(() => null);
+      return adaptarOpenCnpj(payload);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+// MinhaReceita e mais completa; das outras fontes aproveitamos so o que faltou.
+function mesclarComplemento(dados, extra) {
+  if (!extra) return dados;
+  if (!dados) return extra;
+  dados.email_receita = dados.email_receita || extra.email_receita;
+  if (dados.socios.length === 0 && extra.socios.length > 0) {
+    dados.socios = extra.socios;
+    dados.decisor_nome = extra.decisor_nome;
+    dados.decisor_qualificacao = extra.decisor_qualificacao;
+  }
+  for (const p of extra.receita_phones) {
+    if (!dados.receita_phones.includes(p)) dados.receita_phones.push(p);
+  }
+  dados.municipio = dados.municipio || extra.municipio;
+  dados.uf = dados.uf || extra.uf;
+  return dados;
+}
+
 /**
  * Consulta o CNPJ. Mantém o nome antigo por compatibilidade com os chamadores.
  *
  * @param {string} cnpjLimpo
- * @param {number|object} opcoes  número = timeoutMs (assinatura antiga) ou { timeoutMs, comEmail }
- *   comEmail: true faz uma consulta extra na ReceitaWS quando a MinhaReceita não trouxe e-mail.
- *   Custa ~21s por CNPJ (limite de 3/min da conta gratuita), por isso é opt-in.
+ * @param {number|object} opcoes  número = timeoutMs (assinatura antiga) ou { timeoutMs, comEmail, receitaWs }
+ *   comEmail: true busca o e-mail cadastrado na Receita quando a MinhaReceita não trouxe:
+ *     primeiro na OpenCNPJ (rápida), depois na ReceitaWS SE `receitaWs: true`.
+ *   receitaWs: liga o fallback lento (~21s por CNPJ, 3/min). Default true para não mudar o
+ *     comportamento do enrich-decisores; o colhedor de e-mails passa false e roda em minutos.
  */
 async function fetchCnpjMinhaReceita(cnpjLimpo, opcoes = {}) {
   const cfg = typeof opcoes === "number" ? { timeoutMs: opcoes } : opcoes || {};
   const timeoutMs = cfg.timeoutMs || 5000;
   const comEmail = Boolean(cfg.comEmail);
+  const usarReceitaWs = cfg.receitaWs !== false;
 
   const cnpj = digitos(cnpjLimpo);
   if (!validarCnpj(cnpj)) return null;
 
+  // Cache sem e-mail so e reaproveitado quando (a) ninguem pediu e-mail ou (b) as fontes
+  // de e-mail que este chamador aceita ja foram tentadas (`email_esgotado` guarda a mais
+  // funda que rodou: "opencnpj" ou "receitaws"); senao refaz a consulta.
   const cached = readCache(cnpj);
-  if (cached !== undefined && !(comEmail && cached && !cached.email_receita)) return cached;
+  if (cached !== undefined) {
+    const faltaEmail = comEmail && cached && !cached.email_receita;
+    const esgotado = cached && (cached.email_esgotado === "receitaws" || (cached.email_esgotado === "opencnpj" && !usarReceitaWs));
+    if (!faltaEmail || esgotado) return cached;
+  }
 
   try {
     const controller = new AbortController();
@@ -343,27 +460,25 @@ async function fetchCnpjMinhaReceita(cnpjLimpo, opcoes = {}) {
       if (payload && !payload.message) dados = montarDados(cnpj, payload, "minhareceita");
     }
 
-    // Fallback (e fonte de e-mail): ReceitaWS. A BrasilAPI, que ocupava este lugar,
-    // responde 403 e nunca funcionou como fallback de verdade.
+    // Fonte de e-mail (e fallback geral): OpenCNPJ.
+    let tentouOpen = false;
     if (!dados || (comEmail && !dados.email_receita)) {
+      tentouOpen = true;
+      const payloadOpen = await fetchOpenCnpj(cnpj, Math.max(timeoutMs, 8000));
+      if (payloadOpen) dados = mesclarComplemento(dados, montarDados(cnpj, payloadOpen, "opencnpj"));
+    }
+
+    // Ultimo recurso: ReceitaWS (lenta). A BrasilAPI, que ocupava este lugar,
+    // responde 403 e nunca funcionou como fallback de verdade.
+    let tentouWs = false;
+    if (usarReceitaWs && (!dados || (comEmail && !dados.email_receita))) {
+      tentouWs = true;
       const payloadWs = await fetchReceitaWs(cnpj, Math.max(timeoutMs, 10000));
-      if (payloadWs) {
-        const dadosWs = montarDados(cnpj, payloadWs, "receitaws");
-        if (!dados) {
-          dados = dadosWs;
-        } else {
-          // MinhaReceita é mais completa; da ReceitaWS aproveitamos o que faltou.
-          dados.email_receita = dados.email_receita || dadosWs.email_receita;
-          if (dados.socios.length === 0 && dadosWs.socios.length > 0) {
-            dados.socios = dadosWs.socios;
-            dados.decisor_nome = dadosWs.decisor_nome;
-            dados.decisor_qualificacao = dadosWs.decisor_qualificacao;
-          }
-          for (const p of dadosWs.receita_phones) {
-            if (!dados.receita_phones.includes(p)) dados.receita_phones.push(p);
-          }
-        }
-      }
+      if (payloadWs) dados = mesclarComplemento(dados, montarDados(cnpj, payloadWs, "receitaws"));
+    }
+
+    if (dados && comEmail && !dados.email_receita && tentouOpen) {
+      dados.email_esgotado = tentouWs ? "receitaws" : "opencnpj";
     }
 
     writeCache(cnpj, dados);
@@ -400,6 +515,7 @@ module.exports = {
   formatarCnpj,
   extractCnpjsFromText,
   fetchCnpjMinhaReceita,
+  fetchOpenCnpj,
   searchCnpjViaSerper,
   normalizarPorte,
   normalizarSocios,

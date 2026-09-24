@@ -32,8 +32,13 @@ lista-de-ataque.html
 # Dados do disparo de email (PII) — nao commitar
 scripts/email/email_queue.json
 scripts/email/sent_log.json
+# Segundo e-mail da sequencia (18/09/2026): fila por dia e log proprio, mesma PII.
+scripts/email/email_queue_seq2_*.json
+scripts/email/sent_log_seq2.json
 # Enderecos bloqueados por hard bounce/spam: e lista de e-mail de lead real.
 scripts/email/blocklist.json
+# Colheita de e-mails (18/09/2026): cada arquivo lista e-mail, decisor e CNPJ de lead.
+scripts/email/colheita/
 preview-emails.html
 
 # Reconciliacao WhatsApp x CRM (PII: telefones e transcricao de conversa)

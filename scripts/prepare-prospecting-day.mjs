@@ -10,6 +10,11 @@
  *     --followups=3,7 --first=0 --alvo=3,10 \
  *     --min=900,1320 --max=1200,1680 --bloco=99 --teto-numero=30
  *
+ * E o dia pode ser de um degrau so de follow-up, com --tier=M1|M2|M3|bot:
+ *
+ *   node scripts/prepare-prospecting-day.mjs --date=2026-09-22 \
+ *     --tier=M2 --followups=12,13 --first=0 --alvo=12,25
+ *
  * Le-se: 3 follow-ups de manha e 7 a tarde, nenhuma primeira mensagem, teto acumulado
  * de 3 ate o fim da manha e 10 no dia, mensagem a cada 15-20 min de manha e 22-28 min
  * a tarde, sem pausa de bloco, e o lote para se o NUMERO passar de 30 saidas no dia.
@@ -41,6 +46,15 @@ function localDate(offsetDays = 0) {
 
 const date = arg("date", localDate(1));
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Use --date=AAAA-MM-DD.");
+
+// Degrau do follow-up (M1/M2/M3/bot), repassado ao uazapi-followup-batch. Vazio = a
+// fila inteira, como sempre. Existe porque as vezes o dia e de UM degrau so: em
+// 22/09/2026 a fila tinha 49 M2 parados e o dia foi fechado so com eles.
+const tierFollowup = arg("tier", "");
+if (tierFollowup && !["M1", "M2", "M3", "bot"].includes(tierFollowup)) {
+  throw new Error(`--tier aceita M1, M2, M3 ou bot; recebi "${tierFollowup}".`);
+}
+const tierArgs = tierFollowup ? [`--tier=${tierFollowup}`] : [];
 
 // "3,7" = manha,tarde. Um numero so vale para os dois turnos.
 function porSlot(nome, padraoManha, padraoTarde = padraoManha) {
@@ -87,7 +101,7 @@ for (const slot of ["morning", "afternoon"]) {
   }
 }
 
-function collect(script, kind, slot, limit, excluded = []) {
+function collect(script, kind, slot, limit, excluded = [], extraArgs = []) {
   if (!limit) return [];
   const relativeOutput = path.join("logs", "prospecting-batches", `${date}-${slot}.${kind}.candidates.json`);
   const args = [
@@ -96,6 +110,7 @@ function collect(script, kind, slot, limit, excluded = []) {
     `--json-out=${relativeOutput}`,
   ];
   if (excluded.length) args.push(`--exclude-ids=${excluded.join(",")}`);
+  args.push(...extraArgs);
   const result = spawnSync(process.execPath, args, { cwd: ROOT, stdio: "inherit" });
   if (result.status !== 0) throw new Error(`Falha ao preparar ${kind}/${slot} (exit ${result.status}).`);
   const absoluteOutput = path.join(ROOT, relativeOutput);
@@ -104,9 +119,9 @@ function collect(script, kind, slot, limit, excluded = []) {
   return Array.isArray(payload.ids) ? payload.ids.map(Number).filter(Number.isInteger) : [];
 }
 
-const morningFollowups = collect("uazapi-followup-batch.mjs", "followup", "morning", followupsPorSlot.morning);
+const morningFollowups = collect("uazapi-followup-batch.mjs", "followup", "morning", followupsPorSlot.morning, [], tierArgs);
 const morningFirst = collect("uazapi-send-batch.mjs", "first", "morning", firstPorSlot.morning);
-const afternoonFollowups = collect("uazapi-followup-batch.mjs", "followup", "afternoon", followupsPorSlot.afternoon, morningFollowups);
+const afternoonFollowups = collect("uazapi-followup-batch.mjs", "followup", "afternoon", followupsPorSlot.afternoon, morningFollowups, tierArgs);
 const afternoonFirst = collect("uazapi-send-batch.mjs", "first", "afternoon", firstPorSlot.afternoon, morningFirst);
 const createdAt = new Date().toISOString();
 
