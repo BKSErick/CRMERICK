@@ -19,6 +19,30 @@ import {
 } from "@/lib/followup";
 import { normalizeWhatsappPhone } from "@/lib/whatsappPhone";
 import type { Deal } from "@/lib/crmRecords";
+import { retencaoFilaFria } from "@/lib/prospectingEligibility.mjs";
+
+// P0 (Story 064): a fila visual aplica a mesma regua do disparo. Anti-ICP em estagio frio
+// nao aparece; inelegivel sem resposta esperando tambem nao.
+function retencaoDoDeal(deal: Deal, lastInbound?: string | null, lastOutbound?: string | null) {
+  return retencaoFilaFria({
+    id: deal.id,
+    company: deal.company,
+    name: deal.name,
+    stage: deal.stage,
+    segment: deal.segment,
+    segment_norm: deal.segmentNorm,
+    is_icp: deal.isIcp ?? null,
+    porte: deal.porte,
+    capital_social: deal.capitalSocial,
+    cnae_descricao: deal.cnaeDescricao,
+    site_url: deal.siteUrl,
+    decisor_nome: deal.decisorNome,
+    decision_access: (deal.decisionAccess ?? null) as Parameters<typeof retencaoFilaFria>[0]["decision_access"],
+    eligibility_exception: deal.eligibilityException ?? null,
+    last_inbound_at: lastInbound ?? null,
+    last_outbound_at: lastOutbound ?? null,
+  });
+}
 
 function cleanPhone(value?: string) {
   return normalizeWhatsappPhone(value);
@@ -97,11 +121,12 @@ export default function DisparoPage() {
     const q = query.trim().toLowerCase();
 
     return deals
+      .filter((deal) => !retencaoDoDeal(deal, deal.lastInboundAt, deal.lastOutboundAt).excluir)
       .map((deal) => {
         const { phone, contact } = phoneFor(deal);
-        const message =
-          deal.copyText ||
-          `Oi! Falo sobre ${deal.title ?? "a oportunidade"} da ${deal.company}. Posso te mandar uma analise rapida?`;
+        // Sem copy_text aprovada, nao ha mensagem: o fallback antigo ("Posso te mandar uma
+        // analise rapida?") pedia licenca e saia sem passar pelo gate de texto (P5).
+        const message = deal.copyText ?? "";
 
         return {
           id: deal.id,
@@ -166,12 +191,20 @@ export default function DisparoPage() {
           },
           new Date(now).toISOString(),
         );
+        const retencao = retencaoDoDeal(deal, lastInbound, lastOutbound);
         const message =
-          section === "responder_agora" || section === "encaminhamentos"
+          retencao.semTemplate || section === "responder_agora" || section === "encaminhamentos"
             ? ""
             : tier === "aguardar" && responseType !== "bot"
               ? ""
-              : followupMessage(tier === "aguardar" ? "M1" : tier, deal.company, responseType);
+              : followupMessage(
+                  tier === "aguardar" ? "M1" : tier,
+                  deal.company,
+                  responseType,
+                  deal.segmentNorm ?? deal.segment,
+                  null,
+                  deal.originDetail === "concorrente_jotta" ? "metalthec" : null,
+                );
 
         return {
           id: deal.id,
@@ -194,8 +227,10 @@ export default function DisparoPage() {
           responseTimeMinutes: deal.responseTimeMinutes,
           tier,
           message,
+          retido: retencao.excluir,
         };
       })
+      .filter((row) => !row.retido)
       .filter((row) => !q || `${row.company} ${row.contact}`.toLowerCase().includes(q))
       .sort((a, b) => {
         const sectionOrder =

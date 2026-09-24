@@ -167,17 +167,32 @@ const offerPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency:
 const entryOfferPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.entryOffer.currency });
 
 // Cartas vivem em content/sales-playbook.json (postResponse.cartas, msg2Ponte,
-// msg2Preco). Aqui so trocamos os placeholders do playbook pelos marcadores que
-// o Erick preenche na mao ao copiar. Texto novo entra no JSON, nunca aqui.
+// msg2Preco, tierA, comando). Aqui so trocamos os placeholders do playbook pelos
+// marcadores que o Erick preenche na mao ao copiar. Texto novo entra no JSON, nunca
+// aqui: o gate de texto (src/lib/copyGate.mjs) roda sobre o playbook inteiro nos testes.
 const CARTAS = SALES_PLAYBOOK.postResponse.cartas;
-function cartaComando(texto: string) {
+const TIER_A = SALES_PLAYBOOK.postResponse.tierA;
+const COMANDO = SALES_PLAYBOOK.comando;
+const projectPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.projectOffer.currency, maximumFractionDigits: 0 });
+type CasoComando = "jotta" | "metalthec";
+function cartaComando(texto: string, opcoes: { oferta?: "offer" | "projectOffer"; caso?: CasoComando } = {}) {
+  const tierA = opcoes.oferta === "projectOffer";
+  const setupPrice = tierA ? projectPrice.format(SALES_PLAYBOOK.projectOffer.fromSetupPrice) : offerPrice.format(SALES_PLAYBOOK.offer.setupPrice);
+  const monthlyPrice = tierA ? projectPrice.format(SALES_PLAYBOOK.projectOffer.fromMonthlyPrice) : offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice);
+  const metalthec = opcoes.caso === "metalthec";
   return texto
     .replaceAll("{{company}}", "[EMPRESA]")
-    .replaceAll("{{setupPrice}}", offerPrice.format(SALES_PLAYBOOK.offer.setupPrice))
-    .replaceAll("{{monthlyPrice}}", offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice))
+    .replaceAll("{{setupPrice}}", setupPrice)
+    .replaceAll("{{monthlyPrice}}", monthlyPrice)
     .replaceAll("{{proximaEntrada}}", "[DIA]")
-    .replaceAll("{{caseIntro}}", "Na Jotta")
-    .replaceAll("{{caseUrl}}", SALES_PLAYBOOK.cases.jottaUrl);
+    .replaceAll("{{nomeDecisor}}", "[NOME]")
+    .replaceAll("{{ponte}}", COMANDO.decisorIndicadoPonte)
+    .replaceAll("{{quemDecide}}", TIER_A.quemDecideSemNome)
+    .replaceAll("{{caseIntro}}", metalthec ? "Na Metalthec" : "Na Jotta")
+    .replaceAll("{{caseUrl}}", metalthec ? SALES_PLAYBOOK.cases.metalthecUrl : SALES_PLAYBOOK.cases.jottaUrl);
+}
+function cartasDoBloco(lista: { titulo: string; texto: string }[]) {
+  return lista.map((carta) => ({ title: carta.titulo, text: cartaComando(carta.texto) }));
 }
 const forecastCurrency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -210,84 +225,46 @@ const READY_MESSAGES: { title: string; text: string }[] = [
   },
   // SIM FRACO ("Diferente", "sim" seco, "ok", "pode mandar"): o lead deu espaco
   // pro case, nao pro preco. Ponte = bloco 1 da msg 2 terminando em pergunta
-  // ancorada no case. No sim seguinte, msg2Preco. Regra do Erick (17/09/2026):
-  // preco sem consciencia vira "nao" de qualquer jeito. Lead FRIO nunca vai pra
-  // reuniao: o card antigo de "15 minutos na tela" foi removido deste fluxo.
+  // ancorada no case. No sim seguinte, msg2Preco (Tier B) ou tierA.proposta (Tier A).
+  // Regra do Erick (17/09/2026): preco sem consciencia vira "nao" de qualquer jeito.
   {
     title: "🌉 Sim FRACO (\"Diferente\", \"ok\", \"pode mandar\") → Msg 2 ponte, sem preço",
     text: cartaComando(SALES_PLAYBOOK.postResponse.msg2Ponte),
   },
   {
-    title: "💰 Depois da ponte, no sim → preço + vaga",
+    title: "💰 Tier B: depois da ponte, no sim → preço + vaga",
     text: cartaComando(SALES_PLAYBOOK.postResponse.msg2Preco),
   },
-  // Os cards de reuniao abaixo sao para lead QUENTE (inbound, indicado, ou
-  // qualificado que pediu apresentacao, tipo JD Aco Forte). Nunca para lead frio.
+  // MSG 2 do Tier B (estruturado): a UNICA mensagem entre a resposta do lead e a
+  // decisao, com preco escrito e fecho pela vaga de producao. Versao dinamica
+  // (link por segmento): mensagemExemplo() em src/lib/followup.ts.
   {
-    title: "✅ Reunião marcada (só lead quente/inbound): confirmação",
-    text: "Fechado, [NOME]: [DIA] às [HORA]. Vou te mostrar o diagnóstico da [EMPRESA] na tela, coisa de 15 minutos. Qualquer imprevisto me avisa por aqui que a gente remarca sem drama.",
+    title: "🎬 Tier B, sim FORTE (\"acontece sim\", pediu preço) → Msg 2 inteira",
+    text: cartaComando(SALES_PLAYBOOK.postResponse.msg2),
+  },
+  // Concorrente direto da Jotta (origin_detail = concorrente_jotta) nunca recebe o
+  // nome nem o link da Jotta: decisao do Erick em 15/09/2026. Mesma msg 2, case Metalthec.
+  {
+    title: "🎬 Tier B, Msg 2 (concorrente da Jotta): case Metalthec + preço + vaga",
+    text: cartaComando(SALES_PLAYBOOK.postResponse.msg2, { caso: "metalthec" }),
+  },
+  // TIER A (governante, P3 de 24/09/2026): projeto sob medida, preco so na proposta, a
+  // partir da faixa do site. Nunca R$1.000 no WhatsApp para Tier A.
+  {
+    title: "🏛️ Tier A, sim FORTE → oferta sem preço, proposta para quem decide",
+    text: cartaComando(TIER_A.oferta, { oferta: "projectOffer" }),
   },
   {
-    title: "⏰ Lembrete véspera da reunião",
-    text: "[NOME], amanhã às [HORA] a gente se fala sobre a [EMPRESA]. Separei o diagnóstico e 2 exemplos de indústrias parecidas. Confirmado?",
+    title: "🏛️ Tier A, sim à oferta → proposta a partir da faixa do site + vaga",
+    text: cartaComando(TIER_A.proposta, { oferta: "projectOffer" }),
   },
   {
-    title: "🔗 1h antes, com o link (link vai na hora, nunca antes)",
-    text: "[NOME], daqui a pouco às [HORA]. Esse é o link da call: [LINK]. Até já.",
+    title: "↩️ Tier A sumiu depois de mensagem sem próximo passo → retomada",
+    text: cartaComando(CARTAS.retomadaSemPrecoTierA.texto, { oferta: "projectOffer" }),
   },
-  {
-    title: "🙈 No-show: reagendar (até 30 min depois, sem culpa)",
-    text: "[NOME], a gente acabou não se falando hoje. Imagino que a operação puxou aí, acontece. Quer remarcar? Me fala o dia que fica melhor essa semana.",
-  },
-  {
-    title: "📄 Proposta enviada, follow-up D+2",
-    text: "[NOME], viu a proposta da [EMPRESA]? Queria saber se o escopo fez sentido ou se ficou alguma dúvida no valor. Me responde aqui que eu ajusto contigo, é rápido.",
-  },
-  {
-    title: "📄 Proposta parada D+7",
-    text: "[NOME], não quero te pressionar, só organizar minha produção: sigo com o projeto da [EMPRESA] ou guardo o escopo por enquanto? Se tiver algo travando, me fala que na maioria das vezes dá pra resolver ajustando o formato.",
-  },
-  {
-    title: "💰 Objeção de preço: escopo menor (D+4 travado)",
-    text: "[NOME], pensei no que você falou sobre o investimento. Dá pra começar menor: a página principal primeiro, que é o que o comprador vê quando valida vocês, e o resto a gente faz por etapa conforme trazer retorno. Quer que eu te mande esse escopo reduzido?",
-  },
-  // MSG 2 — a UNICA mensagem entre a resposta do lead e a decisao. Reescrita em
-  // 02/09/2026: preco entra escrito (ticket de entrada nao paga entrevista, e em fria
-  // o preco e filtro), o fecho oferece a vaga de producao em vez de pedir
-  // aprovacao, e o mensal e descrito por ESTADO ("no ar e atualizada") porque
-  // "manutencao" no ramo do lead significa OS e apontamento de hora.
-  // Doutrina completa e lista do que e proibido: content/sales-playbook.json ->
-  // postResponse. Versao dinamica (link por segmento): mensagemExemplo() em
-  // src/lib/followup.ts.
-  {
-    title: "🎬 Sim FORTE (\"acontece sim\", \"sou eu que olho\", pediu preço) → Msg 2 inteira",
-    text: `Isso mesmo. Na Jotta o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: ${SALES_PLAYBOOK.cases.jottaUrl}\n\nPra [EMPRESA] eu faço igual, com os serviços de vocês. ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)} a página, mais ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é [DIA]. Coloco a [EMPRESA] nela?`,
-  },
-  // Concorrente direto da Jotta (card com "ICP Jotta/Monlevade — tier A_concorrente_direto"
-  // na descricao, origin_detail = concorrente_jotta) nunca recebe o nome nem o link da
-  // Jotta: decisao do Erick em 15/09/2026, o Thales e a ponte pra ACIMON. Mesma msg 2,
-  // com a Metalthec como case.
-  {
-    title: "🎬 Msg 2 (concorrente da Jotta): case Metalthec + preço + vaga",
-    text: `Isso mesmo. Na Metalthec o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: ${SALES_PLAYBOOK.cases.metalthecUrl}\n\nPra [EMPRESA] eu faço igual, com os serviços de vocês. ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)} a página, mais ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é [DIA]. Coloco a [EMPRESA] nela?`,
-  },
-  // Objecoes que apareceram na conversa REAL e nao tinham resposta pronta.
-  // A da HM Usinagem travou um deal em negotiation: "Vc cria um site para HAm?
-  // Eu pago uma mensalidade?". Objecao previsivel sem resposta pronta e venda
-  // perdida por falha operacional, nao por falta de interesse.
-  // Preco definido pelo Erick em 02/08: R$1.000 a pagina + R$150/mes.
-  // O mensal cobre HOSPEDAGEM e troca de texto/foto. Mudanca maior e cobrada a
-  // parte. O texto diz exatamente isso: prometer "a Ficha de Escopo evoluindo"
-  // por 150 criaria expectativa de trabalho ilimitado e viraria atrito na
-  // primeira cobranca extra. Preco de entrada, para subir depois.
-  {
-    title: "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)",
-    text: `Boa pergunta. A página é um valor único de ${offerPrice.format(SALES_PLAYBOOK.offer.setupPrice)}, e depois disso ela é sua. O mensal são ${offerPrice.format(SALES_PLAYBOOK.offer.monthlyPrice)} e mantêm ela no ar e atualizada: as trocas de texto e foto que você for pedindo no dia a dia. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer.`,
-  },
-  // RESPOSTAS AO NAO (17/09/2026). O "nao" era o segundo maior grupo de resposta
-  // e nao tinha degrau. Uma carta, uma vez, sem insistir; depois marca o motivo e
-  // deixa o 45d trabalhar. Texto e regra de uso: content/sales-playbook.json ->
-  // postResponse.cartas (revisadas por Hormozi e Willian Celso, decididas pelo Erick).
+  ...cartasDoBloco(COMANDO.quente),
+  // RESPOSTAS AO NAO (17/09/2026). Uma carta, uma vez, sem insistir; depois marca o
+  // motivo e deixa o 45d trabalhar. Texto e regra de uso: postResponse.cartas.
   {
     title: "🤝 \"Já tenho quem faça / já tenho página\"",
     text: cartaComando(CARTAS.naoJaTem.texto),
@@ -309,30 +286,17 @@ const READY_MESSAGES: { title: string; text: string }[] = [
     text: cartaComando(CARTAS.naoEntendi.texto),
   },
   {
-    title: "↩️ Sumiu depois de mensagem SEM preço → retomada com valor",
+    title: "📞 Pediu ligação (\"me liga\", \"prefiro por telefone\")",
+    text: cartaComando(CARTAS.pedidoLigacao.texto),
+  },
+  {
+    title: "↩️ Tier B sumiu depois de mensagem SEM preço → retomada com valor",
     text: cartaComando(CARTAS.retomadaSemPreco.texto),
   },
-  // Objecao real da JOHN REFRIGERACAO (04/08). Dono de operacao de uma pessoa
-  // so olha o case (que tem equipe atras) e entende que pagina e um projeto que
-  // ELE teria que tocar e manter. Nao e objecao de preco, e de esforco e de
-  // tamanho. A resposta destravou em um minuto: veio pedido de orcamento logo
-  // depois.
-  //
-  // PRECO NAO ENTRA AQUI DE PROPOSITO. Decisao do Erick em 04/08: o valor varia
-  // com o porte do cliente (Esmetal e Metaltech pagam 1,5k+), e fechar barato
-  // com dono-sozinho agora cria objecao de preco futura, enquanto o nome dele
-  // ainda esta se firmando. Se for quotar, e caso a caso, em mensagem separada.
-  {
-    title: "🔧 \"Minha estrutura é muito pequena / trabalho sozinho\"",
-    text: "Entendi, e é justo. Mas a sua não precisa ser igual a do exemplo que te mandei. A página é do tamanho da operação: aquela tem mais coisa porque tem equipe atendendo mais frente. A sua seria simples, com os serviços que você atende e o WhatsApp direto.\n\nE o trabalho é meu, não seu. Você me passa o que atende e eu volto com ela pronta pra você olhar. Você não mexe em nada.\n\nQuem trabalha sozinho perde menos com falta de cliente e mais com tempo. Boa parte da conversa de WhatsApp é gente que só queria preço. A página faz essa triagem antes de chegar em você.",
-  },
+  ...cartasDoBloco(COMANDO.objecoes),
   {
     title: "🎯 Decisor indicado (te passaram o contato dele)",
-    text: "Oi, [NOME]! Erick aqui. [QUEM_INDICOU] me passou seu contato. Eu faço o pedido do cliente chegar no WhatsApp de vocês já com serviço, medida e prazo definidos, sem a ida e volta pra descobrir o que ele precisa. Separei um exemplo de uma empresa do mesmo ramo. Quer ver?",
-  },
-  {
-    title: "🔥 Re-engajamento 45d (lead frio / perdido)",
-    text: "[NOME], faz um tempo que a gente conversou sobre a [EMPRESA]. Nesse meio tempo, todo orçamento que foi pro concorrente com site mais forte não aparece em relatório nenhum, e é aí que mora o custo de deixar pra depois. Refiz o diagnóstico de vocês atualizado. Quer dar uma olhada?",
+    text: cartaComando(SALES_PLAYBOOK.routing.referredDecisionMaker),
   },
 ];
 

@@ -54,8 +54,11 @@ function capacidade(lead, temSinalIndustrial) {
   if (temSite) evidencia.push("site institucional");
   if (temSinalIndustrial) evidencia.push("atividade industrial comprovada");
 
+  // P3 (Story 063): Tier A e porte + presenca institucional propria. Sem site o porte sozinho
+  // nao sustenta projeto sob medida; a empresa continua elegivel, na oferta do Tier B.
   if (porte === "EPP" || porte === "DEMAIS") {
-    return { tier: "governante", evidence: evidencia };
+    if (temSite) return { tier: "governante", evidence: evidencia };
+    return { tier: "estruturado", evidence: evidencia, nota: `porte ${porte} sem site institucional` };
   }
   if (porte === "MEI") {
     return { tier: "micro", evidence: evidencia };
@@ -72,8 +75,37 @@ function capacidade(lead, temSinalIndustrial) {
   return { tier: "incerto", evidence: evidencia };
 }
 
+const TIERS_DE_EXCECAO = new Set(["governante", "estruturado"]);
+
+/**
+ * P0 (Story 064): excecao manual so vale com evidencia industrial escrita, tier de oferta
+ * principal, aprovador e data. Qualquer campo faltando e como se a excecao nao existisse.
+ * O unico caminho de escrita e scripts/approve-eligibility-exception.mjs.
+ */
+export function excecaoValida(excecao) {
+  if (!excecao || typeof excecao !== "object") return null;
+  const evidence = String(excecao.evidence ?? "").trim();
+  const approvedBy = String(excecao.approved_by ?? "").trim();
+  const approvedAt = String(excecao.approved_at ?? "").trim();
+  if (!evidence || !approvedBy || !approvedAt || Number.isNaN(Date.parse(approvedAt))) return null;
+  if (!TIERS_DE_EXCECAO.has(excecao.tier)) return null;
+  return { evidence, tier: excecao.tier, approved_by: approvedBy, approved_at: approvedAt };
+}
+
 export function avaliarElegibilidadeProspeccao(lead) {
   const decision_access = acessoAoDecisor(lead);
+
+  const excecao = excecaoValida(lead?.eligibility_exception);
+  if (excecao) {
+    return {
+      eligible: true,
+      capacity_tier: excecao.tier,
+      capacity_evidence: [`excecao manual: ${excecao.evidence}`],
+      decision_access,
+      offer_track: "projeto",
+      eligibility_reason: `excecao manual aprovada por ${excecao.approved_by} em ${excecao.approved_at.slice(0, 10)}`,
+    };
+  }
 
   if (lead?.segment === "eventos") {
     return {
@@ -122,7 +154,7 @@ export function avaliarElegibilidadeProspeccao(lead) {
     };
   }
 
-  const { tier, evidence } = capacidade(lead, temSinalIndustrial);
+  const { tier, evidence, nota } = capacidade(lead, temSinalIndustrial);
   const eligible = tier === "governante" || tier === "estruturado";
   return {
     eligible,
@@ -131,10 +163,39 @@ export function avaliarElegibilidadeProspeccao(lead) {
     decision_access,
     offer_track: eligible ? "projeto" : tier === "micro" ? "entrada" : "nenhuma",
     eligibility_reason: eligible
-      ? `ICP confirmado e capacidade ${tier}`
+      ? `ICP confirmado e capacidade ${tier}${nota ? ` (${nota})` : ""}`
       : tier === "micro"
         ? "capacidade abaixo da oferta principal; reservar para produto de entrada"
         : "capacidade financeira ainda sem evidencia suficiente",
+  };
+}
+
+export const ESTAGIOS_FRIOS = Object.freeze(["prospect", "abordado", "followup"]);
+
+/**
+ * P0 (Story 064): a mesma regua das filas de disparo vale para as filas VISUAIS (Sala de
+ * Comando, /disparo, encaminhamentos). Antes delas nenhuma checava elegibilidade e o
+ * anti-ICP em abordado/followup aparecia com M1-M3 prontos para copiar.
+ *   - anti-ICP ou is_icp=false em estagio frio: sai da fila, sempre;
+ *   - inelegivel por outro motivo (ICP indefinido, capacidade incerta, micro): sai, a menos
+ *     que tenha resposta humana esperando; nesse caso fica, mas sem template de cadencia;
+ *   - estagio avancado (qualified em diante) e eventos: protegidos, a conversa vale mais
+ *     que a regra (mesma licao do classify-icp com a JOHN REFRIGERACAO em proposal).
+ */
+export function retencaoFilaFria(lead) {
+  const livre = { excluir: false, semTemplate: false, motivo: null };
+  if (!ESTAGIOS_FRIOS.includes(String(lead?.stage ?? ""))) return livre;
+  if (lead?.segment === "eventos") return livre;
+  const elegibilidade = avaliarElegibilidadeProspeccao(lead);
+  if (elegibilidade.eligible) return livre;
+  const bloqueado = lead?.is_icp === false || /anti-ICP/i.test(elegibilidade.eligibility_reason);
+  const inbound = lead?.last_inbound_at ? Date.parse(lead.last_inbound_at) : NaN;
+  const outbound = lead?.last_outbound_at ? Date.parse(lead.last_outbound_at) : NaN;
+  const respostaEsperando = Number.isFinite(inbound) && (!Number.isFinite(outbound) || inbound > outbound);
+  return {
+    excluir: bloqueado || !respostaEsperando,
+    semTemplate: true,
+    motivo: elegibilidade.eligibility_reason,
   };
 }
 
@@ -170,5 +231,11 @@ export function compararPrioridadeProspeccao(a, b) {
   return Number(a?.id || 0) - Number(b?.id || 0);
 }
 
-const prospectingEligibility = { avaliarElegibilidadeProspeccao, compararPrioridadeProspeccao };
+const prospectingEligibility = {
+  ESTAGIOS_FRIOS,
+  avaliarElegibilidadeProspeccao,
+  compararPrioridadeProspeccao,
+  excecaoValida,
+  retencaoFilaFria,
+};
 export default prospectingEligibility;

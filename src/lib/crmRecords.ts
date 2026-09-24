@@ -34,6 +34,15 @@ export type Deal = {
   analysisUrl?: string;
   siteUrl?: string;
   segment?: string;
+  /** Campos da regua de prospeccao (P0, Story 064): so aparecem quando a linha os traz. */
+  segmentNorm?: string;
+  isIcp?: boolean;
+  porte?: string;
+  capitalSocial?: number;
+  cnaeDescricao?: string;
+  decisorNome?: string;
+  decisionAccess?: string;
+  eligibilityException?: Record<string, unknown>;
   recurring?: boolean;
   closedAt?: string;
   createdAt?: string;
@@ -110,6 +119,30 @@ function asHealthEvidence(value: unknown): DealHealthEvidence[] {
     : [];
 }
 
+/**
+ * Campos que a regua de elegibilidade precisa para as filas visuais aplicarem o mesmo gate
+ * do disparo. So entram quando existem, para nao mudar o formato dos deals antigos.
+ */
+function camposDaRegua(row: Record<string, unknown>): Partial<Deal> {
+  const campos: Partial<Deal> = {};
+  const segmentNorm = asString(row.segment_norm);
+  if (segmentNorm) campos.segmentNorm = segmentNorm;
+  if (typeof row.is_icp === "boolean") campos.isIcp = row.is_icp;
+  const porte = asString(row.porte);
+  if (porte) campos.porte = porte;
+  if (row.capital_social != null && Number.isFinite(Number(row.capital_social))) campos.capitalSocial = Number(row.capital_social);
+  const cnae = asString(row.cnae_descricao);
+  if (cnae) campos.cnaeDescricao = cnae;
+  const decisor = asString(row.decisor_nome);
+  if (decisor) campos.decisorNome = decisor;
+  const acesso = asString(row.decision_access);
+  if (acesso) campos.decisionAccess = acesso;
+  if (row.eligibility_exception && typeof row.eligibility_exception === "object") {
+    campos.eligibilityException = row.eligibility_exception as Record<string, unknown>;
+  }
+  return campos;
+}
+
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
@@ -165,6 +198,7 @@ export function mapDealFromRow(row: DealRow): Deal {
     analysisUrl: asString(row.analysis_url ?? row.analysisUrl),
     siteUrl: asString(row.site_url ?? row.siteUrl),
     segment: asString(row.segment),
+    ...camposDaRegua(row),
     recurring: typeof row.recurring === "boolean" ? row.recurring : Boolean(row.recurring),
     closedAt: asString(row.closed_at ?? row.closedAt),
     createdAt: asString(row.created_at ?? row.createdAt),

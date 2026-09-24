@@ -187,7 +187,9 @@ function run(script, ids, extra = []) {
 
 try {
   run("uazapi-followup-batch.mjs", manifest.followupIds);
-  run("uazapi-send-batch.mjs", manifest.firstContactIds, ["--strict-ids"]);
+  // Manifesto v2 (piloto): o envio confere que a copy do deal ainda e a aprovada no hash.
+  const conferenciaCopy = manifest.version === 2 ? [`--manifest=${path.relative(ROOT, manifestFile)}`] : [];
+  run("uazapi-send-batch.mjs", manifest.firstContactIds, ["--strict-ids", ...conferenciaCopy]);
   const agora = new Date().toISOString();
   gravarAprovacao({ ...lerAprovacao(), lease: null, completedAt: agora, consumedAt: agora });
   registrar(`Aprovacao ${date}/${slot} concluida. O teto acumulado permaneceu em ${manifest.cumulativeTarget}.`);

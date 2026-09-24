@@ -384,9 +384,11 @@ function gerarCopy({ empresa, temSite, mapsInfo, cidade, variante, mecanismo = '
   // PROIBIDO: apontar o que falta no site do lead (pega o ego do dono na hora) e fechar
   // com oferta — o lead ainda nao disse que tem o problema.
   if (!temSite) {
+    // P5 (24/09/2026): "operacao de verdade" e elogio generico, bloqueado pelo gate de texto.
+    // Fica a observacao que da pra provar (o Maps), sem adjetivo.
     const prova = mapsInfo
-      ? `Vi a ${nomeCurto} no Google${ondeLocal}. ${mapsInfo} no Maps é operação de verdade, com cliente que volta.`
-      : `Vi a ${nomeCurto} no Google${ondeLocal}, e dá pra ver que é operação de verdade.`;
+      ? `Vi a ${nomeCurto} no Google${ondeLocal}: ${mapsInfo} no Maps, com cliente que volta.`
+      : `Vi a ${nomeCurto} no Google${ondeLocal}.`;
     // Mesma armadilha do emProva acima, do outro lado do gerador: 'geral' nao tem
     // substantivo que encaixe depois de "precisa de", sairia "quem precisa de o
     // servico de voces". Sem segmento nomeavel, vai a ponte que nao nomeia nada.
@@ -412,7 +414,7 @@ function gerarCopyAntiga({ empresa, temSite, mapsInfo, cidade }) {
     // Template A - sem_site_ativo: eixo = comportamento do comprador
     const prova = mapsInfo
       ? `Vi a ${empresa} no Google${cidade ? `, em ${cidade}` : ''}. ${mapsInfo} no Maps é prova de operação real.`
-      : `Vi a ${empresa} no Google${cidade ? `, em ${cidade}` : ''}, e parece uma operação de verdade.`;
+      : `Vi a ${empresa} no Google${cidade ? `, em ${cidade}` : ''}.`;
     const pontos = [
       'O ponto é: hoje até quem chega por indicação pesquisa a empresa antes de ligar. Quando o comprador só encontra o Maps, a conversa esfria antes do primeiro contato.',
       'O ponto é: o comprador industrial valida a empresa no Google antes de pedir orçamento. Se ele não encontra nada além do Maps, ele segue pro próximo da lista.',

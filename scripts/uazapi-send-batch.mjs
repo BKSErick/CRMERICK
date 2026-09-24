@@ -36,6 +36,8 @@ import {
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
 import { conferirCanal } from "./lib/canalWhatsapp.mjs";
 import { segmentoVetado } from "./lib/analise-comum.mjs";
+import { auditarCopy } from "../src/lib/copyGate.mjs";
+import { avaliarGateFinchLead, resumoGateFinch } from "../src/lib/finchGate.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { avaliarLead, carregarAprovados } = createRequire(import.meta.url)("./lib/triagemLead.js");
@@ -61,6 +63,27 @@ const ordemIdsExplicitos = new Map(IDS.map((id, index) => [id, index]));
 const EXCLUDE_IDS = new Set(arg("exclude-ids", "").split(",").map(Number).filter(Boolean));
 const STRICT_IDS = process.argv.includes("--strict-ids");
 const JSON_OUT = arg("json-out", "");
+// P8 (Story 065): o piloto enche uma cota por tier ("governante:20,estruturado:20") em vez
+// de um limite unico.
+const POR_TIER = Object.fromEntries(
+  arg("por-tier", "")
+    .split(",")
+    .filter(Boolean)
+    .map((parte) => {
+      const [tier, quantidade] = parte.split(":");
+      return [tier, Number(quantidade) || 0];
+    }),
+);
+const TEM_POR_TIER = Object.keys(POR_TIER).length > 0;
+// Manifesto v2 (piloto): o texto aprovado esta DENTRO do hash. Se a copy do deal mudou
+// depois da aprovacao, o lead nao sai: o Erick aprovou outra mensagem.
+const MANIFESTO = arg("manifest", "");
+const COPIA_APROVADA = (() => {
+  if (!MANIFESTO) return null;
+  const manifesto = JSON.parse(fs.readFileSync(path.resolve(RAIZ, MANIFESTO), "utf8").trimStart());
+  if (manifesto.version !== 2) return null;
+  return new Map((manifesto.leads ?? []).map((lead) => [Number(lead.id), String(lead.copy)]));
+})();
 const MIN_S = Number(arg("min", 90));
 const MAX_S = Number(arg("max", 240));
 const PAUSA_BLOCO_S = Number(arg("pausa", 420));
@@ -140,7 +163,7 @@ async function carregarFila() {
   const [deals, contatos] = await Promise.all([
     fetchAllPages(
       supa,
-      `deals?${filtro}&select=id,company,name,stage,copy_text,site_url,segment,segment_norm,is_icp,porte,capital_social,cnae_descricao,decisor_nome,points`,
+      `deals?${filtro}&select=id,company,name,stage,copy_text,site_url,segment,segment_norm,is_icp,porte,capital_social,cnae_descricao,decisor_nome,decision_access,eligibility_exception,points`,
     ),
     fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,reviews_count,site_url"),
   ]);
@@ -154,6 +177,11 @@ async function carregarFila() {
   return deals
     .filter((d) => !STRICT_IDS || d.stage === "prospect")
     .filter((d) => d.copy_text)
+    .filter((d) => {
+      if (!COPIA_APROVADA || COPIA_APROVADA.get(Number(d.id)) === d.copy_text) return true;
+      retidos.push(`#${d.id} ${d.company} (copy mudou depois da aprovacao do manifesto)`);
+      return false;
+    })
     .filter((d) => !fora.has(d.id))
     .map((d) => ({ ...d, prospectingEligibility: avaliarElegibilidadeProspeccao(d) }))
     .filter((d) => {
@@ -166,6 +194,24 @@ async function carregarFila() {
       if (!segmentoVetado(d.segment, d.company)) return true;
       retidos.push(`#${d.id} ${d.company} (refrigeracao/climatizacao)`);
       return false;
+    })
+    // P5/P6/P7 (Stories 063/064): texto e economia so sao julgados na COLETA. Lote com --ids
+    // vem de manifesto ja aprovado por hash (ex.: a fila congelada de 25/09); o gate roda
+    // quando o manifesto e preparado, e a aprovacao nao pode mudar por baixo dela. Casa de
+    // evento tem copy e oferta proprias, aprovadas em 24/09, fora do gate industrial.
+    .filter((d) => {
+      if (IDS.length || d.segment === "eventos") return true;
+      const copy = auditarCopy(d.copy_text, { tier: d.prospectingEligibility.capacity_tier, degrau: "msg1" });
+      if (!copy.aprovado) {
+        retidos.push(`#${d.id} ${d.company} (gate de texto: ${copy.violacoes.join("; ")})`);
+        return false;
+      }
+      const finch = avaliarGateFinchLead(d, { degrau: "msg1", mensagem: d.copy_text });
+      if (!finch.aprovado) {
+        retidos.push(`#${d.id} ${d.company} (gate Finch: ${resumoGateFinch(finch)})`);
+        return false;
+      }
+      return true;
     })
     .filter((d) => {
       const c = porId[d.id] || {};
@@ -420,7 +466,8 @@ async function registrar(deal) {
     console.log("Dry-run segue so para voce conferir a fila; com --go nada seria enviado.\n");
   }
 
-  const disponivel = JSON_OUT ? LIMITE : Math.min(restaHoje || LIMITE, restaNumero || LIMITE);
+  const limitePedido = TEM_POR_TIER ? Object.values(POR_TIER).reduce((soma, n) => soma + n, 0) : LIMITE;
+  const disponivel = JSON_OUT ? limitePedido : Math.min(restaHoje || limitePedido, restaNumero || limitePedido);
   const alvo = DIA_INTEIRO ? disponivel : Math.min(LIMITE, disponivel);
 
   // Confere o NUMERO na Uazapi antes de reservar a vaga no lote (14/09/2026): o perfil
@@ -430,8 +477,15 @@ async function registrar(deal) {
   // sinal de spam pra plataforma e gastava vaga do teto. Ver scripts/lib/canalWhatsapp.mjs.
   const lote = [];
   const retidosCanal = [];
+  const porTierNoLote = {};
+  const tierDoLead = (lead) => lead.prospectingEligibility?.capacity_tier ?? "incerto";
   for (const lead of fila) {
     if (lote.length >= alvo) break;
+    if (TEM_POR_TIER) {
+      if (Object.entries(POR_TIER).every(([tier, n]) => (porTierNoLote[tier] ?? 0) >= n)) break;
+      const tier = tierDoLead(lead);
+      if (!(tier in POR_TIER) || (porTierNoLote[tier] ?? 0) >= POR_TIER[tier]) continue;
+    }
     if (await jaDisparado(lead.id)) continue;
     const canal = await conferirCanal(lead.fone, lead.company, { base: BASE, token: TOKEN });
     if (!canal.ok) {
@@ -439,6 +493,7 @@ async function registrar(deal) {
       continue;
     }
     lote.push({ ...lead, perfilWpp: canal.nome || "" });
+    porTierNoLote[tierDoLead(lead)] = (porTierNoLote[tierDoLead(lead)] ?? 0) + 1;
   }
 
   const confirmados = lote.filter((l) => l.confianca === 3).length;
@@ -465,7 +520,7 @@ async function registrar(deal) {
       kind: "first_contact",
       generatedAt: new Date().toISOString(),
       ids: lote.map((lead) => lead.id),
-      candidates: lote.map((lead) => ({ id: lead.id, company: lead.company, confidence: lead.confianca })),
+      candidates: lote.map((lead) => ({ id: lead.id, company: lead.company, confidence: lead.confianca, tier: tierDoLead(lead), perfilWpp: lead.perfilWpp })),
     }, null, 2) + "\n");
     console.log(`Candidatos gravados em ${destino}.`);
   }

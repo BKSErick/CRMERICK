@@ -21,7 +21,7 @@ export type ProspectingPacing = {
   tetoNumero?: number;
 };
 
-export type ProspectingManifest = {
+export type ProspectingManifestV1 = {
   version: 1;
   date: string;
   slot: ProspectingSlot;
@@ -30,6 +30,57 @@ export type ProspectingManifest = {
   followupIds: number[];
   createdAt: string;
   pacing?: ProspectingPacing;
+};
+
+type GateCriterio = { id: string; ok?: boolean; status?: string; motivo: string };
+
+/**
+ * Lead do piloto (P8, Story 065). O que o Erick audita fica DENTRO do hash: empresa,
+ * evidencia, tier, decisor, a mensagem exata e a oferta. Mudou qualquer um, o hash muda
+ * e a aprovacao deixa de valer.
+ */
+export type PilotLead = {
+  id: number;
+  company: string;
+  tier: "governante" | "estruturado";
+  evidence: string[];
+  decisionAccess: string;
+  decisor: string | null;
+  copy: string;
+  offer: { key: string; name: string; version: string; priceInMessage: boolean };
+  gates: {
+    willian: { aprovado: boolean; pendenteManual: string[]; criterios: GateCriterio[] };
+    finch: { aprovado: boolean; criterios: GateCriterio[] };
+  };
+};
+
+export type ProspectingManifestV2 = Omit<ProspectingManifestV1, "version"> & {
+  version: 2;
+  kind: "pilot";
+  pilotVersion: string;
+  leads: PilotLead[];
+};
+
+export type ProspectingManifest = ProspectingManifestV1 | ProspectingManifestV2;
+
+/**
+ * Auditoria manual do piloto: um registro por lead, preenchido pelo CLI audit-pilot.mjs.
+ * `manifestHashes` amarra a auditoria a versao exata dos manifestos auditados.
+ */
+export type PilotAudit = {
+  version: 1;
+  date: string;
+  pilotVersion: string;
+  manifestHashes: Partial<Record<ProspectingSlot, string>>;
+  auditadoPor?: string | null;
+  leads: {
+    id: number;
+    slot: ProspectingSlot;
+    pendentesManuais: string[];
+    confirmacoes: Record<string, boolean | null>;
+    aprovado: boolean | null;
+    nota?: string;
+  }[];
 };
 
 /**
@@ -77,7 +128,7 @@ export function remainingToTarget(sentToday: number, cumulativeTarget: number) {
 }
 
 function canonicalManifest(manifest: ProspectingManifest) {
-  return {
+  const base = {
     version: manifest.version,
     date: manifest.date,
     slot: manifest.slot,
@@ -89,6 +140,9 @@ function canonicalManifest(manifest: ProspectingManifest) {
     // entao manifesto sem pacing continua com o mesmo hash de antes de 24/08/2026.
     pacing: manifest.pacing,
   };
+  // v1 fica byte a byte igual: os manifestos ja aprovados (ex.: 25/09) seguem validos.
+  if (manifest.version !== 2) return base;
+  return { ...base, kind: manifest.kind, pilotVersion: manifest.pilotVersion, leads: manifest.leads };
 }
 
 export function manifestHash(manifest: ProspectingManifest) {
@@ -106,6 +160,38 @@ export function createProspectingApproval(
     manifestHash: manifestHash(manifest),
     approvedAt,
   };
+}
+
+/**
+ * P8: o que impede a aprovacao de um manifesto de piloto. Lista vazia = pode aprovar.
+ * Qualquer gate reprovado, lead sem auditoria, criterio manual nao confirmado ou auditoria
+ * feita sobre outra versao do manifesto bloqueia. Nao ha override: o caminho e excluir o
+ * lead e preparar de novo.
+ */
+export function pilotAuditIssues(manifest: ProspectingManifest, audit: PilotAudit | null | undefined): string[] {
+  if (manifest.version !== 2) return [];
+  if (!audit) return ["auditoria do piloto ausente"];
+  const problemas: string[] = [];
+  if (!String(audit.auditadoPor ?? "").trim()) problemas.push("auditoria sem auditadoPor");
+  if (audit.manifestHashes?.[manifest.slot] !== manifestHash(manifest)) {
+    problemas.push(`auditoria feita sobre outra versao do manifesto ${manifest.slot}`);
+  }
+  const porId = new Map(audit.leads.map((lead) => [Number(lead.id), lead]));
+  for (const lead of manifest.leads) {
+    const rotulo = `#${lead.id} ${lead.company}`;
+    if (!lead.gates.willian.aprovado) problemas.push(`${rotulo}: gate Willian Celso reprovado`);
+    if (!lead.gates.finch.aprovado) problemas.push(`${rotulo}: gate Thiago Finch reprovado`);
+    const registro = porId.get(lead.id);
+    if (!registro) {
+      problemas.push(`${rotulo}: sem auditoria`);
+      continue;
+    }
+    if (registro.aprovado !== true) problemas.push(`${rotulo}: ${registro.aprovado === false ? "reprovado na auditoria" : "auditoria pendente"}`);
+    for (const criterio of lead.gates.willian.pendenteManual) {
+      if (registro.confirmacoes?.[criterio] !== true) problemas.push(`${rotulo}: criterio manual "${criterio}" sem confirmacao`);
+    }
+  }
+  return problemas;
 }
 
 /**

@@ -16,6 +16,24 @@ export interface ProspectingEligibilityInput {
   decisor_nome?: string | null;
   decision_access?: DecisionAccess | null;
   points?: number | null;
+  eligibility_exception?: EligibilityExceptionInput | null;
+  stage?: string | null;
+  last_inbound_at?: string | null;
+  last_outbound_at?: string | null;
+}
+
+export interface EligibilityExceptionInput {
+  evidence?: string | null;
+  tier?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+}
+
+export interface EligibilityException {
+  evidence: string;
+  tier: "governante" | "estruturado";
+  approved_by: string;
+  approved_at: string;
 }
 
 export interface ProspectingPriorityInput {
@@ -40,6 +58,18 @@ export function avaliarElegibilidadeProspeccao(
   lead: ProspectingEligibilityInput,
 ): ProspectingEligibilityResult;
 
+export const ESTAGIOS_FRIOS: readonly ["prospect", "abordado", "followup"];
+
+export interface RetencaoFilaFria {
+  excluir: boolean;
+  semTemplate: boolean;
+  motivo: string | null;
+}
+
+export function retencaoFilaFria(lead: ProspectingEligibilityInput): RetencaoFilaFria;
+
+export function excecaoValida(excecao: EligibilityExceptionInput | null | undefined): EligibilityException | null;
+
 export function compararPrioridadeProspeccao(
   a: ProspectingPriorityInput,
   b: ProspectingPriorityInput,
@@ -48,5 +78,8 @@ export function compararPrioridadeProspeccao(
 declare const api: {
   avaliarElegibilidadeProspeccao: typeof avaliarElegibilidadeProspeccao;
   compararPrioridadeProspeccao: typeof compararPrioridadeProspeccao;
+  excecaoValida: typeof excecaoValida;
+  retencaoFilaFria: typeof retencaoFilaFria;
+  ESTAGIOS_FRIOS: typeof ESTAGIOS_FRIOS;
 };
 export default api;

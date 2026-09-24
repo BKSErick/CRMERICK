@@ -54,6 +54,10 @@ const CARD_LABELS = {
   naoForaIcp: "Fora do ICP",
   naoEntendi: "Nao entendi",
   retomadaSemPreco: "Retomada com valor",
+  retomadaSemPrecoTierA: "Retomada Tier A (proposta, sem preco)",
+  pedidoLigacao: "Pediu ligacao",
+  tierAOferta: "Tier A: oferta sem preco, proposta para quem decide",
+  tierAProposta: "Tier A: proposta a partir da faixa do site",
   nenhuma: "Resposta na mao",
 };
 
@@ -87,6 +91,9 @@ export function cardCriteria(playbook = SALES_PLAYBOOK) {
   if (post.msg2) cards.msg2 = "sinal FORTE: msg 2 inteira, com preco e vaga de producao";
   if (post.msg2Ponte) cards.msg2Ponte = "sinal FRACO: ponte com o case, ainda sem preco";
   if (post.msg2Preco) cards.msg2Preco = "sim que veio DEPOIS da ponte: agora entra o preco e a vaga";
+  // P3 (24/09/2026): lead Tier A (governante) nao recebe a msg 2 de R$1.000.
+  if (post.tierA?.oferta) cards.tierAOferta = "sinal FORTE de empresa Tier A (governante): case + proposta escrita para quem decide, sem preco";
+  if (post.tierA?.proposta) cards.tierAProposta = "sim de empresa Tier A depois da oferta: proposta a partir da faixa do site e vaga";
   for (const [key, carta] of Object.entries(post.cartas ?? {})) {
     if (key.startsWith("_") || !carta || typeof carta !== "object") continue;
     cards[key] = String(carta.quando ?? key).replace(/\s+/g, " ").slice(0, 240);

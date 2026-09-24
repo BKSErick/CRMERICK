@@ -24,6 +24,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { carregarEnv, clienteSupabase, ehProspect } from "./lib/analise-comum.mjs";
+import { SALES_PLAYBOOK } from "../src/lib/salesPlaybook.mjs";
 
 // Mesma regra de nome curto da copy e do follow-up.
 const { nomeCurto } = createRequire(import.meta.url)("./lib/nomeEmpresa.js");
@@ -112,10 +113,11 @@ function mensagemDecisorIndicado({ nomeDecisor, empresa, quemIndicou }) {
     ? `Me passaram seu contato aí na ${emp}`
     : `${primeiroNome(indicou)} me passou seu contato`;
 
-  return (
-    `Oi, ${primeiroNome(nomeDecisor)}! Erick aqui. ${ponte}. ` +
-    `Eu faço o pedido do cliente chegar no WhatsApp de vocês já com serviço, medida e prazo definidos, sem a ida e volta pra descobrir o que ele precisa. ` +
-    `Separei um exemplo de uma empresa do mesmo ramo. Quer ver?`
+  // Texto do playbook (routing.referredDecisionMaker), igual ao da tela: o "Quer ver?" que
+  // vivia aqui pedia licenca e escapava do gate de texto (P5, 24/09/2026).
+  return Object.entries({ nomeDecisor: primeiroNome(nomeDecisor), ponte, company: emp }).reduce(
+    (texto, [chave, valor]) => texto.replaceAll(`{{${chave}}}`, valor),
+    SALES_PLAYBOOK.routing.referredDecisionMaker,
   );
 }
 // -----------------------------------------------------------------------------

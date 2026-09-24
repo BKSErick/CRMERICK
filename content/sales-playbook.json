@@ -1,12 +1,41 @@
 {
-  "copyVersion": "copy-2026-09-08.1",
+  "copyVersion": "copy-2026-09-24.1-v5",
+  "_nota_v5": "Copy v5 em 24/09/2026 (P5 do checklist de execucao). Escrita pelo clone Willian Celso dentro da doutrina viva, revisada contra o gate de texto (src/lib/copyGate.mjs) e aprovada pelo Erick pelo hash do piloto de 20 Tier A + 20 Tier B, onde cada mensagem e auditada. Mudancas: (1) Tier A (governante) ganhou oferta propria sem preco no WhatsApp e proposta a partir de R$1.800 + R$200/mes; Tier B segue com a msg 2 de R$1.000. (2) M2 cita UM case so, com o link na mensagem; saiu o 'Se quiser ver como ficou'. (3) naoForaIcp sem desculpa; naoJaTem sem o 'Otimo'. (4) Carta nova para pedido direto de ligacao: o Governante mantem a conversa no texto. Msg 1 (openings A/B) nao mudou.",
   "offer": {
     "version": "offer-site-industrial-1000-150-v1",
     "name": "Pagina industrial com Pedido Pronto",
     "setupPrice": 1000,
     "monthlyPrice": 150,
     "currency": "BRL",
-    "meetingMinutes": 15
+    "meetingMinutes": 15,
+    "tier": "estruturado",
+    "operatingCaps": {
+      "_premissa": "Story 064, gate Thiago Finch (24/09/2026). Custo interno, taxa e margem minima sao os mesmos parametros aprovados da Base Industrial. Implantacao de 2h e 15 min por toque manual sao premissas declaradas pelo clone Finch, a confirmar com o Erick depois do piloto. Toque automatico (msg 1, M1-M3) nao consome o orcamento humano.",
+      "setupHours": 2,
+      "minutesPerManualTouch": 15,
+      "internalHourlyCost": 100,
+      "paymentFeeRate": 0.05,
+      "minimumContributionMargin": 0.6
+    }
+  },
+  "projectOffer": {
+    "version": "offer-projeto-governante-1800-200-v1",
+    "name": "Projeto de entrada do pedido",
+    "tier": "governante",
+    "fromSetupPrice": 1800,
+    "fromMonthlyPrice": 200,
+    "currency": "BRL",
+    "priceInMessage": false,
+    "scope": "Pedido Pronto integrado ao comercial da empresa; OStrack ou automacao quando couber no escopo",
+    "_decisao": "Decisao do Erick em 24/09/2026 (P3): Tier A (governante) recebe projeto sob medida com preco so na proposta, a partir de R$1.800 + R$200/mes (a mesma faixa do site publico). O WhatsApp nunca cita R$1.000 para Tier A, e o Tier B nunca le a faixa de R$1.800 (as duas faixas nunca na mesma peca). Mesma ancora do caso 2026-09-17 (lead qualificado pedindo portfolio tecnico).",
+    "operatingCaps": {
+      "_premissa": "Piso da faixa (R$1.800). Implantacao de 4h e 15 min por toque manual sao premissas do clone Finch (24/09/2026), a confirmar depois do piloto.",
+      "setupHours": 4,
+      "minutesPerManualTouch": 15,
+      "internalHourlyCost": 100,
+      "paymentFeeRate": 0.05,
+      "minimumContributionMargin": 0.6
+    }
   },
   "entryOffer": {
     "version": "offer-base-industrial-600-80-pilot-v1",
@@ -119,6 +148,13 @@
     },
     "msg2Ponte": "Isso mesmo. {{caseIntro}} o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai sem a ida e volta: {{caseUrl}}\n\nÉ assim que o pedido chega aí hoje, ou ainda vem no \"quanto custa\"?",
     "msg2Preco": "Então pra {{company}} eu faço igual, com os serviços de vocês. {{setupPrice}} a página, mais {{monthlyPrice}}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco a {{company}} nela?",
+    "tierA": {
+      "_nota": "Lead Tier A (governante, projectOffer). A msg 2 de R$1.000 nao vale para ele. Sim forte recebe tierA.oferta (case + proposta escrita, sem preco, confirmando quem decide). O sim seguinte recebe tierA.proposta (a partir de R$1.800 + R$200/mes, 'nao dou desconto, reduzo escopo', fecho pela vaga). Sim fraco continua na msg2Ponte, que nao tem preco. Willian Celso (24/09): a ancora entra so na proposta porque falar de dinheiro antes de confirmar o decisor e falar com a pessoa errada.",
+      "oferta": "Isso mesmo. {{caseIntro}} o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai já na primeira resposta: {{caseUrl}}\n\nPara a {{company}} é o mesmo, montado com os serviços de vocês. O próximo passo é proposta escrita com escopo e valor, entregue direto para quem decide.\n\n{{quemDecide}}",
+      "quemDecideComNome": "{{nomeDecisor}} é quem assina aí?",
+      "quemDecideSemNome": "Quem assina essa proposta aí, você mesmo?",
+      "proposta": "O projeto parte de {{setupPrice}}, com o Pedido Pronto montado nos serviços de vocês, mais {{monthlyPrice}}/mês para manter no ar e atualizado.\n\nNão dou desconto, reduzo escopo. Se o orçamento for menor, a gente ajusta o que entra.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco a {{company}} nela?"
+    },
     "cartas": {
       "_nota": "17/09/2026. O 'nao' era o segundo maior grupo de resposta (24 nao explicitos + 4 nao a pergunta de reconhecimento em 115) e nao tinha degrau: o Erick ficava em silencio ou empurrava ('mas o ponto vale igual'), e empurrar nunca converteu. Cartas revisadas pelos clones Alex Hormozi (funil, oferta) e Willian Celso (arquetipo, simbolos) e decididas pelo Erick: 'valeu por responder' saiu (posicao de quem esperava ser ignorado), 'o melhor cliente que existe' saiu (condescende), 'isso soma ao que voces ja tem' saiu (pede licenca), 'falha minha' saiu (Governante corrige o estado, nao pede absolvicao), 'triagem' FICA (palavra-chave do brandbook), 'Sucesso ai!' fica (dispensa soberana, o M3 ja prova). Regra do Celso pra decidir carta ou silencio: 'nao' que revela que o lead nao enxerga a perda invisivel merece UMA frase plantando ela; 'nao' logistico ou fora do ICP merece silencio. Nenhuma carta pergunta permissao, aponta defeito ou pede call. Depois da carta: marcar o motivo no CRM e deixar o re-engajamento de 45d trabalhar; nunca insistir no mesmo canal.",
       "naoReconhecimento": {
@@ -131,11 +167,11 @@
       },
       "naoJaTem": {
         "quando": "'Ja temos quem faca', 'ja estamos com outro parceiro', 'ja tenho pagina'. Uma vez, sem cobranca depois. Governante delimita o cercadinho, Mago revela o mecanismo.",
-        "texto": "Ótimo, então o site já está resolvido, e não é isso que eu mexo. A questão é como o pedido chega em vocês hoje: se ainda chega \"quanto custa fazer uma peça?\", o problema não é o site, é a triagem antes. Se um dia isso pesar, é só me chamar."
+        "texto": "Então o site está resolvido, e não é isso que eu mexo. A questão é como o pedido chega em vocês hoje: se ainda chega \"quanto custa fazer uma peça?\", o problema não é o site, é a triagem antes. Se um dia isso pesar, é só me chamar."
       },
       "naoForaIcp": {
         "quando": "'Nao faco industrial', 'aqui e expedicao', numero errado. Marcar lost com motivo fora_icp. Nunca 'mas o ponto vale igual'.",
-        "texto": "Foi mal, cheguei no lugar errado. Obrigado por avisar e desculpa o incômodo. Bom trabalho aí!"
+        "texto": "Cheguei no lugar errado. Obrigado por avisar. Bom trabalho aí!"
       },
       "naoEntendi": {
         "quando": "'Nao entendi sua pergunta', 'explica melhor como funciona'. Reexplica a friccao da v4 (indicacao vaza) em termo concreto, devolve a pergunta de reconhecimento e ja responde o lado do 'zero' (estrutura do Erick, 17/09). Sem link, sem preco.",
@@ -144,6 +180,14 @@
       "retomadaSemPreco": {
         "quando": "Lead sumiu depois de uma mensagem do Erick que nao tinha valor (Mult Tech 02/09, Mega 17/09 se nao responder). Assume em uma frase e entrega o preco com o fecho pela vaga.",
         "texto": "Oi, Erick de novo. Faltou eu falar o valor: {{setupPrice}} a página, com o Pedido Pronto (o cliente informa serviço, medida e prazo antes de chegar em você), mais {{monthlyPrice}}/mês pra manter ela no ar e atualizada.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco a {{company}} nela?"
+      },
+      "retomadaSemPrecoTierA": {
+        "quando": "Versao Tier A (governante) da retomada: lead sumiu depois de uma mensagem sem proximo passo. Tier A nunca le R$1.000; o proximo passo e a proposta escrita para quem decide.",
+        "texto": "Oi, Erick de novo. Faltou eu fechar o próximo passo: monto a proposta escrita com escopo e valor para a {{company}} e mando direto para quem decide.\n\nMinha próxima entrada de produção é {{proximaEntrada}}. Coloco vocês nela?"
+      },
+      "pedidoLigacao": {
+        "quando": "O lead pede ligacao: 'me liga', 'pode ligar?', 'prefiro falar por telefone'. Willian Celso (24/09): o Governante mantem a conversa no texto, onde a proposta ja tem escopo e valor; ligacao antes do sim cria mais um ponto onde o negocio se perde. Se o lead insistir, o Erick decide na mao.",
+        "texto": "Funciona melhor no texto aqui: a proposta que mando já tem escopo, valor e tudo que precisa para decidir. O que precisa estar claro antes de seguir?"
       }
     },
     "_nota": "Escrito em 02/09/2026 depois de ler as 142 conversas da base. Substitui o fecho anterior da mensagemExemplo() ('Te mostro em 15 min (...) amanha de manha ou a tarde?'), reprovado em 12/08 e nunca reescrito, e o 'faz sentido pra voces?' que estava sendo digitado na mao. Medicao que motivou: dos 54 leads que receberam o case, so 11 chegaram a falar preco (20%) e 32 sumiram sem responder — e nas conversas que chegaram a preco foi quase sempre o LEAD que puxou o assunto. A msg 2 nunca teve um degrau seguinte. O fecho pela vaga de producao e a troca de 'trocas de texto e foto' por 'manter no ar e atualizada' vieram da calibragem do clone Willian Celso: 'topa?' derrubava a autoridade construida por 'comeco quinta', e 'manutencao' pertence a cadeia de simbolos do cliente, nao a do servico."
@@ -160,11 +204,71 @@
   "followups": {
     "bot": "Oi! Imagino que minha mensagem tenha caído no atendimento automático. Quem cuida do site da {{company}} aí? Prefiro falar direto com essa pessoa pra não gerar retrabalho pra vocês.",
     "M1": "Oi, Erick de novo. Pergunto porque, em {{segmentDescription}}, o orçamento costuma virar ida e volta de mensagem até sair material, medida e prazo. Isso aparece na rotina da {{company}} ou quem chama já chega com o escopo definido?",
-    "M2Local": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, aqui de João Monlevade. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono. Na prática o orçamento sai já na primeira resposta, em vez de depender de duas ou três idas e voltas. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
-    "M2Remote": "Oi! Fiz a página da Jotta Manutenções e da Metalthec, duas indústrias aqui do Médio Piracicaba. O que resolveu nas duas foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono. Na prática o orçamento sai já na primeira resposta, em vez de depender de duas ou três idas e voltas. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
-    "_nota_soMetalthec": "Decisao do Erick em 15/09/2026: concorrente direto da Jotta (deals.origin_detail = 'concorrente_jotta', importados pela base de ICP de Joao Monlevade) NAO recebe o nome da Jotta em mensagem nenhuma. O Thales e a ponte pra ACIMON e o melhor ativo de indicacao; citar o site dele para 11 concorrentes na mesma cidade e jogo curto. Para esses, o M2 cita so a Metalthec. Quem escolhe o template e renderFollowupMessage() em src/lib/salesPlaybook.mjs, pelo campo caseOnly.",
-    "M2LocalSoMetalthec": "Oi! Fiz a página da Metalthec, aqui de João Monlevade. O que resolveu lá foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono. Na prática o orçamento sai já na primeira resposta, em vez de depender de duas ou três idas e voltas. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
-    "M2RemoteSoMetalthec": "Oi! Fiz a página da Metalthec, uma indústria aqui do Médio Piracicaba. O que resolveu lá foi a {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono. Na prática o orçamento sai já na primeira resposta, em vez de depender de duas ou três idas e voltas. Se isso fosse corrigido aí, resolveria um problema real hoje ou essa parte já funciona bem? Se quiser ver como ficou, te mando o link.",
+    "_nota_M2_v5": "v5 (24/09/2026): M2 cita UM case so (P5: dois cases na mesma mensagem tiram o foco) e leva o link na propria mensagem, sem 'Se quiser ver como ficou'. O case sai do segmento: manutencao recebe Jotta; usinagem, caldeiraria e o resto recebem Metalthec. Decisao do Erick em 15/09/2026 continua valendo: concorrente direto da Jotta (deals.origin_detail = 'concorrente_jotta') NAO recebe o nome da Jotta em mensagem nenhuma, sempre Metalthec. Quem escolhe e caseDoLead() em src/lib/salesPlaybook.mjs.",
+    "M2JottaLocal": "Oi! Fiz a página da Jotta Manutenções, aqui de João Monlevade. O que resolveu lá foi o {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai já na primeira resposta: {{caseUrl}}\n\nIsso resolve um gargalo real na {{company}} hoje, ou essa parte já funciona bem?",
+    "M2JottaRemote": "Oi! Fiz a página da Jotta Manutenções, aqui do Médio Piracicaba. O que resolveu lá foi o {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai já na primeira resposta: {{caseUrl}}\n\nIsso resolve um gargalo real na {{company}} hoje, ou essa parte já funciona bem?",
+    "M2MetalthecLocal": "Oi! Fiz a página da Metalthec, usinagem e caldeiraria aqui de João Monlevade. O que resolveu lá foi o {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai já na primeira resposta: {{caseUrl}}\n\nIsso resolve um gargalo real na {{company}} hoje, ou essa parte já funciona bem?",
+    "M2MetalthecRemote": "Oi! Fiz a página da Metalthec, usinagem e caldeiraria aqui do Médio Piracicaba. O que resolveu lá foi o {{mechanism}}: o cliente informa serviço, equipamento e urgência antes de chegar no dono, e o orçamento sai já na primeira resposta: {{caseUrl}}\n\nIsso resolve um gargalo real na {{company}} hoje, ou essa parte já funciona bem?",
     "M3": "Oi! Última mensagem daqui, pra não virar chateação. Se essa parte já estiver redonda aí, fico tranquilo. Se um dia aparecer aquele cliente que pede orçamento sem dizer o que precisa, é esse problema que eu resolvo, e é só me chamar. Sucesso aí!"
+  },
+  "comando": {
+    "_nota": "24/09/2026 (P5): cartas que viviam escritas em src/app/comando/page.tsx e escapavam do gate de texto. Vieram para o playbook e passam pelo mesmo gate (src/lib/copyGate.mjs). Reescrita minima, so onde falhavam: 'Quer ver?', 'Quer dar uma olhada?', 'Quer remarcar?' e 'Quer que eu te mande' (pedem licenca), 'se o escopo fez sentido' e 'nao quero te pressionar', 'dois exemplos' (dois cases), 'link da call', e o mensal descrito por trabalho (trocas de texto e foto) em vez de estado. As de reuniao sao para lead QUENTE (inbound, indicado, qualificado que pediu), nunca frio. Placeholders entre colchetes o Erick preenche ao copiar.",
+    "decisorIndicadoPonte": "[QUEM_INDICOU] me passou seu contato",
+    "quente": [
+      { "id": "reuniaoConfirmacao", "titulo": "✅ Reunião marcada (só lead quente/inbound): confirmação", "texto": "Fechado, [NOME]: [DIA] às [HORA]. Vou te mostrar o diagnóstico da [EMPRESA] na tela, coisa de 15 minutos. Qualquer imprevisto me avisa por aqui que a gente remarca sem drama." },
+      { "id": "lembreteVespera", "titulo": "⏰ Lembrete véspera da reunião", "texto": "[NOME], amanhã às [HORA] a gente se fala sobre a [EMPRESA]. Separei o diagnóstico e um exemplo do mesmo ramo. Confirmado?" },
+      { "id": "linkUmaHoraAntes", "titulo": "🔗 1h antes, com o link (link vai na hora, nunca antes)", "texto": "[NOME], daqui a pouco às [HORA]. Esse é o link da conversa: [LINK]. Até já." },
+      { "id": "noShow", "titulo": "🙈 No-show: remarcar (até 30 min depois, sem culpa)", "texto": "[NOME], a gente acabou não se falando hoje. A operação puxou aí, acontece. Tenho [DIA 1] ou [DIA 2] essa semana; qual fica com você?" },
+      { "id": "propostaD2", "titulo": "📄 Proposta enviada, follow-up D+2", "texto": "[NOME], a proposta da [EMPRESA] segue de pé. Minha próxima entrada de produção é [DIA]. Coloco a [EMPRESA] nela?" },
+      { "id": "propostaD7", "titulo": "📄 Proposta parada D+7", "texto": "[NOME], estou fechando a produção da semana: sigo com o projeto da [EMPRESA] ou guardo o escopo por enquanto? Se algo estiver travando, na maioria das vezes resolvo ajustando o escopo, não o preço." },
+      { "id": "objecaoPreco", "titulo": "💰 Objeção de preço: escopo menor (D+4 travado)", "texto": "[NOME], pensei no que você falou sobre o investimento. Não dou desconto, reduzo escopo: começo pela página principal, que é o que o comprador vê quando valida vocês, e o resto entra por etapa conforme trouxer retorno. Te mando esse escopo reduzido hoje." }
+    ],
+    "objecoes": [
+      { "id": "mensalidade", "titulo": "💵 \"Eu pago uma mensalidade?\" (modelo de cobrança)", "texto": "Boa pergunta. A página é um valor único de {{setupPrice}}, e depois disso ela é sua. O mensal são {{monthlyPrice}} pra manter ela no ar e atualizada. Mudança maior, tipo página nova ou função nova, a gente combina à parte antes de eu fazer." },
+      { "id": "estruturaPequena", "titulo": "🔧 \"Minha estrutura é muito pequena / trabalho sozinho\"", "texto": "Entendi, e é justo. Mas a sua não precisa ser igual a do exemplo que te mandei. A página é do tamanho da operação: aquela tem mais coisa porque tem equipe atendendo mais frente. A sua seria simples, com os serviços que você atende e o WhatsApp direto.\n\nE o trabalho é meu, não seu. Você me passa o que atende e eu volto com ela pronta pra você olhar. Você não mexe em nada.\n\nQuem trabalha sozinho perde menos com falta de cliente e mais com tempo. Boa parte da conversa de WhatsApp é gente que só queria preço. A página faz essa triagem antes de chegar em você." },
+      { "id": "reengajamento45d", "titulo": "🔥 Re-engajamento 45d (lead frio / perdido)", "texto": "[NOME], faz um tempo que a gente conversou sobre a [EMPRESA]. Pedido que chega sem medida e prazo continua virando ida e volta, e esse custo não aparece em relatório nenhum. Atualizei o diagnóstico de vocês: [LINK]" }
+    ]
+  },
+  "finchGate": {
+    "version": "finch-gate-2026-09-24.1",
+    "_nota": "P7 do checklist de 24/09/2026. Qualquer 'nao' retem o lead ou o lote. Especificacao do clone Thiago Finch, ajustada ao checklist: gatekeeper PASSA porque o criterio e 'decidir ou encaminhar'; so bot retem. decision_access incerto passa no primeiro contato frio (reter zeraria a cadencia) e e resolvido na leitura da primeira resposta.",
+    "blockedDecisionAccess": ["bot"],
+    "stalledReply": {
+      "_nota": "Resposta qualificada parada: o lead respondeu como humano (humana, objecao ou encaminhamento) ou esta no fundo do funil, falou por ultimo e ficou mais de N horas uteis (seg-sex, 8h-18h, Brasilia) sem resposta nossa. Enquanto existir uma, nenhum lote novo sai.",
+      "responseTypes": ["humana", "objecao", "encaminhamento"],
+      "funnelStages": ["qualified", "agendamento", "reuniao", "proposal", "negotiation"],
+      "businessHours": 4
+    },
+    "nextSteps": {
+      "msg1": "resposta humana a pergunta de reconhecimento",
+      "M1": "resposta humana a pergunta de reconhecimento",
+      "M2": "reconhecimento da friccao depois do case",
+      "M3": "encerramento; volta so pelo re-engajamento de 45 dias",
+      "msg2": "decisao sobre a vaga de producao (aceite ou recusa)",
+      "msg2Ponte": "reconhecimento da friccao; preco no sim seguinte",
+      "msg2Preco": "decisao sobre a vaga de producao (aceite ou recusa)",
+      "tierAOferta": "decisor confirmado para receber a proposta escrita",
+      "tierAProposta": "aceite da proposta ou recusa com motivo"
+    }
+  },
+  "pilot": {
+    "version": "pilot-tier-ab-2026-09-28.1",
+    "_nota": "P8 do checklist de 24/09/2026. 20 Tier A + 20 Tier B dentro do teto de 40, auditoria manual dos 40 antes da aprovacao do hash, cada resposta classificada antes do proximo lote, A e B comparados separados. Taxa de resposta e secundaria. Scale nunca e automatico: gera aviso e depende do Erick.",
+    "perTier": { "governante": 20, "estruturado": 20 },
+    "metrics": ["decisor_alcancado", "reconhecimento", "case_aceito", "preco_apresentado", "entrada_producao", "proposta", "venda", "motivo_perda"],
+    "rules": {
+      "governante": {
+        "kill": "menos de 3 reconhecimentos em 20, ou 3 propostas enviadas sem entrada em producao",
+        "scale": "3 ou mais reconhecimentos e 1 proposta aceita",
+        "killMinRecognitions": 3,
+        "killProposalsWithoutProduction": 3
+      },
+      "estruturado": {
+        "kill": "menos de 3 avancos validos em 20, ou 5 precos apresentados sem venda",
+        "scale": "3 ou mais avancos validos e 1 venda a preco cheio",
+        "killMinRecognitions": 3,
+        "killPricesWithoutSale": 5
+      }
+    }
   }
 }

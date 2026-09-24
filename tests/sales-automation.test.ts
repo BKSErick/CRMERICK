@@ -6,6 +6,7 @@ import test from "node:test";
 import salesPlaybookModule from "../src/lib/salesPlaybook.mjs";
 import { buildRunPlan } from "../scripts/prospeccao-runner.mjs";
 import { mensagemDecisorIndicado } from "../src/lib/followup.ts";
+import { auditarCopy } from "../src/lib/copyGate.mjs";
 
 // regenerate-copies.js e CommonJS (usa `return` de topo e module.exports), entao entra por
 // createRequire, do mesmo jeito que scripts/generate-copies-db.mjs faz.
@@ -19,6 +20,8 @@ const {
   detectVariantFromCopy,
   renderEntryOfferMessage,
   renderFollowupMessage,
+  renderTierAOferta,
+  renderTierAProposta,
 } = salesPlaybookModule;
 
 test("playbook versiona oferta, copy e experimento ativo", () => {
@@ -118,7 +121,7 @@ test("msg 1 fecha em pergunta de reconhecimento, nunca em oferta", () => {
 test("follow-ups testam prioridade sem pedir reuniao", () => {
   const m1 = renderFollowupMessage({ tier: "M1", company: "Acme Usinagem", segment: "usinagem" });
   const m2 = renderFollowupMessage({ tier: "M2", company: "Acme Usinagem", segment: "usinagem", city: "Betim" });
-  assert.match(m2, /resolveria um problema real hoje/i);
+  assert.match(m2, /gargalo real na .+ hoje/i);
   for (const copy of [m1, m2]) {
     assert.doesNotMatch(copy, /15 minutos|chamada r[aá]pida|reuni[aã]o/i);
   }
@@ -154,7 +157,7 @@ test("bifurcacao depois da msg 1: sim forte, sim fraco e cartas do nao vivem no 
   const cartaDe = (nome: string) => cartas.find(([k]) => k === nome)?.[1] as Carta;
   assert.deepEqual(
     cartas.map(([k]) => k),
-    ["naoReconhecimento", "naoSemInteresse", "naoJaTem", "naoForaIcp", "naoEntendi", "retomadaSemPreco"],
+    ["naoReconhecimento", "naoSemInteresse", "naoJaTem", "naoForaIcp", "naoEntendi", "retomadaSemPreco", "retomadaSemPrecoTierA", "pedidoLigacao"],
   );
   for (const [nome, carta] of cartas) {
     assert.ok(carta.quando && carta.texto, `${nome} sem quando/texto`);
@@ -182,6 +185,57 @@ test("Comando le as cartas do playbook e nao tem card de reuniao para lead frio"
   assert.doesNotMatch(comando, /n[aã]o [eé] minha inten[cç][aã]o mexer nisso/i);
   assert.match(comando, /entryQueue/);
   assert.match(comando, /Base Industrial/);
+  // P5 (24/09/2026): as cartas escritas direto na tela sairam para o playbook.
+  assert.doesNotMatch(comando, /Quer ver\?|Quer dar uma olhada|Quer remarcar|se o escopo fez sentido|n[aã]o quero te pressionar/);
+  assert.match(comando, /COMANDO\.quente/);
+  assert.match(comando, /TIER_A\.oferta/);
+});
+
+// P5 + P6 (Story 063): todo texto do playbook passa pelo gate de texto do Willian Celso.
+// Texto novo que peca licenca, cite dois cases, fale "Se quiser" ou use termo morto
+// quebra aqui, antes de chegar em qualquer fila.
+test("gate de texto aprova todos os textos do playbook", () => {
+  const pb = SALES_PLAYBOOK;
+  const pr = pb.postResponse;
+  const textos: [string, string, string | null][] = [
+    ["msg2", pr.msg2, "estruturado"],
+    ["msg2Ponte", pr.msg2Ponte, "governante"],
+    ["msg2Preco", pr.msg2Preco, "estruturado"],
+    ["tierAOferta", pr.tierA.oferta, "governante"],
+    ["tierAProposta", pr.tierA.proposta, "governante"],
+    ...Object.entries(pr.cartas)
+      .filter(([nome, carta]) => !nome.startsWith("_") && typeof carta === "object")
+      .map(([nome, carta]) => [nome, (carta as { texto: string }).texto, nome === "retomadaSemPreco" ? "estruturado" : "governante"] as [string, string, string]),
+    ...Object.entries(pb.routing)
+      .filter(([nome]) => nome !== "version")
+      .map(([nome, texto]) => [nome, String(texto), "governante"] as [string, string, string]),
+    ...Object.entries(pb.followups)
+      .filter(([nome]) => !nome.startsWith("_"))
+      .map(([nome, texto]) => [nome.startsWith("M2") ? "M2" : nome, String(texto), "governante"] as [string, string, string]),
+    ...[...pb.comando.quente, ...pb.comando.objecoes].map((carta) => ["comando", carta.texto, "estruturado"] as [string, string, string]),
+    ["entryOffer", pb.entryOffer.message, "micro"],
+  ];
+  for (const [degrau, texto, tier] of textos) {
+    const resultado = auditarCopy(texto, { degrau, tier });
+    assert.ok(resultado.aprovado, `${degrau}: ${resultado.violacoes.join(" | ")}
+${texto}`);
+  }
+});
+
+test("P3: Tier A nunca le R$1.000 e o M2 cita um case so", () => {
+  const oferta = renderTierAOferta({ company: "Caldeiraria Beta Ltda", segment: "caldeiraria" });
+  const proposta = renderTierAProposta({ company: "Caldeiraria Beta Ltda" });
+  for (const texto of [oferta, proposta]) assert.doesNotMatch(texto, /1\.000|R\$\s?1000/);
+  assert.match(proposta, /R\$\s?1\.800/);
+  assert.match(oferta, /quem decide/i);
+
+  const m2Manutencao = renderFollowupMessage({ tier: "M2", company: "Tec Manutencao", segment: "manutencao", city: "Joao Monlevade" });
+  const m2Concorrente = renderFollowupMessage({ tier: "M2", company: "Tec Manutencao", segment: "manutencao", city: "Joao Monlevade", caseOnly: "metalthec" });
+  assert.match(m2Manutencao, /Jotta/);
+  assert.doesNotMatch(m2Manutencao, /Metalthec/);
+  assert.match(m2Concorrente, /Metalthec/);
+  assert.doesNotMatch(m2Concorrente, /Jotta/, "concorrente da Jotta nunca le o nome dela");
+  assert.match(m2Concorrente, /site-metalthec\.vercel\.app/);
 });
 
 test("roteamento por gatekeeper e decisor indicado e versionado e nao pede permissao", () => {

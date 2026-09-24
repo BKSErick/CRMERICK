@@ -34,7 +34,7 @@ async function emLotes(itens, tamanho, fn) {
 }
 
 const deals = await db.get(
-  "deals?select=id,company,name,segment,segment_norm,is_icp,porte,capital_social,cnae_descricao,site_url,decisor_nome,is_prospect,capacity_tier,capacity_evidence,decision_access,offer_track,eligibility_reason",
+  "deals?select=id,company,name,segment,segment_norm,is_icp,porte,capital_social,cnae_descricao,site_url,decisor_nome,is_prospect,capacity_tier,capacity_evidence,decision_access,offer_track,eligibility_reason,eligibility_exception",
 );
 
 const avaliados = deals

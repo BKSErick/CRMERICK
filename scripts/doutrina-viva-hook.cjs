@@ -128,6 +128,21 @@ function build(pb, bb, casosDoc, haystack) {
     `OFERTA (canal frio): R$${offer.setupPrice} de setup + R$${offer.monthlyPrice}/mes. Mecanismo: ${pb.mechanism}. ` +
       `Proxima entrada de producao: ${pr.proximaEntrada}. O site publico usa outra faixa (a partir de R$1.800 + R$200/mes); nunca as duas na mesma peca.`,
   );
+  // P3 (24/09/2026): oferta por tier. Sem o bloco, o clone ofereceria R$1.000 para Tier A.
+  const proj = pb.projectOffer;
+  if (proj) {
+    L.push(
+      `OFERTA POR TIER (P3): Tier A (governante: EPP/Demais com site e operacao industrial) recebe "${proj.name}", ` +
+        `preco so na proposta, a partir de R$${proj.fromSetupPrice} + R$${proj.fromMonthlyPrice}/mes; NUNCA R$${offer.setupPrice} no WhatsApp. ` +
+        `Tier B (estruturado) recebe a msg 2 de R$${offer.setupPrice} + R$${offer.monthlyPrice}/mes. Micro vai para a ${pb.entryOffer?.name ?? 'Base Industrial'} manual.`,
+    );
+  }
+  if (pr.tierA) {
+    L.push(
+      `TIER A, SIM FORTE: ${String(pr.tierA.oferta).replace(/\n/g, ' / ')} (quemDecide = "${pr.tierA.quemDecideSemNome}")\n` +
+        `TIER A, SIM A OFERTA: ${String(pr.tierA.proposta).replace(/\n/g, ' / ')}`,
+    );
+  }
 
   const op = exp.openings || {};
   const reg = exp.regionalOpenings || {};
@@ -148,10 +163,14 @@ function build(pb, bb, casosDoc, haystack) {
     'FOLLOW-UPS (cadencia D+2 / D+5 / D+10; texto e este, so trocar placeholder):\n' +
       `bot: ${fu.bot}\n` +
       `M1: ${fu.M1}\n` +
-      `M2Local: ${fu.M2Local}\n` +
-      `M2Remote: ${fu.M2Remote}\n` +
+      // v5 (24/09/2026): M2 com UM case so, escolhido por segmento. Lista generica para uma
+      // chave nova nunca virar "undefined" no digest.
+      Object.keys(fu)
+        .filter((k) => k.startsWith('M2') && typeof fu[k] === 'string')
+        .map((k) => `${k}: ${fu[k]}\n`)
+        .join('') +
       `M3: ${fu.M3}\n` +
-      'Concorrente direto da Jotta (deals.origin_detail = concorrente_jotta) recebe M2 so com Metalthec e nunca le o nome da Jotta.\n' +
+      'M2 cita UM case: usinagem e caldeiraria recebem Metalthec, o resto Jotta. Concorrente direto da Jotta (deals.origin_detail = concorrente_jotta) recebe M2 so com Metalthec e nunca le o nome da Jotta.\n' +
       'M1-M3 sao cadencia de SILENCIO (lead que nunca respondeu). Lead que RESPONDEU, com sim ou com nao, NUNCA recebe M1-M3.',
   );
 

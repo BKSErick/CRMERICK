@@ -9,6 +9,7 @@ import { diagnoseLead } from "@/lib/leadScoring";
 import {
   avaliarElegibilidadeProspeccao,
   compararPrioridadeProspeccao,
+  retencaoFilaFria,
 } from "@/lib/prospectingEligibility.mjs";
 import {
   FUNDO_STAGES,
@@ -307,7 +308,9 @@ export async function GET(request: NextRequest) {
 
     // Fila de follow-up: quem ja foi contatado (abordado/followup) e esta na janela
     // (M1 D+2, M2 D+5 com prova, M3 D+10 breakup). Mais atrasado primeiro.
-    const followupSelect = "id, company, phone, whatsapp, name, stage, value, contact_id, last_inbound_at, last_outbound_at, deal_health_score, deal_health_classification, deal_health_confidence, deal_health_recommended_action, qualification";
+    // P0 (Story 064): os campos da regua entram no select para a fila visual aplicar o
+    // mesmo gate do disparo. Anti-ICP em abordado/followup nao aparece mais aqui.
+    const followupSelect = "id, company, phone, whatsapp, name, stage, value, contact_id, last_inbound_at, last_outbound_at, deal_health_score, deal_health_classification, deal_health_confidence, deal_health_recommended_action, qualification, segment, segment_norm, origin_detail, is_icp, porte, capital_social, cnae_descricao, site_url, decisor_nome, decision_access, eligibility_exception";
     const [cadenceRows, healthRiskRows, qualificationRows, fundoRows] = await Promise.all([
       supabase
         .from("deals")
@@ -347,7 +350,9 @@ export async function GET(request: NextRequest) {
     ].filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index);
 
     const followupQueue = (fuRows ?? [])
-      .map((d) => {
+      .map((d) => ({ d, retencao: retencaoFilaFria(d as Parameters<typeof retencaoFilaFria>[0]) }))
+      .filter(({ retencao }) => !retencao.excluir)
+      .map(({ d, retencao }) => {
         const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
         const phone =
           own ||
@@ -398,7 +403,19 @@ export async function GET(request: NextRequest) {
           window: fundo || healthReview || qualificationReview ? "Sem envio automatico" : cadenceTier === "aguardar" ? "" : TIER_INFO[cadenceTier].window,
           // Fundo nao recebe mensagem de template. Lead que ja disse "me interessa" e que
           // ja viu o case merece resposta escrita na mao, e M1/M2/M3 sao copy de lead frio.
-          message: fundo || healthReview || qualificationReview ? "" : cadenceTier === "aguardar" ? "" : followupMessage(cadenceTier, company),
+          message: fundo || healthReview || qualificationReview || retencao.semTemplate
+            ? ""
+            : cadenceTier === "aguardar"
+              ? ""
+              : followupMessage(
+                  cadenceTier,
+                  company,
+                  undefined,
+                  (d.segment_norm as string | null) ?? (d.segment as string | null),
+                  null,
+                  d.origin_detail === "concorrente_jotta" ? "metalthec" : null,
+                ),
+          retidoMotivo: retencao.motivo,
           fundoReview: Boolean(fundo),
           healthReview,
           qualificationReview,
@@ -450,7 +467,7 @@ export async function GET(request: NextRequest) {
     // Aqui eles viram fila de trabalho com a mensagem pronta.
     const { data: referralRows } = await supabase
       .from("deals")
-      .select("id, company, stage, referred_name, referred_phone, referred_by, referred_at")
+      .select("id, company, name, stage, referred_name, referred_phone, referred_by, referred_at, segment, segment_norm, is_icp, porte, capital_social, cnae_descricao, site_url, eligibility_exception, last_inbound_at, last_outbound_at")
       .not("referred_phone", "is", null);
 
     const referralIds = (referralRows ?? []).map((r) => Number(r.id));
@@ -474,7 +491,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Indicacao de anti-ICP em estagio frio tambem sai (P0); ate aqui o encaminhamento pulava
+    // a regua por completo. Capacidade incerta NAO tira indicacao da fila: o gatekeeper ja
+    // abriu a porta, e o decisor indicado e o melhor lead do funil.
     const referralQueue = (referralRows ?? [])
+      .filter((r) => {
+        const retencao = retencaoFilaFria(r as Parameters<typeof retencaoFilaFria>[0]);
+        return !(retencao.excluir && (r.is_icp === false || /anti-ICP/i.test(retencao.motivo ?? "")));
+      })
       .map((r) => {
         const id = Number(r.id);
         const phone = cleanPhone(String(r.referred_phone ?? ""));

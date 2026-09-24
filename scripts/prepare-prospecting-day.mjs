@@ -24,6 +24,9 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { avaliarGateFinchLote } from "../src/lib/finchGate.mjs";
+import { carregarEnv, clienteSupabase } from "./lib/analise-comum.mjs";
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const RUNTIME_DIR = path.join(ROOT, "logs", "prospecting-batches");
 const arg = (name, fallback = "") => {
@@ -99,6 +102,22 @@ for (const slot of ["morning", "afternoon"]) {
   if (fs.existsSync(approvalPath(slot))) {
     throw new Error(`Ja existe aprovacao para ${date}/${slot}. Remova-a conscientemente antes de regenerar o lote.`);
   }
+}
+
+// P7 (Story 064, gate Thiago Finch): nao entra volume NOVO enquanto houver resposta
+// qualificada esperando o Erick. Follow-up de cadencia segue; primeira mensagem para.
+// Sem flag de escape de proposito: o destrave e responder quem esta esperando.
+carregarEnv(ROOT);
+const dealsAbertos = await clienteSupabase().get(
+  "deals?stage=not.in.(lost,won)&select=id,company,name,stage,response_type,last_inbound_at,last_outbound_at,is_icp,segment,segment_norm,cnae_descricao",
+);
+const loteFinch = avaliarGateFinchLote({ deals: dealsAbertos });
+const paradas = loteFinch.criterios.find((item) => item.id === "respostasParadas");
+if (paradas && !paradas.ok && (firstPorSlot.morning || firstPorSlot.afternoon)) {
+  console.log(`Gate Finch: ${paradas.motivo}.`);
+  console.log("Nenhuma primeira mensagem nova neste manifesto ate essas respostas serem atendidas.");
+  firstPorSlot.morning = 0;
+  firstPorSlot.afternoon = 0;
 }
 
 function collect(script, kind, slot, limit, excluded = [], extraArgs = []) {

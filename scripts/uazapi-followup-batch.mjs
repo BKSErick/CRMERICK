@@ -32,10 +32,13 @@ import {
 import { fetchAllPages } from "./lib/supabaseRest.mjs";
 import { conferirCanal } from "./lib/canalWhatsapp.mjs";
 import { segmentoVetado } from "./lib/analise-comum.mjs";
+import { auditarCopy } from "../src/lib/copyGate.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { renderFollowupMessage } = salesPlaybookModule;
 let retidosElegibilidade = [];
+// P5/P6 (Story 063): texto reprovado no gate (pede licenca, dois cases, termo morto...) nao sai.
+let retidosCopy = [];
 for (const linha of fs.readFileSync(path.join(RAIZ, ".env"), "utf8").split(/\r?\n/)) {
   const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
@@ -163,7 +166,7 @@ async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
     fetchAllPages(
       supa,
-      "deals?stage=in.(abordado,followup)&select=id,company,name,segment,segment_norm,origin_detail,is_icp,porte,capital_social,cnae_descricao,site_url,decisor_nome,points",
+      "deals?stage=in.(abordado,followup)&select=id,company,name,segment,segment_norm,origin_detail,is_icp,porte,capital_social,cnae_descricao,site_url,decisor_nome,decision_access,eligibility_exception,points",
     ),
     fetchAllPages(supa, "contacts?select=id,phone,whatsapp_site,whatsapp_jid,city"),
     fetchAllPages(supa,
@@ -219,6 +222,12 @@ async function carregarFila() {
       // resposta humana e 24 na fila prestes a levar. O pedido do responsavel sai uma
       // vez; sem resposta humana depois dele, o lead sai do WhatsApp (e-mail assume).
       if (h.bots > 0 && h.saidasDepoisBot > 0) return null;
+      const texto = followupMessage(tier, d.company, h.bots > 0, d.segment, porId[d.id]?.city, d.origin_detail);
+      const gate = auditarCopy(texto, { tier: capacity_tier, degrau: h.bots > 0 ? "bot" : tier });
+      if (!gate.aprovado) {
+        retidosCopy.push(`#${d.id} ${d.company} ${tier} (${gate.violacoes.join("; ")})`);
+        return null;
+      }
       return { ...d, prospectingEligibility: elegibilidade, fone: celular, dias, tier, ehBot: h.bots > 0, toques: h.saidas, cidade: porId[d.id]?.city };
     })
     .filter(Boolean)
@@ -406,6 +415,10 @@ async function registrar(dealId, empresa, tier) {
     lote.push({ ...l, perfilWpp: canal.nome || "" });
   }
   console.log(`Enviados hoje (disparo + follow-up): ${jaHoje}/${TETO_DIA} | saidas do numero: ${jaNumero}/${TETO_NUMERO}`);
+  if (retidosCopy.length) {
+    console.log(`Retidos pelo gate de texto: ${retidosCopy.length}`);
+    retidosCopy.slice(0, 8).forEach((r) => console.log(`   ${r}`));
+  }
   if (retidosElegibilidade.length) {
     console.log(`Retidos pela regua ICP/capacidade: ${retidosElegibilidade.length}`);
     retidosElegibilidade.slice(0, 8).forEach((r) => console.log(`   ${r}`));
