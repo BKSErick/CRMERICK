@@ -192,6 +192,7 @@ async function carregarFila() {
       if (!h || !h.ultimaSaida || !celular) return null;
       if (h.humanas > 0) return null; // conversa viva: responder na mao, nunca automatizar
       if (segmentoVetado(d.segment, d.company)) return null; // refrigeracao/climatizacao, 24/09/2026
+      if (d.segment === "eventos") return null; // M1-M3 sao industriais; casa de evento tem cadencia propria
       const dias = Math.floor((agora - Date.parse(h.ultimaSaida)) / 86400000);
       const tier = tierForDays(dias);
       if (tier === "aguardar") return null;

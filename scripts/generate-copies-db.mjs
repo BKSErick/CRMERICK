@@ -90,6 +90,9 @@ function mapsInfoDe(rating, reviews) {
   const fila = deals
     .map((d) => ({ ...d, contato: C[d.id] || {} }))
     .filter((d) => !NOME_ORFAO.test(String(d.company || "").trim()))
+    // Casa de evento (vertente de 24/09/2026) tem copy propria, escrita a mao a partir do
+    // site de cada casa. O gerador industrial nunca escreve nem reescreve a dela.
+    .filter((d) => d.segment !== "eventos")
     .filter((d) => (FORCE ? true : !d.copy_text))
     .filter((d) => !alvo || normalize(d.contato.city).includes(alvo))
     .slice(0, LIMITE);

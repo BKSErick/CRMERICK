@@ -281,7 +281,8 @@ async function gravar(crm, itens, proximoId, aoGravar) {
         id: meuId,
         name: nome,
         company: nome,
-        segment: segmentoCanonico(lead.name, lead.categoria),
+        // lead.segmento vem do --segmento do pull (ex.: eventos), que nao tem regra aqui.
+        segment: lead.segmento || segmentoCanonico(lead.name, lead.categoria),
         stage: "prospect",
         status: "open",
         contact_id: meuId,

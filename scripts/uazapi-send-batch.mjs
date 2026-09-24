@@ -171,7 +171,12 @@ async function carregarFila() {
         ...d,
         fone: canalDoContato(c),
         confianca,
-        copyAssignment: copyAssignmentForLead({ id: d.id, company: d.company, copyText: d.copy_text }),
+        // Casa de evento (24/09/2026) abre com "Oi, tudo bem?" e seria contada como
+        // variante A do experimento industrial. Tem experimento e oferta proprios.
+        copyAssignment:
+          d.segment === "eventos"
+            ? { copyVersion: "eventos-2026-09-24.1", offerVersion: "eventos-2400-200", experimentId: "eventos-corporativo-sp-2026-09", variant: "eventos" }
+            : copyAssignmentForLead({ id: d.id, company: d.company, copyText: d.copy_text }),
       };
     })
     .filter((d) => d.fone)
