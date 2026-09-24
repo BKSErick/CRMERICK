@@ -14,8 +14,10 @@ const { gerarCopy } = requireCjs("../scripts/regenerate-copies.js");
 
 const {
   SALES_PLAYBOOK,
+  calculateEntryOfferEconomics,
   copyAssignmentForLead,
   detectVariantFromCopy,
+  renderEntryOfferMessage,
   renderFollowupMessage,
 } = salesPlaybookModule;
 
@@ -25,6 +27,41 @@ test("playbook versiona oferta, copy e experimento ativo", () => {
   assert.equal(SALES_PLAYBOOK.offer.setupPrice, 1000);
   assert.equal(SALES_PLAYBOOK.offer.monthlyPrice, 150);
   assert.equal(SALES_PLAYBOOK.experiment.variants.length, 2);
+});
+
+test("Base Industrial e produto separado, com escopo e preco fechados", () => {
+  const entry = SALES_PLAYBOOK.entryOffer;
+  assert.equal(entry.name, "Base Industrial");
+  assert.equal(entry.setupPrice, 600);
+  assert.equal(entry.monthlyPrice, 80);
+  assert.equal(entry.eligibility.capacityTier, "micro");
+  assert.equal(entry.eligibility.offerTrack, "entrada");
+  assert.equal(entry.scope.maxServices, 5);
+  assert.equal(entry.scope.maxPhotos, 6);
+  assert.ok(entry.exclusions.includes("Pedido Pronto"));
+  assert.equal(entry.pilot.maxLeads, 20);
+  assert.equal(entry.upgrade.credit, 300);
+});
+
+test("Base Industrial preserva pelo menos 60% de contribuicao nos limites aprovados", () => {
+  const economics = calculateEntryOfferEconomics();
+  assert.equal(economics.setup.productionHours, 2);
+  assert.equal(economics.monthly.productionMinutes, 10);
+  assert.ok(economics.setup.contributionMargin >= 0.6, JSON.stringify(economics.setup));
+  assert.ok(economics.monthly.contributionMargin >= 0.6, JSON.stringify(economics.monthly));
+  assert.ok(economics.setup.contribution > 0);
+  assert.ok(economics.monthly.contribution > 0);
+});
+
+test("mensagem da entrada oferece preco, prazo e vaga sem pedir permissao", () => {
+  const message = renderEntryOfferMessage({ company: "Metal Forte", nextSlot: "sexta" });
+  assert.match(message, /Base Industrial/);
+  assert.match(message, /Metal Forte/);
+  assert.match(message, /R\$\s*600/);
+  assert.match(message, /R\$\s*80\/m[eê]s/);
+  assert.match(message, /3 dias [uú]teis/);
+  assert.match(message, /Minha pr[oó]xima entrada/);
+  assert.doesNotMatch(message, /posso|quer que|faz sentido|topa|desconto/i);
 });
 
 test("atribuicao A/B e deterministica e registra as versoes usadas", () => {
@@ -143,6 +180,8 @@ test("Comando le as cartas do playbook e nao tem card de reuniao para lead frio"
   assert.match(comando, /CARTAS\.retomadaSemPreco\.texto/);
   assert.doesNotMatch(comando, /puxar pra reuni[aã]o/i);
   assert.doesNotMatch(comando, /n[aã]o [eé] minha inten[cç][aã]o mexer nisso/i);
+  assert.match(comando, /entryQueue/);
+  assert.match(comando, /Base Industrial/);
 });
 
 test("roteamento por gatekeeper e decisor indicado e versionado e nao pede permissao", () => {

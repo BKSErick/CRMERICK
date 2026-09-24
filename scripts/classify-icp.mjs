@@ -53,6 +53,10 @@ import {
   segmentoCanonico,
 } from "./lib/analise-comum.mjs";
 import { decide } from "../src/lib/typedDecision.mjs";
+import {
+  camposEvidenciaIcp,
+  normalizarDecisaoIcpIa,
+} from "../src/lib/icpAiClassification.mjs";
 
 const require = createRequire(import.meta.url);
 const { applyIcpPoints } = require("../src/lib/leadScoring.js");
@@ -181,39 +185,53 @@ async function passeIa(candidatos) {
   for (const d of fila) {
     const r = await decide({
       state: {
-        empresa: d.company || d.name,
         segmento_informado: d.segment || "(vazio)",
+        segmento_normalizado: d.segment_norm || "(vazio)",
         cnae: d.cnae_descricao || "(sem)",
         porte: d.porte || "(sem)",
       },
       questions: {
         icp: { type: "choice", instructions: "Esta empresa esta dentro do ICP da Mydrion? Julgue pelo que ela faz.", criteria: criterios },
+        confianca: {
+          type: "score",
+          instructions: "Quao explicita e a evidencia para o veredito de ICP?",
+          criteria: [
+            "dados insuficientes",
+            "inferencia pelo nome ou por sinal indireto",
+            "segmento, CNAE ou porte traz evidencia explicita",
+          ],
+        },
         segmento: { type: "choice", instructions: "Qual o segmento industrial da empresa?", criteria: segmentos },
+      },
+      evidence: {
+        instructions: "Copie literalmente o trecho de segmento, CNAE ou porte que sustenta o veredito. Se nao houver, use string vazia.",
+        from: camposEvidenciaIcp(d),
       },
       timeoutMs: 20000,
       perProviderTimeoutMs: 10000,
       perModelTimeoutMs: 8000,
-      providerPolicy: "free-then-groq",
+      providerPolicy: "free-strict",
     });
     const nome = String(d.company || d.name).slice(0, 40).padEnd(40);
-    if (!r.ok || r.answers.icp?.type !== "choice") {
+    const decisao = normalizarDecisaoIcpIa({ result: r, deal: d });
+    if (!decisao.persist) {
       placar.falha += 1;
       console.log(`  x ${nome} [${String(d.segment || "").slice(0, 12)}] ${r.ok ? "resposta fora da lista" : r.detail.slice(0, 90)}`);
     } else {
-      const escolha = r.answers.icp.choice;
-      placar[escolha] += 1;
-      let isIcp = escolha === "sim" ? true : escolha === "nao" ? false : null;
-      if (isIcp === false && ESTAGIOS_PROTEGIDOS.has(d.stage)) isIcp = null;
-      const segmento = r.answers.segmento?.type === "choice" ? r.answers.segmento.choice : "outro";
-      const nota = applyIcpPoints(d.points, d.icp_points, isIcp);
-      console.log(`  ${escolha.padEnd(7)} ${nome} [${String(d.segment || "").slice(0, 12)}] seg=${segmento} nota ${d.points}->${nota.points}`);
+      placar[decisao.veredito] += 1;
+      const nota = applyIcpPoints(d.points, d.icp_points, decisao.isIcp);
+      console.log(`  ${decisao.veredito.padEnd(7)} ${nome} [${String(d.segment || "").slice(0, 12)}] seg=${decisao.segment ?? "outro"} conf=${decisao.confidence} nota ${d.points}->${nota.points} (${decisao.reason})`);
       if (GO) {
         await db.patch(`deals?id=eq.${d.id}`, {
-          is_icp: isIcp,
+          is_icp: decisao.isIcp,
           icp_source: "ia",
-          ...(d.segment_norm || segmento === "outro" ? {} : { segment_norm: segmento }),
+          ...(d.segment_norm || !decisao.segment ? {} : { segment_norm: decisao.segment }),
           points: nota.points,
           icp_points: nota.icp_points,
+          icp_evidence: decisao.evidence || null,
+          icp_confidence: decisao.confidence,
+          icp_model: decisao.model,
+          icp_classified_at: new Date().toISOString(),
         });
       }
     }
@@ -225,7 +243,7 @@ async function passeIa(candidatos) {
 
 (async () => {
   const deals = await db.get(
-    "deals?select=id,company,name,segment,segment_norm,stage,is_icp,icp_source,points,icp_points,cnae_descricao,porte,response_type,last_outbound_at",
+    "deals?select=id,company,name,segment,segment_norm,stage,is_icp,icp_source,icp_evidence,icp_confidence,icp_model,icp_classified_at,points,icp_points,cnae_descricao,porte,response_type,last_outbound_at",
   );
 
   if (RELATORIO) {
@@ -268,7 +286,12 @@ async function passeIa(candidatos) {
     }
     if (nota.points > Number(d.points || 0)) subiram++;
     if (nota.points < Number(d.points || 0)) desceram++;
-    if (mudouIcp || mudouNota) mudancas.push({ id: d.id, ...alvo, ...nota });
+    const limparAuditoria = alvo.icp_source !== "ia" && Boolean(
+      d.icp_evidence || d.icp_model || d.icp_classified_at || d.icp_confidence != null
+    );
+    if (mudouIcp || mudouNota || limparAuditoria) {
+      mudancas.push({ id: d.id, ...alvo, ...nota, limparAuditoria });
+    }
     // Lead perdido nao volta pra fila: nao vale gastar cota gratuita julgando ICP dele.
     if (alvo.is_icp === null && alvo.icp_source === null && d.segment !== "eventos" && d.stage !== "lost") {
       indefinidosParaIa.push({ ...d, icp_points: nota.icp_points, points: nota.points });
@@ -326,6 +349,12 @@ async function passeIa(candidatos) {
       icp_source: m.icp_source,
       points: m.points,
       icp_points: m.icp_points,
+      ...(m.limparAuditoria ? {
+        icp_evidence: null,
+        icp_confidence: null,
+        icp_model: null,
+        icp_classified_at: null,
+      } : {}),
     }));
     console.log(`\nOK: ${mudancas.length} deals atualizados.\n`);
   }

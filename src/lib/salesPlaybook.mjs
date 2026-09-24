@@ -86,6 +86,43 @@ function renderFollowupMessage(input) {
   return interpolate(SALES_PLAYBOOK.followups.M3, values);
 }
 
+function calculateEntryOfferEconomics(overrides = {}) {
+  const offer = SALES_PLAYBOOK.entryOffer;
+  const caps = { ...offer.operatingCaps, ...overrides };
+  const setupCosts =
+    offer.setupPrice * caps.paymentFeeRate + caps.setupHours * caps.internalHourlyCost;
+  const monthlyCosts =
+    offer.monthlyPrice * caps.paymentFeeRate +
+    caps.infrastructureReserveMonthly +
+    (caps.monthlyMinutes / 60) * caps.internalHourlyCost;
+  const resultFor = (revenue, costs, operating) => {
+    const contribution = revenue - costs;
+    return {
+      revenue,
+      costs,
+      contribution,
+      contributionMargin: contribution / revenue,
+      ...operating,
+    };
+  };
+  return {
+    setup: resultFor(offer.setupPrice, setupCosts, { productionHours: caps.setupHours }),
+    monthly: resultFor(offer.monthlyPrice, monthlyCosts, { productionMinutes: caps.monthlyMinutes }),
+    minimumContributionMargin: caps.minimumContributionMargin,
+  };
+}
+
+function renderEntryOfferMessage(input) {
+  const offer = SALES_PLAYBOOK.entryOffer;
+  return interpolate(offer.message, {
+    company: shortCompany(input.company),
+    setupPrice: offer.setupPrice,
+    monthlyPrice: offer.monthlyPrice,
+    deliveryDays: offer.deliveryBusinessDays,
+    proximaEntrada: input.nextSlot ?? "[DIA]",
+  });
+}
+
 function activityExperimentMetadata(assignment, extra = {}) {
   return {
     ...extra,
@@ -99,18 +136,22 @@ function activityExperimentMetadata(assignment, extra = {}) {
 const salesPlaybookModule = {
   SALES_PLAYBOOK,
   activityExperimentMetadata,
+  calculateEntryOfferEconomics,
   copyAssignmentForLead,
   detectVariantFromCopy,
   isLocal,
+  renderEntryOfferMessage,
   renderFollowupMessage,
   shortCompany,
 };
 
 export {
   activityExperimentMetadata,
+  calculateEntryOfferEconomics,
   copyAssignmentForLead,
   detectVariantFromCopy,
   isLocal,
+  renderEntryOfferMessage,
   renderFollowupMessage,
   shortCompany,
 };

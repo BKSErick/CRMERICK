@@ -23,6 +23,7 @@ import {
 } from "@/lib/followup";
 import { getCompanySignals, signalAliases, signalWeight, type CompanySignal } from "@/lib/sinais";
 import { loadDailyPriorityEvidence, loadLatestInboundReadings } from "@/lib/aiRetrievalBroker";
+import { SALES_PLAYBOOK, renderEntryOfferMessage } from "@/lib/salesPlaybook.mjs";
 
 // Cockpit de cobranca diaria (Comando / Story 016). Agrega, server-side, os inputs do dia
 // (disparos/follow-ups/calls/deals movidos), a fila priorizada do dia e os alertas das regras
@@ -165,6 +166,17 @@ export async function GET(request: NextRequest) {
       .limit(1000);
     if (dealErr) throw dealErr;
 
+    // Piloto separado da fila principal. Esta consulta nunca alimenta os scripts de
+    // disparo: apenas expoe ate 20 micros confirmados para abertura manual no cockpit.
+    const { data: entryDealRows, error: entryDealErr } = await supabase
+      .from("deals")
+      .select("id, company, phone, whatsapp, points, stage, name, site_url, contact_id, segment, segment_norm, is_icp, porte, capital_social, cnae_descricao, decisor_nome, decision_access")
+      .in("stage", ["prospect", "qualified"])
+      .eq("offer_track", "entrada")
+      .order("points", { ascending: false })
+      .limit(100);
+    if (entryDealErr) throw entryDealErr;
+
     // Telefones vivem em contacts (import Garimpo, story-007); deals nao tem telefone proprio.
     // Join por company/name (mesmo import, 1:1). O campo whatsapp do contact e um link wa.me completo.
     const { data: contactRows, error: contactErr } = await supabase
@@ -257,6 +269,41 @@ export async function GET(request: NextRequest) {
       // Gate primeiro. Dentro dos elegiveis: sinal, capacidade e score.
       .sort(compararPrioridadeProspeccao)
       .slice(0, goals.dailyInputs.disparos);
+
+    const entryQueue = (entryDealRows ?? [])
+      .map((d) => ({ ...d, prospectingEligibility: avaliarElegibilidadeProspeccao(d) }))
+      .filter((d) =>
+        d.is_icp === true &&
+        d.prospectingEligibility.capacity_tier === "micro" &&
+        d.prospectingEligibility.offer_track === "entrada"
+      )
+      .map((d) => {
+        const own = cleanPhone((d.phone as string) || (d.whatsapp as string));
+        const phone =
+          own ||
+          (d.contact_id != null ? phoneById.get(Number(d.contact_id)) : undefined) ||
+          phoneByKey.get(keyOf(d.company as string)) ||
+          phoneByKey.get(keyOf(d.name as string)) ||
+          "";
+        const signal = signalFor(d.company as string, d.name as string);
+        return {
+          id: Number(d.id),
+          company: String(d.company ?? d.name ?? "Sem empresa"),
+          phone,
+          points: Number(d.points ?? 0),
+          stage: String(d.stage ?? "prospect"),
+          signal: signal
+            ? { views: signal.views, waClicks: signal.waClicks, linkClicks: signal.linkClicks, lastEvent: signal.lastEvent, hot: signal.hot, pageUrl: signal.pageUrl }
+            : null,
+          signalWeight: signalWeight(signal),
+          capacity_evidence: d.prospectingEligibility.capacity_evidence,
+          eligibility_reason: d.prospectingEligibility.eligibility_reason,
+          message: renderEntryOfferMessage({ company: String(d.company ?? d.name ?? "empresa") }),
+        };
+      })
+      .filter((d) => d.phone && isWhatsappMobile(d.phone))
+      .sort((a, b) => b.signalWeight - a.signalWeight || b.points - a.points || a.id - b.id)
+      .slice(0, SALES_PLAYBOOK.entryOffer.pilot.maxLeads);
 
     // Fila de follow-up: quem ja foi contatado (abordado/followup) e esta na janela
     // (M1 D+2, M2 D+5 com prova, M3 D+10 breakup). Mais atrasado primeiro.
@@ -488,6 +535,7 @@ export async function GET(request: NextRequest) {
         },
       },
       queue,
+      entryQueue,
       followupQueue: followupQueueWithReading,
       referralQueue,
       smartPriorities,

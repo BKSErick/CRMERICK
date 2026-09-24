@@ -8,6 +8,60 @@
     "currency": "BRL",
     "meetingMinutes": 15
   },
+  "entryOffer": {
+    "version": "offer-base-industrial-600-80-pilot-v1",
+    "name": "Base Industrial",
+    "setupPrice": 600,
+    "monthlyPrice": 80,
+    "currency": "BRL",
+    "deliveryBusinessDays": 3,
+    "revisionRounds": 1,
+    "eligibility": {
+      "isIcp": true,
+      "capacityTier": "micro",
+      "offerTrack": "entrada"
+    },
+    "scope": {
+      "format": "pagina unica em template industrial",
+      "maxServices": 5,
+      "maxPhotos": 6,
+      "includes": [
+        "servicos",
+        "cidade ou regiao atendida",
+        "WhatsApp como chamada principal",
+        "conexao de dominio proprio"
+      ]
+    },
+    "exclusions": [
+      "Pedido Pronto",
+      "design customizado",
+      "multiplas paginas",
+      "integracoes",
+      "producao de copy",
+      "producao de fotografia"
+    ],
+    "operatingCaps": {
+      "setupHours": 2,
+      "monthlyMinutes": 10,
+      "internalHourlyCost": 100,
+      "paymentFeeRate": 0.05,
+      "infrastructureReserveMonthly": 10,
+      "minimumContributionMargin": 0.6
+    },
+    "upgrade": {
+      "credit": 300,
+      "windowDays": 30,
+      "targetOffer": "Pagina industrial com Pedido Pronto"
+    },
+    "pilot": {
+      "maxLeads": 20,
+      "durationDays": 14,
+      "manualOnly": true,
+      "scaleWhen": "uma venda no preco cheio e entrega real em ate 2 horas",
+      "killWhen": "menos de 3 reconhecimentos validos em 20 leads ou 5 precos enviados sem venda"
+    },
+    "message": "Para a {{company}}, eu não colocaria o projeto completo agora. Começaria pela Base Industrial: uma página objetiva com até 5 serviços, região atendida e WhatsApp em endereço próprio. R$ {{setupPrice}} de implantação e R$ {{monthlyPrice}}/mês para manter no ar. Entrego em até {{deliveryDays}} dias úteis depois do material. Minha próxima entrada é {{proximaEntrada}}. Reservo a vaga da {{company}} nela?"
+  },
   "mechanism": "Pedido Pronto",
   "experiment": {
     "id": "wa-opening-2026-09-v4",

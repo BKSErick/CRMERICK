@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import test from "node:test";
+import { normalizarDecisaoIcpIa } from "../src/lib/icpAiClassification.mjs";
 
 const require = createRequire(import.meta.url);
 const { applyIcpPoints, diagnoseLead, icpPoints } = require("../src/lib/leadScoring.js");
@@ -87,6 +88,80 @@ test("classify-icp nao sobrescreve decisao manual nem de importacao", () => {
   assert.match(script, /regraManda = fonte === null \|\| fonte === "regra" \|\| \(fonte === "ia" && veredito !== null\)/);
   assert.match(script, /ESTAGIOS_PROTEGIDOS/);
   assert.match(script, /brandbook\.json/, "criterio de ICP da IA vem do brandbook, nao do codigo");
+  assert.match(script, /providerPolicy: "free-strict"/);
+  assert.match(script, /evidence:/);
+  assert.doesNotMatch(script, /state:\s*\{\s*empresa:/, "nome da empresa nao sai para o provedor externo");
+});
+
+test("IA so aceita sim ou nao com confianca alta e evidencia literal suficiente", () => {
+  const deal = {
+    company: "Metal Forte Usinagem Industrial",
+    segment: "usinagem",
+    cnae_descricao: "Servicos de usinagem, tornearia e solda",
+    porte: "EPP",
+    stage: "prospect",
+  };
+  const decision = normalizarDecisaoIcpIa({
+    deal,
+    result: {
+      ok: true,
+      answers: {
+        icp: { type: "choice", choice: "sim" },
+        confianca: { type: "score", level: 2, label: "evidencia explicita" },
+        segmento: { type: "choice", choice: "usinagem" },
+      },
+      evidencia: "Servicos de usinagem, tornearia e solda",
+      model: "free-model",
+    },
+  });
+  assert.equal(decision.veredito, "sim");
+  assert.equal(decision.isIcp, true);
+  assert.equal(decision.confidence, 2);
+  assert.equal(decision.evidence, "Servicos de usinagem, tornearia e solda");
+});
+
+test("IA rebaixa palpite, evidencia curta ou divergente para incerto", () => {
+  const deal = { company: "ABC Ltda", segment: "outro", cnae_descricao: "", porte: "", stage: "prospect" };
+  for (const [confidence, evidencia] of [[1, "ABC Ltda"], [2, "fabricante aeroespacial inventado"]] as const) {
+    const decision = normalizarDecisaoIcpIa({
+      deal,
+      result: {
+        ok: true,
+        answers: {
+          icp: { type: "choice", choice: "sim" },
+          confianca: { type: "score", level: confidence, label: "" },
+          segmento: { type: "choice", choice: "outro" },
+        },
+        evidencia,
+        model: "free-model",
+      },
+    });
+    assert.equal(decision.veredito, "incerto");
+    assert.equal(decision.isIcp, null);
+  }
+});
+
+test("IA nunca rebaixa estagio avancado e falha permanece indefinida", () => {
+  const respostaFora = {
+    ok: true,
+    answers: {
+      icp: { type: "choice", choice: "nao" },
+      confianca: { type: "score", level: 2, label: "evidencia explicita" },
+      segmento: { type: "choice", choice: "outro" },
+    },
+    evidencia: "Serralheria residencial sob medida",
+    model: "free-model",
+  };
+  const protegido = normalizarDecisaoIcpIa({
+    deal: { company: "Serralheria XPTO", cnae_descricao: "Serralheria residencial sob medida", stage: "proposal" },
+    result: respostaFora,
+  });
+  assert.equal(protegido.isIcp, null);
+  assert.equal(protegido.veredito, "incerto");
+
+  const falha = normalizarDecisaoIcpIa({ deal: { company: "ABC", stage: "prospect" }, result: { ok: false } });
+  assert.equal(falha.isIcp, null);
+  assert.equal(falha.persist, false);
 });
 
 test("tela e prompts nao cortam mais a nota em 10", () => {

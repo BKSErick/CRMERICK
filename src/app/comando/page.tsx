@@ -38,6 +38,18 @@ type QueueItem = {
   eligibility_reason: string;
 };
 
+type EntryQueueItem = {
+  id: number;
+  company: string;
+  phone: string;
+  points: number;
+  stage: string;
+  message: string;
+  signal: LeadSignal | null;
+  capacity_evidence: string[];
+  eligibility_reason: string;
+};
+
 const APPROACH_LABELS: Record<string, string> = {
   sem_site_ativo: "Sem site (ativo)",
   builder_fraco: "Builder fraco",
@@ -136,6 +148,7 @@ type Comando = {
   placar: Placar;
   alerts: Alerts;
   queue: QueueItem[];
+  entryQueue: EntryQueueItem[];
   followupQueue: FollowupItem[];
   referralQueue: ReferralItem[];
   forecast?: CommandForecast;
@@ -151,6 +164,7 @@ function whatsappLink(phone: string, message: string) {
 // (anti-ego, encaminhavel, pergunta de baixo custo).
 const { SALES_PLAYBOOK } = salesPlaybookModule;
 const offerPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.offer.currency });
+const entryOfferPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: SALES_PLAYBOOK.entryOffer.currency });
 
 // Cartas vivem em content/sales-playbook.json (postResponse.cartas, msg2Ponte,
 // msg2Preco). Aqui so trocamos os placeholders do playbook pelos marcadores que
@@ -387,6 +401,10 @@ export default function ComandoPage() {
 
   function handleFollowup(item: FollowupItem) {
     void logWhatsappOpened(item.id, `WhatsApp aberto para follow-up ${item.tier}`);
+  }
+
+  function handleEntryOffer(item: EntryQueueItem) {
+    void logWhatsappOpened(item.id, "WhatsApp aberto para oferta Base Industrial");
   }
 
   return (
@@ -731,6 +749,63 @@ export default function ComandoPage() {
             buttonLabel="Ver prioridades"
             hint="Quem exige atencao agora, com o fator que disparou cada alerta."
           />
+
+          <div className="card-header" style={{ margin: "24px 0 12px" }}>
+            <div>
+              <div className="card-title">Base Industrial — piloto manual</div>
+              <div className="muted-copy" style={{ fontSize: "12px", marginTop: "4px" }}>
+                {entryOfferPrice.format(SALES_PLAYBOOK.entryOffer.setupPrice)} de implantação + {entryOfferPrice.format(SALES_PLAYBOOK.entryOffer.monthlyPrice)}/mês · até {SALES_PLAYBOOK.entryOffer.scope.maxServices} serviços · entrega em {SALES_PLAYBOOK.entryOffer.deliveryBusinessDays} dias úteis. Não entra no disparo automático.
+              </div>
+            </div>
+            <span className="card-badge">{(data.entryQueue ?? []).length} / {SALES_PLAYBOOK.entryOffer.pilot.maxLeads} leads</span>
+          </div>
+          {(data.entryQueue ?? []).length === 0 ? (
+            <div className="connection-status fallback">
+              Nenhum micro ICP com celular disponível para o piloto de entrada.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Empresa</th>
+                    <th>Por que entrou</th>
+                    <th>Score</th>
+                    <th>Telefone</th>
+                    <th>Ação manual</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.entryQueue ?? []).map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.company}{signalBadge(item.signal)}</td>
+                      <td>
+                        <div className="muted-copy" style={{ fontSize: "12px" }}>{item.eligibility_reason}</div>
+                        {item.capacity_evidence.length > 0 ? (
+                          <div className="muted-copy" style={{ fontSize: "10px", marginTop: "2px" }}>
+                            {item.capacity_evidence.join(" · ")}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td>{item.points}</td>
+                      <td className="font-mono">+{item.phone}</td>
+                      <td>
+                        <a
+                          className="topbar-btn primary"
+                          href={whatsappLink(item.phone, item.message)}
+                          rel="noreferrer"
+                          target="_blank"
+                          onClick={() => handleEntryOffer(item)}
+                        >
+                          Abrir oferta
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="card-header" style={{ margin: "24px 0 12px" }}>
             <div className="card-title">Fila do dia</div>
