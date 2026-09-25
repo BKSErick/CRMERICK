@@ -58,7 +58,7 @@ const relatorios = fs.readdirSync(DIR).filter((nome) => nome.endsWith("-pilot.re
 const pilotoAnterior = relatorios.length
   ? JSON.parse(fs.readFileSync(path.join(DIR, relatorios.at(-1)), "utf8").trimStart())
   : null;
-const abertos = await db.get("deals?stage=not.in.(lost,won)&select=id,company,name,stage,response_type,last_inbound_at,last_outbound_at,is_icp,segment,segment_norm,cnae_descricao");
+const abertos = await db.get("deals?stage=not.in.(lost,won)&select=id,company,name,stage,response_type,last_inbound_at,last_outbound_at,is_icp,is_prospect,segment,segment_norm,cnae_descricao");
 const lote = avaliarGateFinchLote({ deals: abertos, pedido: { governante: tierA, estruturado: tierB }, pilotoAnterior });
 console.log(`Gate Thiago Finch (lote) para ${date}:`);
 for (const item of lote.criterios) console.log(`  ${item.ok ? "OK  " : "NAO "} ${item.titulo} ${item.motivo}`);

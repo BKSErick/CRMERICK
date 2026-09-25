@@ -33,6 +33,7 @@ import { fetchAllPages } from "./lib/supabaseRest.mjs";
 import { conferirCanal } from "./lib/canalWhatsapp.mjs";
 import { segmentoVetado } from "./lib/analise-comum.mjs";
 import { auditarCopy } from "../src/lib/copyGate.mjs";
+import { ehRespostaAutomatica } from "../src/lib/autoresponder.mjs";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { renderFollowupMessage } = salesPlaybookModule;
@@ -112,55 +113,11 @@ function followupMessage(tier, company, ehBot, segment, city, originDetail) {
   });
 }
 
-// Saudacao automatica de WhatsApp Business. A lista comecou curta ("agradece",
-// "seja bem-vindo") e deixava passar os dois casos que hoje sao maioria: a saudacao
-// personalizada com o nome da empresa ("Bem-vindo ao atendimento comercial da EMC
-// Sistemas. Como podemos ajudar?") e a resposta escrita por IA, que cumprimenta pelo
-// nome e devolve pergunta ("Ola, Erick! Agradeco o contato e o elogio a nossa
-// reputacao..."). As duas liam como resposta HUMANA, entao o lead saia da cadencia
-// automatica e ficava esperando resposta escrita a mao que nunca vinha: 6 leads
-// presos assim em 06/08/2026. Medido na base: 53% das respostas sao so saudacao
-// automatica, e a taxa aparente de 22,8% vira 9,5% quando so conta gente.
-const AUTORESPONDER = new RegExp(
-  [
-    // Janela curta entre o verbo e o substantivo: pega "agradece seu contato",
-    // "Agradeço o contato" e "Agradecemos pelo seu contato" sem atravessar frase.
-    "agradec\\w+[^.!?\\n]{0,24}(contato|mensagem|interesse)",
-    "obrigado (por|pelo)",
-    "bem-?vind",
-    "responderemos|retornaremos|em breve|horário de atendimento",
-    "assistente (virtual|digital)|atendimento (comercial|virtual|automátic)",
-    "em instantes|um de nossos atendentes|nossa equipe (vai|irá|entrará)",
-    "como (podemos|posso) (te )?ajudar|em que (posso|podemos)",
-    "digite \\d|escolha (uma|a) opção|selecione (uma|a) opção|menu de atendimento",
-    "faça seu cadastro",
-    // AMPLIADO em 18/08/2026 medindo as 388 respostas recebidas da base: dez
-    // autoresponders passavam como resposta HUMANA e tiravam o lead da cadencia,
-    // alem de inflar a taxa de resposta. Espelha src/lib/followup.ts (classify
-    // InboundResponse) -- mudar aqui obriga a mudar la. Cada padrao veio de um caso
-    // real: Blukit, Proeng, JP/F&T (IA da Meta), Tesla, Union, CASALTEC, Automacao
-    // Monlevade, DM Refrigeracao e TOHRU.
-    "aguardando atendimento",
-    "que legal ter voc[êe] aqui",
-    "n[ãa]o consigo ajudar com isso",
-    "somos o RH",
-    "informe seu nome",
-    "somos a empresa",
-    "estou aqui para oferecer",
-    "n[ãa]o estamos dispon[íi]veis no momento",
-    // Terceira pessoa de proposito: e a empresa falando de si. "estou à sua
-    // disposição", que e humano, nao casa.
-    "est[áa] a sua disposi[çc][ãa]o",
-    // Segunda rodada: mensagens do MESMO autoresponder que escapavam por redacao.
-    "horário de funcionamento|horario de funcionamento",
-    "agrade[çc]o (o|seu|pelo) contato",
-    "protocolo de chamado",
-    // Menu interativo do WhatsApp Business; botao nunca e gente escrevendo.
-    // [AudioMessage] fica de FORA de proposito: audio e humano e precisa ser ouvido.
-    "\\[ButtonsMessage\\]|\\[ListMessage\\]",
-  ].join("|"),
-  "i",
-);
+// Saudacao automatica de WhatsApp Business: lista unica em src/lib/autoresponder.mjs
+// (Story 067, 25/09/2026). Ate aqui havia um regex proprio neste script e outra lista no
+// webhook, e as duas divergiam: 15 das 52 "respostas paradas" do gate Finch em 24/09 eram
+// saudacao automatica gravada como humana. Medido na base: 53% das respostas sao so
+// saudacao automatica, e a taxa aparente de 22,8% vira 9,5% quando so conta gente.
 
 async function carregarFila() {
   const [deals, contatos, acts] = await Promise.all([
@@ -188,7 +145,7 @@ async function carregarFila() {
     if (!a.deal_id) continue;
     const h = (hist[a.deal_id] = hist[a.deal_id] || { saidas: 0, humanas: 0, bots: 0, ultimaSaida: null, saidasDepoisBot: 0 });
     if (a.type === "whatsapp_received") {
-      if (AUTORESPONDER.test(a.description || "")) h.bots++;
+      if (ehRespostaAutomatica(a.description)) h.bots++;
       else h.humanas++;
     } else {
       h.saidas++;

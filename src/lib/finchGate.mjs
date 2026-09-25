@@ -62,6 +62,9 @@ export function respostasQualificadasParadas(deals, agoraIso = new Date().toISOS
   const fundo = new Set(config.funnelStages);
   return (deals ?? [])
     .filter((deal) => deal && deal.stage !== "lost" && deal.stage !== "won")
+    // Conversa pessoal ou spam no numero da Mydrion (card "WhatsApp NNNN", is_prospect=false)
+    // nao e resposta de lead. Em 24/09 eram 12 das 52 paradas (Story 067).
+    .filter((deal) => deal.is_prospect !== false)
     .filter((deal) => tipos.has(String(deal.response_type ?? "")) || fundo.has(String(deal.stage ?? "")))
     .filter((deal) => {
       if (!ESTAGIOS_FRIOS.includes(String(deal.stage ?? ""))) return true;

@@ -109,7 +109,7 @@ for (const slot of ["morning", "afternoon"]) {
 // Sem flag de escape de proposito: o destrave e responder quem esta esperando.
 carregarEnv(ROOT);
 const dealsAbertos = await clienteSupabase().get(
-  "deals?stage=not.in.(lost,won)&select=id,company,name,stage,response_type,last_inbound_at,last_outbound_at,is_icp,segment,segment_norm,cnae_descricao",
+  "deals?stage=not.in.(lost,won)&select=id,company,name,stage,response_type,last_inbound_at,last_outbound_at,is_icp,is_prospect,segment,segment_norm,cnae_descricao",
 );
 const loteFinch = avaliarGateFinchLote({ deals: dealsAbertos });
 const paradas = loteFinch.criterios.find((item) => item.id === "respostasParadas");

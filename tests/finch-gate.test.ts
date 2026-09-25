@@ -78,6 +78,8 @@ test("P7 criterio 7: resposta qualificada parada segura volume novo", () => {
   const antiIcp = { id: 6, company: "Refrigeracao Santos", stage: "abordado", response_type: "humana", last_inbound_at: "2026-09-20T13:00:00.000Z", last_outbound_at: null };
   assert.deepEqual(respostasQualificadasParadas([antiIcp], agora), [], "resposta de anti-ICP em estagio frio nao e qualificada");
   assert.equal(respostasQualificadasParadas([{ ...antiIcp, stage: "proposal" }], agora).length, 1, "no fundo do funil a conversa vale mais que a regra");
+  const pessoal = { id: 7, company: "WhatsApp 1946", stage: "prospect", response_type: "humana", is_prospect: false, last_inbound_at: "2026-09-20T13:00:00.000Z", last_outbound_at: null };
+  assert.deepEqual(respostasQualificadasParadas([pessoal], agora), [], "conversa pessoal (is_prospect=false) nao segura volume (Story 067)");
 
   const lote = avaliarGateFinchLote({ deals, agoraIso: agora, pedido: { governante: 20, estruturado: 20 } });
   assert.equal(lote.aprovado, false);
