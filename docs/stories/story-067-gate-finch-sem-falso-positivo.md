@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for Review (código, dados e migration `copy_variant` aplicados em 25/09/2026; push pendente)
+Done (código, dados, migration `copy_variant` e push concluídos em 25/09/2026)
 
 ## Story
 
@@ -51,7 +51,7 @@ espelhavam (`classifyInboundResponse` no webhook e o regex `AUTORESPONDER` da ca
 - [x] 7. Migration `scripts/migrations/20260925_copy_variant_eventos.sql` aplicada (25/09 14:32): o banco
       recusava `copy_variant='eventos'` e o envio das casas de evento parava na primeira
       mensagem (manhã de 25/09: 1 de 3; tarde: 1 de 10 até a retomada das 14:40).
-- [ ] 8. Push via `@devops`.
+- [x] 8. Push via `@devops`: commit `470ee4e` confirmado no remoto em 25/09/2026.
 
 ## Fora do escopo
 
